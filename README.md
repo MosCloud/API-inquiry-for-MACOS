@@ -11,7 +11,7 @@ API Inquiry is a native macOS menu bar app for checking a DeepSeek API account b
 ## Security
 
 - The API key is stored only in macOS Keychain through `KeychainCredentialStore`.
-- The saved key is never shown in plain text after saving. The UI only shows `Configured`, `Replace`, and `Delete` states.
+- The saved key is never shown in plain text after saving. The UI shows `Configured` by default; the input field, `Replace`, and `Delete` controls appear only after expanding the API key row.
 - Tests use fake keys only and do not require a real DeepSeek account.
 - Do not put real API keys in source files, docs, logs, screenshots, or shell history.
 
@@ -61,6 +61,7 @@ Manual checks:
 
 - First launch with no key shows setup state.
 - Saving a key clears the input field and stores the key in Keychain.
+- After a key is configured, the API key row is collapsed until you expand it.
 - The menu title uses compact balance formatting, for example `DS ¥68.6`.
 - The panel uses full balance formatting, for example `¥68.65 CNY`.
 - Manual refresh uses the same refresh path as automatic refresh.

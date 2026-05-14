@@ -10,6 +10,8 @@ enum MenuBarBalanceViewModelTests {
         testStatusText(using: harness)
         testConfiguredKeyIsNotLoadedIntoInput(using: harness)
         testConfiguredKeyWithoutSnapshotShowsPlaceholderTitle(using: harness)
+        testConfiguredKeyEditorIsCollapsedByDefault(using: harness)
+        testToggleAPIKeyEditorExpandsConfiguredEditor(using: harness)
         await testSavingAPIKeyClearsInputAndRefreshes(using: harness)
         await testDeletingAPIKeyReturnsToSetup(using: harness)
     }
@@ -60,6 +62,24 @@ enum MenuBarBalanceViewModelTests {
         let viewModel = makeViewModel(state: .notConfigured, credentialStore: store)
 
         harness.expectEqual(viewModel.menuBarTitle, "DS --", "configured key placeholder title")
+    }
+
+    @MainActor
+    private static func testConfiguredKeyEditorIsCollapsedByDefault(using harness: TestHarness) {
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "saved-secret-key"])
+        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")), credentialStore: store)
+
+        harness.expectTrue(!viewModel.shouldShowAPIKeyEditor, "configured key editor collapsed by default")
+    }
+
+    @MainActor
+    private static func testToggleAPIKeyEditorExpandsConfiguredEditor(using harness: TestHarness) {
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "saved-secret-key"])
+        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")), credentialStore: store)
+
+        viewModel.toggleAPIKeyEditor()
+
+        harness.expectTrue(viewModel.shouldShowAPIKeyEditor, "configured key editor expands after toggle")
     }
 
     @MainActor

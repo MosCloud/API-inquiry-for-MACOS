@@ -5,6 +5,7 @@ import Foundation
 public final class MenuBarBalanceViewModel: ObservableObject {
     @Published public var apiKeyInput = ""
     @Published public var displayMode: MenuBarDisplayMode
+    @Published public private(set) var isAPIKeyEditorExpanded = false
     @Published public private(set) var settingsMessage: String?
     @Published private var isCredentialConfigured: Bool
 
@@ -110,6 +111,19 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         isCredentialConfigured
     }
 
+    public var shouldShowAPIKeyEditor: Bool {
+        !isCredentialConfigured || isAPIKeyEditorExpanded
+    }
+
+    public func toggleAPIKeyEditor() {
+        guard isCredentialConfigured else {
+            isAPIKeyEditorExpanded = true
+            return
+        }
+
+        isAPIKeyEditorExpanded.toggle()
+    }
+
     public func refresh() async {
         await controller.refresh()
     }
@@ -123,6 +137,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public func beginReplacingAPIKey() {
+        isAPIKeyEditorExpanded = true
         apiKeyInput = ""
         settingsMessage = nil
     }
@@ -139,6 +154,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             apiKeyInput = ""
             settingsMessage = nil
             isCredentialConfigured = true
+            isAPIKeyEditorExpanded = false
             await controller.refresh()
         } catch {
             settingsMessage = Self.settingsMessage(for: error)
@@ -151,6 +167,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             apiKeyInput = ""
             settingsMessage = nil
             isCredentialConfigured = false
+            isAPIKeyEditorExpanded = false
             controller.markNotConfigured()
         } catch {
             settingsMessage = Self.settingsMessage(for: error)

@@ -67,7 +67,7 @@ Opening the menu shows a focused setup panel:
 - save button
 - short status message if validation or saving fails
 
-The API key is visible only while the user is typing it. After saving, the normal UI never shows the key in plain text.
+The API key is visible only while the user is typing it. After saving, the normal UI never shows the key in plain text. When a key is configured, the API key row is collapsed by default and shows only the configured state plus an expand control; expanding the row reveals the replacement field, Replace, and Delete controls.
 
 ### Normal Menu Bar Title
 
@@ -169,7 +169,8 @@ The first release ships one concrete provider: `DeepSeekBalanceProvider`.
   - switches between setup state and balance state
 - `APIKeySettingsView`
   - input-only view for first save or replacement
-  - after save, only shows configured, replace, and delete affordances
+  - after save, shows a collapsed configured row by default
+  - expanding the configured row reveals replace and delete affordances
 
 ## Data Flow
 
@@ -200,7 +201,7 @@ Errors must not include the API key, authorization header, or any other secret.
 - Store API key only in macOS Keychain.
 - Do not persist the API key in UserDefaults, logs, snapshots, crash messages, or plaintext files.
 - Show the API key only while the user is entering or replacing it.
-- After save, UI only shows configured, replace, and delete states.
+- After save, UI only shows a collapsed configured state until the user expands the API key row.
 - Tests must use fake keys and must not require a real DeepSeek account.
 
 ## Testing Plan

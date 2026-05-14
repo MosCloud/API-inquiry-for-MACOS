@@ -86,29 +86,42 @@ struct MenuBarContentView: View {
                 Text(viewModel.credentialStatusText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-
-            SecureField(viewModel.isAPIKeyConfigured ? "New DeepSeek API key" : "DeepSeek API key", text: $viewModel.apiKeyInput)
-                .textFieldStyle(.roundedBorder)
-
-            HStack(spacing: 8) {
-                Button(viewModel.isAPIKeyConfigured ? "Replace" : "Save") {
-                    Task { await viewModel.saveAPIKey() }
-                }
-                .disabled(viewModel.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 if viewModel.isAPIKeyConfigured {
-                    Button("Delete", role: .destructive) {
-                        Task { await viewModel.deleteAPIKey() }
+                    Button {
+                        viewModel.toggleAPIKeyEditor()
+                    } label: {
+                        Image(systemName: viewModel.shouldShowAPIKeyEditor ? "chevron.down" : "chevron.right")
+                            .imageScale(.small)
                     }
+                    .buttonStyle(.borderless)
+                    .help(viewModel.shouldShowAPIKeyEditor ? "Hide API key controls" : "Show API key controls")
                 }
             }
 
-            if let settingsMessage = viewModel.settingsMessage {
-                Text(settingsMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
+            if viewModel.shouldShowAPIKeyEditor {
+                SecureField(viewModel.isAPIKeyConfigured ? "New DeepSeek API key" : "DeepSeek API key", text: $viewModel.apiKeyInput)
+                    .textFieldStyle(.roundedBorder)
+
+                HStack(spacing: 8) {
+                    Button(viewModel.isAPIKeyConfigured ? "Replace" : "Save") {
+                        Task { await viewModel.saveAPIKey() }
+                    }
+                    .disabled(viewModel.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                    if viewModel.isAPIKeyConfigured {
+                        Button("Delete", role: .destructive) {
+                            Task { await viewModel.deleteAPIKey() }
+                        }
+                    }
+                }
+
+                if let settingsMessage = viewModel.settingsMessage {
+                    Text(settingsMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }
