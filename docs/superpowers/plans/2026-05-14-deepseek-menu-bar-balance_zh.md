@@ -377,7 +377,7 @@ git commit -m "feat: store api keys in keychain"
 
 - [ ] **步骤 1：添加失败的刷新和 ViewModel runner 测试**
 
-添加 runner 测试，覆盖缺少凭据、刷新成功、失败时保留上次快照、已加载状态菜单标题格式化、失败状态保留标题、面板余额文本、状态文本，以及保存/配置后清空 API Key 输入。只使用 mock provider 和假 key。
+添加 runner 测试，覆盖缺少凭据、刷新成功、重叠刷新保护、失败时保留上次快照、已加载状态菜单标题格式化、已配置 key 但暂无余额时的占位标题、失败状态保留标题、面板余额文本、状态文本，以及保存/配置后清空 API Key 输入。只使用 mock provider 和假 key。
 
 - [ ] **步骤 2：确认红灯状态**
 
