@@ -14,7 +14,7 @@
 
 This machine has CommandLineTools but no full Xcode installation. Root-cause checks showed that `xcrun --find xctest` fails, no `XCTest.framework` is installed, and Swift's `Testing` module is unavailable. Therefore this project uses a local executable test runner instead of XCTest.
 
-This amendment supersedes older task snippets in this plan that mention `XCTest`, `Tests/APIInquiryCoreTests`, `testTarget`, `swift test`, or `swift test --filter ...`.
+All task sections below have been updated to use this runner-based flow.
 
 Use these rules for implementation tasks:
 
@@ -24,8 +24,6 @@ Use these rules for implementation tasks:
 - Use the local `TestHarness` helpers instead of XCTest assertions.
 - Run tests with `swift run APIInquiryCoreTestsRunner`.
 - Keep using `swift build` for compile verification.
-
-When later tasks say to add tests under `Tests/APIInquiryCoreTests`, add equivalent runner files under `Sources/APIInquiryCoreTestsRunner` instead. When later tasks say `swift test --filter ...`, run `swift run APIInquiryCoreTestsRunner` instead.
 
 ## File Structure
 
@@ -73,14 +71,18 @@ let package = Package(
         .library(
             name: "APIInquiryCore",
             targets: ["APIInquiryCore"]
+        ),
+        .executable(
+            name: "APIInquiryCoreTestsRunner",
+            targets: ["APIInquiryCoreTestsRunner"]
         )
     ],
     targets: [
         .target(
             name: "APIInquiryCore"
         ),
-        .testTarget(
-            name: "APIInquiryCoreTests",
+        .executableTarget(
+            name: "APIInquiryCoreTestsRunner",
             dependencies: ["APIInquiryCore"]
         )
     ]
@@ -270,276 +272,50 @@ git commit -m "chore: add swift package skeleton and balance models"
 
 **Files:**
 - Create: `Sources/APIInquiryCore/Providers/DeepSeekBalanceProvider.swift`
-- Create: `Tests/APIInquiryCoreTests/DeepSeekBalanceProviderTests.swift`
+- Create: `Sources/APIInquiryCoreTestsRunner/DeepSeekBalanceProviderTests.swift`
+- Modify: `Sources/APIInquiryCoreTestsRunner/main.swift` if the new test suite needs to be registered
 
-- [ ] **Step 1: Write failing provider tests**
+- [ ] **Step 1: Write failing provider tests in the local runner**
 
-Create `Tests/APIInquiryCoreTests/DeepSeekBalanceProviderTests.swift`:
+Create `Sources/APIInquiryCoreTestsRunner/DeepSeekBalanceProviderTests.swift` using the existing `TestHarness`, not XCTest. Cover these behaviors with fake API keys and `MockHTTPClient` only:
 
-```swift
-import Foundation
-import XCTest
-@testable import APIInquiryCore
+- CNY is preferred when multiple currencies are returned.
+- The first returned currency is used when CNY is absent.
+- HTTP 401 maps to `.authenticationFailed`.
+- HTTP 429 maps to `.rateLimited`.
+- Invalid `total_balance` maps to `.invalidBalanceAmount("not-a-number")`.
 
-final class DeepSeekBalanceProviderTests: XCTestCase {
-    func testFetchBalancePrefersCNY() async throws {
-        let body = """
-        {
-          "is_available": true,
-          "balance_infos": [
-            {
-              "currency": "USD",
-              "total_balance": "1.25",
-              "granted_balance": "0.25",
-              "topped_up_balance": "1.00"
-            },
-            {
-              "currency": "CNY",
-              "total_balance": "68.65",
-              "granted_balance": "8.65",
-              "topped_up_balance": "60.00"
-            }
-          ]
-        }
-        """.data(using: .utf8)!
-        let client = MockHTTPClient(response: HTTPResponse(data: body, statusCode: 200))
-        let provider = DeepSeekBalanceProvider(httpClient: client, now: { Date(timeIntervalSince1970: 100) })
+Register the test suite from `Sources/APIInquiryCoreTestsRunner/main.swift` if it is not already called.
 
-        let snapshot = try await provider.fetchBalance(apiKey: "test-key")
-
-        XCTAssertEqual(snapshot.providerID, .deepseek)
-        XCTAssertEqual(snapshot.currency, "CNY")
-        XCTAssertEqual(snapshot.totalBalance, Decimal(string: "68.65"))
-        XCTAssertEqual(snapshot.grantedBalance, Decimal(string: "8.65"))
-        XCTAssertEqual(snapshot.toppedUpBalance, Decimal(string: "60.00"))
-        XCTAssertTrue(snapshot.isAvailable)
-        XCTAssertEqual(snapshot.fetchedAt, Date(timeIntervalSince1970: 100))
-        XCTAssertEqual(client.lastRequest?.value(forHTTPHeaderField: "Authorization"), "Bearer test-key")
-        XCTAssertEqual(client.lastRequest?.url?.absoluteString, "https://api.deepseek.com/user/balance")
-    }
-
-    func testFetchBalanceFallsBackToFirstCurrencyWhenCNYIsMissing() async throws {
-        let body = """
-        {
-          "is_available": true,
-          "balance_infos": [
-            {
-              "currency": "USD",
-              "total_balance": "2.50",
-              "granted_balance": "0.00",
-              "topped_up_balance": "2.50"
-            }
-          ]
-        }
-        """.data(using: .utf8)!
-        let provider = DeepSeekBalanceProvider(
-            httpClient: MockHTTPClient(response: HTTPResponse(data: body, statusCode: 200)),
-            now: { Date(timeIntervalSince1970: 200) }
-        )
-
-        let snapshot = try await provider.fetchBalance(apiKey: "test-key")
-
-        XCTAssertEqual(snapshot.currency, "USD")
-        XCTAssertEqual(snapshot.totalBalance, Decimal(string: "2.50"))
-    }
-
-    func testAuthenticationFailureMapsToProviderError() async {
-        let provider = DeepSeekBalanceProvider(
-            httpClient: MockHTTPClient(response: HTTPResponse(data: Data(), statusCode: 401)),
-            now: Date.init
-        )
-
-        do {
-            _ = try await provider.fetchBalance(apiKey: "bad-key")
-            XCTFail("Expected authentication error")
-        } catch {
-            XCTAssertEqual(error as? BalanceProviderError, .authenticationFailed)
-        }
-    }
-
-    func testRateLimitMapsToProviderError() async {
-        let provider = DeepSeekBalanceProvider(
-            httpClient: MockHTTPClient(response: HTTPResponse(data: Data(), statusCode: 429)),
-            now: Date.init
-        )
-
-        do {
-            _ = try await provider.fetchBalance(apiKey: "test-key")
-            XCTFail("Expected rate limit error")
-        } catch {
-            XCTAssertEqual(error as? BalanceProviderError, .rateLimited)
-        }
-    }
-
-    func testInvalidAmountMapsToProviderError() async {
-        let body = """
-        {
-          "is_available": true,
-          "balance_infos": [
-            {
-              "currency": "CNY",
-              "total_balance": "not-a-number",
-              "granted_balance": "0.00",
-              "topped_up_balance": "0.00"
-            }
-          ]
-        }
-        """.data(using: .utf8)!
-        let provider = DeepSeekBalanceProvider(
-            httpClient: MockHTTPClient(response: HTTPResponse(data: body, statusCode: 200)),
-            now: Date.init
-        )
-
-        do {
-            _ = try await provider.fetchBalance(apiKey: "test-key")
-            XCTFail("Expected invalid amount error")
-        } catch {
-            XCTAssertEqual(error as? BalanceProviderError, .invalidBalanceAmount("not-a-number"))
-        }
-    }
-}
-
-private final class MockHTTPClient: HTTPClient {
-    let response: HTTPResponse
-    private(set) var lastRequest: URLRequest?
-
-    init(response: HTTPResponse) {
-        self.response = response
-    }
-
-    func data(for request: URLRequest) async throws -> HTTPResponse {
-        lastRequest = request
-        return response
-    }
-}
-```
-
-- [ ] **Step 2: Run provider tests to verify failure**
+- [ ] **Step 2: Run tests to verify the red state**
 
 Run:
 
 ```bash
-swift test --filter DeepSeekBalanceProviderTests
+swift run APIInquiryCoreTestsRunner
 ```
 
-Expected: FAIL because `DeepSeekBalanceProvider` does not exist.
+Expected: FAIL because `DeepSeekBalanceProvider` does not exist yet.
 
 - [ ] **Step 3: Implement DeepSeek provider**
 
-Create `Sources/APIInquiryCore/Providers/DeepSeekBalanceProvider.swift`:
+Create `Sources/APIInquiryCore/Providers/DeepSeekBalanceProvider.swift` with `DeepSeekBalanceProvider: BalanceProvider`. It must use the injected `HTTPClient`, send `GET https://api.deepseek.com/user/balance` by default, attach `Authorization: Bearer <apiKey>`, decode `is_available` and `balance_infos`, prefer CNY, fall back to the first currency, preserve optional granted and topped-up balances, parse decimals with `Locale(identifier: "en_US_POSIX")`, and map status/error cases as specified in the design.
 
-```swift
-import Foundation
-
-public final class DeepSeekBalanceProvider: BalanceProvider {
-    public let id: ProviderID = .deepseek
-    public let displayName = "DeepSeek"
-    public let menuPrefix = "DS"
-    public let credentialAccount = "deepseek-api-key"
-
-    private let baseURL: URL
-    private let httpClient: HTTPClient
-    private let now: () -> Date
-
-    public init(
-        baseURL: URL = URL(string: "https://api.deepseek.com")!,
-        httpClient: HTTPClient = URLSessionHTTPClient(),
-        now: @escaping () -> Date = Date.init
-    ) {
-        self.baseURL = baseURL
-        self.httpClient = httpClient
-        self.now = now
-    }
-
-    public func fetchBalance(apiKey: String) async throws -> BalanceSnapshot {
-        let url = baseURL.appending(path: "user/balance")
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-
-        let response = try await httpClient.data(for: request)
-        switch response.statusCode {
-        case 200:
-            return try decodeBalance(from: response.data)
-        case 401:
-            throw BalanceProviderError.authenticationFailed
-        case 429:
-            throw BalanceProviderError.rateLimited
-        default:
-            throw BalanceProviderError.serverError(statusCode: response.statusCode)
-        }
-    }
-
-    private func decodeBalance(from data: Data) throws -> BalanceSnapshot {
-        let response: DeepSeekBalanceResponse
-        do {
-            response = try JSONDecoder().decode(DeepSeekBalanceResponse.self, from: data)
-        } catch {
-            throw BalanceProviderError.decodingFailed
-        }
-
-        guard let selected = response.balanceInfos.first(where: { $0.currency == "CNY" }) ?? response.balanceInfos.first else {
-            throw BalanceProviderError.missingBalanceInfo
-        }
-
-        return BalanceSnapshot(
-            providerID: .deepseek,
-            totalBalance: try decimal(from: selected.totalBalance),
-            currency: selected.currency,
-            isAvailable: response.isAvailable,
-            grantedBalance: try selected.grantedBalance.map(decimal(from:)),
-            toppedUpBalance: try selected.toppedUpBalance.map(decimal(from:)),
-            fetchedAt: now()
-        )
-    }
-
-    private func decimal(from value: String) throws -> Decimal {
-        if let decimal = Decimal(string: value, locale: Locale(identifier: "en_US_POSIX")) {
-            return decimal
-        }
-        throw BalanceProviderError.invalidBalanceAmount(value)
-    }
-}
-
-private struct DeepSeekBalanceResponse: Decodable {
-    let isAvailable: Bool
-    let balanceInfos: [DeepSeekBalanceInfo]
-
-    enum CodingKeys: String, CodingKey {
-        case isAvailable = "is_available"
-        case balanceInfos = "balance_infos"
-    }
-}
-
-private struct DeepSeekBalanceInfo: Decodable {
-    let currency: String
-    let totalBalance: String
-    let grantedBalance: String?
-    let toppedUpBalance: String?
-
-    enum CodingKeys: String, CodingKey {
-        case currency
-        case totalBalance = "total_balance"
-        case grantedBalance = "granted_balance"
-        case toppedUpBalance = "topped_up_balance"
-    }
-}
-```
-
-- [ ] **Step 4: Run provider tests**
+- [ ] **Step 4: Run provider tests and build**
 
 Run:
 
 ```bash
-swift test --filter DeepSeekBalanceProviderTests
+swift run APIInquiryCoreTestsRunner
+swift build
 ```
 
-Expected: PASS for all provider tests.
+Expected: both PASS.
 
-- [ ] **Step 5: Commit provider**
+- [ ] **Step 5: Commit provider and runner tests**
 
 ```bash
-git add Sources/APIInquiryCore/Providers/DeepSeekBalanceProvider.swift Tests/APIInquiryCoreTests/DeepSeekBalanceProviderTests.swift
+git add Package.swift Sources/APIInquiryCore/Providers/DeepSeekBalanceProvider.swift Sources/APIInquiryCoreTestsRunner
 git commit -m "feat: add deepseek balance provider"
 ```
 
@@ -549,175 +325,38 @@ git commit -m "feat: add deepseek balance provider"
 
 **Files:**
 - Create: `Sources/APIInquiryCore/Security/CredentialStore.swift`
-- Create: `Tests/APIInquiryCoreTests/KeychainCredentialStoreTests.swift`
+- Create: `Sources/APIInquiryCoreTestsRunner/KeychainCredentialStoreTests.swift`
+- Modify: `Sources/APIInquiryCoreTestsRunner/main.swift`
 
-- [ ] **Step 1: Write failing credential tests**
+- [ ] **Step 1: Add failing credential-store runner tests**
 
-Create `Tests/APIInquiryCoreTests/KeychainCredentialStoreTests.swift`:
+Add runner tests for saving, loading, replacing, and deleting a fake API key with an isolated Keychain service name. Use the local `TestHarness`; do not use XCTest or a real key.
 
-```swift
-import XCTest
-@testable import APIInquiryCore
+- [ ] **Step 2: Verify red state**
 
-final class KeychainCredentialStoreTests: XCTestCase {
-    func testSaveLoadReplaceDeleteCredential() throws {
-        let service = "com.api-inquiry.tests.\(UUID().uuidString)"
-        let store = KeychainCredentialStore(service: service)
-        let account = "deepseek-api-key"
-
-        try store.saveCredential("first-secret", account: account)
-        XCTAssertEqual(try store.loadCredential(account: account), "first-secret")
-
-        try store.saveCredential("second-secret", account: account)
-        XCTAssertEqual(try store.loadCredential(account: account), "second-secret")
-
-        try store.deleteCredential(account: account)
-        XCTAssertNil(try store.loadCredential(account: account))
-    }
-}
-```
-
-- [ ] **Step 2: Run credential tests to verify failure**
-
-Run:
-
-```bash
-swift test --filter KeychainCredentialStoreTests
-```
+Run `swift run APIInquiryCoreTestsRunner`.
 
 Expected: FAIL because `KeychainCredentialStore` does not exist.
 
-- [ ] **Step 3: Implement credential store**
+- [ ] **Step 3: Implement credential storage**
 
-Create `Sources/APIInquiryCore/Security/CredentialStore.swift`:
+Create `CredentialStore`, `CredentialStoreError`, `KeychainCredentialStore`, and `InMemoryCredentialStore`. Store credentials only through macOS Keychain for production and keep the in-memory store for tests/view models.
 
-```swift
-import Foundation
-import Security
-
-public protocol CredentialStore {
-    func loadCredential(account: String) throws -> String?
-    func saveCredential(_ credential: String, account: String) throws
-    func deleteCredential(account: String) throws
-}
-
-public enum CredentialStoreError: Error, Equatable, LocalizedError {
-    case invalidData
-    case unexpectedStatus(OSStatus)
-
-    public var errorDescription: String? {
-        switch self {
-        case .invalidData:
-            return "Stored credential could not be read."
-        case .unexpectedStatus(let status):
-            return "Keychain returned status \(status)."
-        }
-    }
-}
-
-public final class KeychainCredentialStore: CredentialStore {
-    private let service: String
-
-    public init(service: String = "com.api-inquiry.credentials") {
-        self.service = service
-    }
-
-    public func loadCredential(account: String) throws -> String? {
-        var query = baseQuery(account: account)
-        query[kSecReturnData as String] = true
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        if status == errSecItemNotFound {
-            return nil
-        }
-        guard status == errSecSuccess else {
-            throw CredentialStoreError.unexpectedStatus(status)
-        }
-        guard
-            let data = result as? Data,
-            let credential = String(data: data, encoding: .utf8)
-        else {
-            throw CredentialStoreError.invalidData
-        }
-        return credential
-    }
-
-    public func saveCredential(_ credential: String, account: String) throws {
-        let data = Data(credential.utf8)
-        var query = baseQuery(account: account)
-        query[kSecValueData as String] = data
-
-        let status = SecItemAdd(query as CFDictionary, nil)
-        if status == errSecDuplicateItem {
-            let attributes = [kSecValueData as String: data]
-            let updateStatus = SecItemUpdate(baseQuery(account: account) as CFDictionary, attributes as CFDictionary)
-            guard updateStatus == errSecSuccess else {
-                throw CredentialStoreError.unexpectedStatus(updateStatus)
-            }
-            return
-        }
-        guard status == errSecSuccess else {
-            throw CredentialStoreError.unexpectedStatus(status)
-        }
-    }
-
-    public func deleteCredential(account: String) throws {
-        let status = SecItemDelete(baseQuery(account: account) as CFDictionary)
-        if status == errSecItemNotFound {
-            return
-        }
-        guard status == errSecSuccess else {
-            throw CredentialStoreError.unexpectedStatus(status)
-        }
-    }
-
-    private func baseQuery(account: String) -> [String: Any] {
-        [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-    }
-}
-
-public final class InMemoryCredentialStore: CredentialStore {
-    private var values: [String: String] = [:]
-
-    public init(initialValues: [String: String] = [:]) {
-        self.values = initialValues
-    }
-
-    public func loadCredential(account: String) throws -> String? {
-        values[account]
-    }
-
-    public func saveCredential(_ credential: String, account: String) throws {
-        values[account] = credential
-    }
-
-    public func deleteCredential(account: String) throws {
-        values.removeValue(forKey: account)
-    }
-}
-```
-
-- [ ] **Step 4: Run credential tests**
+- [ ] **Step 4: Verify green state and build**
 
 Run:
 
 ```bash
-swift test --filter KeychainCredentialStoreTests
+swift run APIInquiryCoreTestsRunner
+swift build
 ```
 
-Expected: PASS.
+Expected: both PASS.
 
 - [ ] **Step 5: Commit credential storage**
 
 ```bash
-git add Sources/APIInquiryCore/Security/CredentialStore.swift Tests/APIInquiryCoreTests/KeychainCredentialStoreTests.swift
+git add Sources/APIInquiryCore/Security Sources/APIInquiryCoreTestsRunner
 git commit -m "feat: store api keys in keychain"
 ```
 
@@ -728,430 +367,43 @@ git commit -m "feat: store api keys in keychain"
 **Files:**
 - Create: `Sources/APIInquiryCore/Refresh/BalanceRefreshController.swift`
 - Create: `Sources/APIInquiryCore/ViewModels/MenuBarBalanceViewModel.swift`
-- Create: `Tests/APIInquiryCoreTests/BalanceRefreshControllerTests.swift`
-- Create: `Tests/APIInquiryCoreTests/MenuBarBalanceViewModelTests.swift`
+- Create: `Sources/APIInquiryCoreTestsRunner/BalanceRefreshControllerTests.swift`
+- Create: `Sources/APIInquiryCoreTestsRunner/MenuBarBalanceViewModelTests.swift`
+- Modify: `Sources/APIInquiryCoreTestsRunner/main.swift`
 
-- [ ] **Step 1: Write failing refresh controller tests**
+- [ ] **Step 1: Add failing refresh and view-model runner tests**
 
-Create `Tests/APIInquiryCoreTests/BalanceRefreshControllerTests.swift`:
+Add runner tests for missing credential, successful refresh, failure preserving the last snapshot, loaded menu title formatting, failed-state title preservation, panel balance text, status text, and API key input clearing after save/configure. Use mock providers and fake keys only.
 
-```swift
-import XCTest
-@testable import APIInquiryCore
+- [ ] **Step 2: Verify red state**
 
-@MainActor
-final class BalanceRefreshControllerTests: XCTestCase {
-    func testRefreshWithoutCredentialShowsNotConfigured() async {
-        let controller = BalanceRefreshController(
-            provider: MockProvider(snapshot: .sample),
-            credentialStore: InMemoryCredentialStore()
-        )
+Run `swift run APIInquiryCoreTestsRunner`.
 
-        await controller.refresh()
+Expected: FAIL because `BalanceRefreshController` and `MenuBarBalanceViewModel` do not exist.
 
-        XCTAssertEqual(controller.state, .notConfigured)
-    }
+- [ ] **Step 3: Implement refresh controller**
 
-    func testRefreshLoadsSnapshot() async throws {
-        let store = InMemoryCredentialStore(initialValues: ["deepseek-api-key": "test-key"])
-        let controller = BalanceRefreshController(
-            provider: MockProvider(snapshot: .sample),
-            credentialStore: store
-        )
+Implement a `@MainActor` observable controller that reads credentials, prevents overlapping refreshes, preserves last successful snapshots, exposes `BalanceState`, supports manual refresh, supports a 300-second auto-refresh loop, and maps errors to user-facing messages without exposing secrets.
 
-        await controller.refresh()
+- [ ] **Step 4: Implement menu bar view model**
 
-        XCTAssertEqual(controller.state, .loaded(.sample))
-    }
+Implement menu title formatting as `DS ¥68.6`, panel text as `¥68.65 CNY`, setup/error/status text, API key save/replace/delete commands, and production wiring to `DeepSeekBalanceProvider` plus `KeychainCredentialStore`.
 
-    func testFailurePreservesLastSnapshot() async throws {
-        let store = InMemoryCredentialStore(initialValues: ["deepseek-api-key": "test-key"])
-        let provider = ToggleProvider(success: .sample, failure: BalanceProviderError.rateLimited)
-        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
-
-        await controller.refresh()
-        provider.shouldFail = true
-        await controller.refresh()
-
-        XCTAssertEqual(controller.state, .failed(message: "Balance API rate limit reached. Try again shortly.", last: .sample))
-    }
-}
-
-private extension BalanceSnapshot {
-    static let sample = BalanceSnapshot(
-        providerID: .deepseek,
-        totalBalance: Decimal(string: "68.65")!,
-        currency: "CNY",
-        isAvailable: true,
-        grantedBalance: nil,
-        toppedUpBalance: nil,
-        fetchedAt: Date(timeIntervalSince1970: 100)
-    )
-}
-
-private final class MockProvider: BalanceProvider {
-    let id: ProviderID = .deepseek
-    let displayName = "DeepSeek"
-    let menuPrefix = "DS"
-    let credentialAccount = "deepseek-api-key"
-    let snapshot: BalanceSnapshot
-
-    init(snapshot: BalanceSnapshot) {
-        self.snapshot = snapshot
-    }
-
-    func fetchBalance(apiKey: String) async throws -> BalanceSnapshot {
-        snapshot
-    }
-}
-
-private final class ToggleProvider: BalanceProvider {
-    let id: ProviderID = .deepseek
-    let displayName = "DeepSeek"
-    let menuPrefix = "DS"
-    let credentialAccount = "deepseek-api-key"
-    let success: BalanceSnapshot
-    let failure: Error
-    var shouldFail = false
-
-    init(success: BalanceSnapshot, failure: Error) {
-        self.success = success
-        self.failure = failure
-    }
-
-    func fetchBalance(apiKey: String) async throws -> BalanceSnapshot {
-        if shouldFail {
-            throw failure
-        }
-        return success
-    }
-}
-```
-
-- [ ] **Step 2: Write failing view model tests**
-
-Create `Tests/APIInquiryCoreTests/MenuBarBalanceViewModelTests.swift`:
-
-```swift
-import XCTest
-@testable import APIInquiryCore
-
-@MainActor
-final class MenuBarBalanceViewModelTests: XCTestCase {
-    func testMenuBarTitleFormatsLoadedBalance() {
-        let viewModel = MenuBarBalanceViewModel.makePreview(state: .loaded(.sample))
-
-        XCTAssertEqual(viewModel.menuBarTitle, "DS ¥68.6")
-        XCTAssertEqual(viewModel.panelBalanceText, "¥68.65 CNY")
-        XCTAssertEqual(viewModel.statusText, "Available")
-    }
-
-    func testMenuBarTitleKeepsLastSnapshotOnFailure() {
-        let viewModel = MenuBarBalanceViewModel.makePreview(
-            state: .failed(message: "Network unavailable.", last: .sample)
-        )
-
-        XCTAssertEqual(viewModel.menuBarTitle, "DS ¥68.6")
-        XCTAssertEqual(viewModel.statusText, "Network unavailable.")
-    }
-
-    func testSavedKeyIsNeverDisplayed() {
-        let viewModel = MenuBarBalanceViewModel.makePreview(state: .notConfigured)
-        viewModel.apiKeyInput = "secret-key"
-        viewModel.markKeyConfiguredForTesting()
-
-        XCTAssertTrue(viewModel.apiKeyInput.isEmpty)
-        XCTAssertEqual(viewModel.keyStatusText, "API key configured")
-    }
-}
-
-private extension BalanceSnapshot {
-    static let sample = BalanceSnapshot(
-        providerID: .deepseek,
-        totalBalance: Decimal(string: "68.65")!,
-        currency: "CNY",
-        isAvailable: true,
-        grantedBalance: nil,
-        toppedUpBalance: nil,
-        fetchedAt: Date(timeIntervalSince1970: 100)
-    )
-}
-```
-
-- [ ] **Step 3: Run refresh and view model tests to verify failure**
+- [ ] **Step 5: Verify green state and build**
 
 Run:
 
 ```bash
-swift test --filter BalanceRefreshControllerTests
-swift test --filter MenuBarBalanceViewModelTests
+swift run APIInquiryCoreTestsRunner
+swift build
 ```
 
-Expected: FAIL because the controller and view model do not exist.
+Expected: both PASS.
 
-- [ ] **Step 4: Implement refresh controller**
-
-Create `Sources/APIInquiryCore/Refresh/BalanceRefreshController.swift`:
-
-```swift
-import Combine
-import Foundation
-
-@MainActor
-public final class BalanceRefreshController: ObservableObject {
-    @Published public private(set) var state: BalanceState = .notConfigured
-
-    private let provider: BalanceProvider
-    private let credentialStore: CredentialStore
-    private var isRefreshing = false
-    private var timerTask: Task<Void, Never>?
-
-    public init(provider: BalanceProvider, credentialStore: CredentialStore) {
-        self.provider = provider
-        self.credentialStore = credentialStore
-    }
-
-    deinit {
-        timerTask?.cancel()
-    }
-
-    public func refresh() async {
-        if isRefreshing {
-            return
-        }
-
-        let last = state.lastSnapshot
-        let apiKey: String?
-        do {
-            apiKey = try credentialStore.loadCredential(account: provider.credentialAccount)
-        } catch {
-            state = .failed(message: "Could not read API key from Keychain.", last: last)
-            return
-        }
-
-        guard let apiKey, !apiKey.isEmpty else {
-            state = .notConfigured
-            return
-        }
-
-        isRefreshing = true
-        state = .loading(last: last)
-        defer { isRefreshing = false }
-
-        do {
-            let snapshot = try await provider.fetchBalance(apiKey: apiKey)
-            state = .loaded(snapshot)
-        } catch {
-            state = .failed(message: Self.message(for: error), last: last)
-        }
-    }
-
-    public func startAutoRefresh(intervalSeconds: UInt64 = 300) {
-        timerTask?.cancel()
-        timerTask = Task { [weak self] in
-            guard let self else { return }
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: intervalSeconds * 1_000_000_000)
-                await self.refresh()
-            }
-        }
-    }
-
-    public func stopAutoRefresh() {
-        timerTask?.cancel()
-        timerTask = nil
-    }
-
-    public func saveCredential(_ credential: String) throws {
-        try credentialStore.saveCredential(credential, account: provider.credentialAccount)
-    }
-
-    public func deleteCredential() throws {
-        try credentialStore.deleteCredential(account: provider.credentialAccount)
-        state = .notConfigured
-    }
-
-    static func message(for error: Error) -> String {
-        if let localized = error as? LocalizedError, let message = localized.errorDescription {
-            return message
-        }
-        return "Refresh failed. Try again shortly."
-    }
-}
-```
-
-- [ ] **Step 5: Implement menu bar view model**
-
-Create `Sources/APIInquiryCore/ViewModels/MenuBarBalanceViewModel.swift`:
-
-```swift
-import Combine
-import Foundation
-
-@MainActor
-public final class MenuBarBalanceViewModel: ObservableObject {
-    @Published public var apiKeyInput = ""
-    @Published public var isEditingKey = false
-    @Published public private(set) var state: BalanceState
-
-    private let provider: BalanceProvider
-    private let controller: BalanceRefreshController
-    private let displayMode: MenuBarDisplayMode
-
-    public init(
-        provider: BalanceProvider,
-        controller: BalanceRefreshController,
-        displayMode: MenuBarDisplayMode = .text
-    ) {
-        self.provider = provider
-        self.controller = controller
-        self.displayMode = displayMode
-        self.state = controller.state
-    }
-
-    public static func production() -> MenuBarBalanceViewModel {
-        let provider = DeepSeekBalanceProvider()
-        let store = KeychainCredentialStore()
-        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
-        return MenuBarBalanceViewModel(provider: provider, controller: controller)
-    }
-
-    public static func makePreview(state: BalanceState) -> MenuBarBalanceViewModel {
-        let provider = DeepSeekBalanceProvider(httpClient: PreviewHTTPClient())
-        let store = InMemoryCredentialStore()
-        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
-        let viewModel = MenuBarBalanceViewModel(provider: provider, controller: controller)
-        viewModel.state = state
-        return viewModel
-    }
-
-    public var menuBarTitle: String {
-        guard let snapshot = state.lastSnapshot else {
-            return "\(provider.menuPrefix) --"
-        }
-        return "\(provider.menuPrefix) \(format(snapshot.totalBalance, currency: snapshot.currency, fractionDigits: 1, includeCode: false))"
-    }
-
-    public var panelBalanceText: String {
-        guard let snapshot = state.lastSnapshot else {
-            return "--"
-        }
-        return format(snapshot.totalBalance, currency: snapshot.currency, fractionDigits: 2, includeCode: true)
-    }
-
-    public var statusText: String {
-        switch state {
-        case .notConfigured:
-            return "Not configured"
-        case .loading:
-            return "Refreshing"
-        case .loaded(let snapshot):
-            return snapshot.isAvailable ? "Available" : "Balance insufficient"
-        case .failed(let message, _):
-            return message
-        }
-    }
-
-    public var lastRefreshText: String {
-        guard let fetchedAt = state.lastSnapshot?.fetchedAt else {
-            return "Never refreshed"
-        }
-        return "Last refreshed \(Self.relativeFormatter.localizedString(for: fetchedAt, relativeTo: Date()))"
-    }
-
-    public var keyStatusText: String {
-        isEditingKey ? "Enter API key" : "API key configured"
-    }
-
-    public func onAppear() {
-        controller.startAutoRefresh()
-        Task {
-            await refresh()
-        }
-    }
-
-    public func refresh() async {
-        await controller.refresh()
-        state = controller.state
-    }
-
-    public func saveAPIKey() {
-        let trimmed = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            state = .failed(message: "API key cannot be empty.", last: state.lastSnapshot)
-            return
-        }
-        do {
-            try controller.saveCredential(trimmed)
-            apiKeyInput = ""
-            isEditingKey = false
-            Task { await refresh() }
-        } catch {
-            state = .failed(message: "Could not save API key to Keychain.", last: state.lastSnapshot)
-        }
-    }
-
-    public func replaceAPIKey() {
-        apiKeyInput = ""
-        isEditingKey = true
-    }
-
-    public func deleteAPIKey() {
-        do {
-            try controller.deleteCredential()
-            apiKeyInput = ""
-            isEditingKey = true
-            state = controller.state
-        } catch {
-            state = .failed(message: "Could not delete API key from Keychain.", last: state.lastSnapshot)
-        }
-    }
-
-    public func markKeyConfiguredForTesting() {
-        apiKeyInput = ""
-        isEditingKey = false
-    }
-
-    private func format(_ value: Decimal, currency: String, fractionDigits: Int, includeCode: Bool) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currency
-        formatter.currencySymbol = currency == "CNY" ? "¥" : currency
-        formatter.minimumFractionDigits = fractionDigits
-        formatter.maximumFractionDigits = fractionDigits
-        let formatted = formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
-        return includeCode ? "\(formatted) \(currency)" : formatted
-    }
-
-    private static let relativeFormatter: RelativeDateTimeFormatter = {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter
-    }()
-}
-
-private final class PreviewHTTPClient: HTTPClient {
-    func data(for request: URLRequest) async throws -> HTTPResponse {
-        HTTPResponse(data: Data(), statusCode: 500)
-    }
-}
-```
-
-- [ ] **Step 6: Run refresh and view model tests**
-
-Run:
+- [ ] **Step 6: Commit refresh and view model**
 
 ```bash
-swift test --filter BalanceRefreshControllerTests
-swift test --filter MenuBarBalanceViewModelTests
-```
-
-Expected: PASS.
-
-- [ ] **Step 7: Commit refresh and view model**
-
-```bash
-git add Sources/APIInquiryCore/Refresh Sources/APIInquiryCore/ViewModels Tests/APIInquiryCoreTests/BalanceRefreshControllerTests.swift Tests/APIInquiryCoreTests/MenuBarBalanceViewModelTests.swift
+git add Sources/APIInquiryCore/Refresh Sources/APIInquiryCore/ViewModels Sources/APIInquiryCoreTestsRunner
 git commit -m "feat: coordinate balance refresh state"
 ```
 
@@ -1165,265 +417,35 @@ git commit -m "feat: coordinate balance refresh state"
 - Create: `Sources/APIInquiryApp/MenuBarContentView.swift`
 - Create: `Scripts/build-local-app.sh`
 
-- [ ] **Step 1: Add the app executable target to `Package.swift`**
+- [ ] **Step 1: Add the app executable target**
 
-Replace `Package.swift` with:
+Update `Package.swift` to keep `APIInquiryCore` and `APIInquiryCoreTestsRunner`, and add executable product/target `APIInquiryApp` depending on `APIInquiryCore`.
 
-```swift
-// swift-tools-version: 5.9
-import PackageDescription
+- [ ] **Step 2: Create SwiftUI menu bar app**
 
-let package = Package(
-    name: "APIInquiry",
-    platforms: [
-        .macOS(.v13)
-    ],
-    products: [
-        .library(
-            name: "APIInquiryCore",
-            targets: ["APIInquiryCore"]
-        ),
-        .executable(
-            name: "APIInquiryApp",
-            targets: ["APIInquiryApp"]
-        )
-    ],
-    targets: [
-        .target(
-            name: "APIInquiryCore"
-        ),
-        .executableTarget(
-            name: "APIInquiryApp",
-            dependencies: ["APIInquiryCore"]
-        ),
-        .testTarget(
-            name: "APIInquiryCoreTests",
-            dependencies: ["APIInquiryCore"]
-        )
-    ]
-)
-```
-
-- [ ] **Step 2: Create SwiftUI app entry point**
-
-Create `Sources/APIInquiryApp/APIInquiryApp.swift`:
-
-```swift
-import APIInquiryCore
-import AppKit
-import SwiftUI
-
-@main
-struct APIInquiryApp: App {
-    @StateObject private var viewModel = MenuBarBalanceViewModel.production()
-
-    init() {
-        NSApplication.shared.setActivationPolicy(.accessory)
-    }
-
-    var body: some Scene {
-        MenuBarExtra(viewModel.menuBarTitle) {
-            MenuBarContentView(viewModel: viewModel)
-                .onAppear {
-                    viewModel.onAppear()
-                }
-        }
-        .menuBarExtraStyle(.window)
-    }
-}
-```
+Create `APIInquiryApp.swift` with `MenuBarExtra(viewModel.menuBarTitle)`, `.menuBarExtraStyle(.window)`, and accessory activation policy.
 
 - [ ] **Step 3: Create minimal expanded panel**
 
-Create `Sources/APIInquiryApp/MenuBarContentView.swift`:
-
-```swift
-import APIInquiryCore
-import AppKit
-import SwiftUI
-
-struct MenuBarContentView: View {
-    @ObservedObject var viewModel: MenuBarBalanceViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            header
-            balanceBlock
-            statusBlock
-            Divider()
-            keyBlock
-            actionBlock
-        }
-        .padding(16)
-        .frame(width: 280)
-    }
-
-    private var header: some View {
-        HStack {
-            Text("DeepSeek")
-                .font(.headline)
-            Spacer()
-            Button {
-                Task { await viewModel.refresh() }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
-            .buttonStyle(.borderless)
-            .help("Refresh balance")
-        }
-    }
-
-    private var balanceBlock: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(viewModel.panelBalanceText)
-                .font(.system(size: 30, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-            Text(viewModel.statusText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var statusBlock: some View {
-        Text(viewModel.lastRefreshText)
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-    }
-
-    @ViewBuilder
-    private var keyBlock: some View {
-        if viewModel.isEditingKey || viewModel.statusText == "Not configured" {
-            VStack(alignment: .leading, spacing: 8) {
-                SecureField("DeepSeek API Key", text: $viewModel.apiKeyInput)
-                HStack {
-                    Button("Save") {
-                        viewModel.saveAPIKey()
-                    }
-                    Button("Cancel") {
-                        viewModel.apiKeyInput = ""
-                        viewModel.isEditingKey = false
-                    }
-                    .disabled(viewModel.statusText == "Not configured")
-                }
-            }
-        } else {
-            HStack {
-                Text(viewModel.keyStatusText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Replace") {
-                    viewModel.replaceAPIKey()
-                }
-                Button("Delete") {
-                    viewModel.deleteAPIKey()
-                }
-            }
-        }
-    }
-
-    private var actionBlock: some View {
-        HStack {
-            Button("Open Console") {
-                if let url = URL(string: "https://platform.deepseek.com/usage") {
-                    NSWorkspace.shared.open(url)
-                }
-            }
-            Spacer()
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
-            }
-        }
-    }
-}
-```
+Create `MenuBarContentView.swift` with DeepSeek label, large balance, status, last refresh text, refresh icon button, secure API key entry, replace/delete key actions, Open Console, and Quit. Keep the UI minimal; do not add charts.
 
 - [ ] **Step 4: Create local app bundle script**
 
-Create `Scripts/build-local-app.sh`:
+Create `Scripts/build-local-app.sh` that runs `swift build`, builds `.build/APIInquiry.app`, copies the executable, and writes an `Info.plist` with `LSUIElement=true`.
+
+- [ ] **Step 5: Verify runner, build, and app bundle**
+
+Run:
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_DIR="$ROOT_DIR/.build/APIInquiry.app"
-EXECUTABLE_SOURCE="$ROOT_DIR/.build/debug/APIInquiryApp"
-EXECUTABLE_DEST="$APP_DIR/Contents/MacOS/APIInquiry"
-
-cd "$ROOT_DIR"
+swift run APIInquiryCoreTestsRunner
 swift build
-
-rm -rf "$APP_DIR"
-mkdir -p "$APP_DIR/Contents/MacOS"
-mkdir -p "$APP_DIR/Contents/Resources"
-cp "$EXECUTABLE_SOURCE" "$EXECUTABLE_DEST"
-
-cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleDevelopmentRegion</key>
-  <string>en</string>
-  <key>CFBundleExecutable</key>
-  <string>APIInquiry</string>
-  <key>CFBundleIdentifier</key>
-  <string>com.api-inquiry.menu-bar</string>
-  <key>CFBundleInfoDictionaryVersion</key>
-  <string>6.0</string>
-  <key>CFBundleName</key>
-  <string>API Inquiry</string>
-  <key>CFBundlePackageType</key>
-  <string>APPL</string>
-  <key>CFBundleShortVersionString</key>
-  <string>0.1.0</string>
-  <key>CFBundleVersion</key>
-  <string>1</string>
-  <key>LSMinimumSystemVersion</key>
-  <string>13.0</string>
-  <key>LSUIElement</key>
-  <true/>
-  <key>NSPrincipalClass</key>
-  <string>NSApplication</string>
-</dict>
-</plist>
-PLIST
-
-echo "Built $APP_DIR"
-```
-
-- [ ] **Step 5: Make the script executable**
-
-Run:
-
-```bash
-chmod +x Scripts/build-local-app.sh
-```
-
-Expected: command exits successfully.
-
-- [ ] **Step 6: Build the executable**
-
-Run:
-
-```bash
-swift build
-```
-
-Expected: PASS.
-
-- [ ] **Step 7: Build the local `.app` bundle**
-
-Run:
-
-```bash
 Scripts/build-local-app.sh
 ```
 
-Expected: output includes `Built /Users/zbw/Desktop/API-inquiry/.build/APIInquiry.app`.
+Expected: runner and build pass, and the script creates `.build/APIInquiry.app`.
 
-- [ ] **Step 8: Commit app UI and bundle script**
+- [ ] **Step 6: Commit app UI and bundle script**
 
 ```bash
 git add Package.swift Sources/APIInquiryApp Scripts/build-local-app.sh
@@ -1440,93 +462,25 @@ git commit -m "feat: add native menu bar app"
 
 - [ ] **Step 1: Create English README**
 
-Create `README.md`:
-
-````markdown
-# API Inquiry
-
-API Inquiry is a native macOS menu bar app for checking DeepSeek API account balance.
-
-## Requirements
-
-- macOS 13 Ventura or later
-- Xcode command line tools
-- A DeepSeek API key
-
-## Run Tests
-
-```bash
-swift test
-```
-
-## Build Local App
-
-```bash
-Scripts/build-local-app.sh
-```
-
-The app bundle is created at `.build/APIInquiry.app`.
-
-## Security
-
-The DeepSeek API key is stored in macOS Keychain. The app does not show the key after saving.
-````
+Document requirements, `swift run APIInquiryCoreTestsRunner`, `Scripts/build-local-app.sh`, generated `.build/APIInquiry.app`, and Keychain security behavior.
 
 - [ ] **Step 2: Create Chinese README**
 
-Create `README_zh.md`:
+Create the synchronized Chinese version with the same commands and security notes.
 
-````markdown
-# API Inquiry
-
-API Inquiry 是一个原生 macOS 菜单栏应用，用于查询 DeepSeek API 账号余额。
-
-## 运行要求
-
-- macOS 13 Ventura 或更高版本
-- Xcode 命令行工具
-- DeepSeek API Key
-
-## 运行测试
-
-```bash
-swift test
-```
-
-## 构建本地 App
-
-```bash
-Scripts/build-local-app.sh
-```
-
-应用包会生成在 `.build/APIInquiry.app`。
-
-## 安全
-
-DeepSeek API Key 存储在 macOS Keychain 中。保存后，应用不会再显示密钥明文。
-````
-
-- [ ] **Step 3: Run all automated tests**
+- [ ] **Step 3: Run full automated verification**
 
 Run:
 
 ```bash
-swift test
-```
-
-Expected: all tests pass.
-
-- [ ] **Step 4: Build the app bundle**
-
-Run:
-
-```bash
+swift run APIInquiryCoreTestsRunner
+swift build
 Scripts/build-local-app.sh
 ```
 
-Expected: output includes `Built /Users/zbw/Desktop/API-inquiry/.build/APIInquiry.app`.
+Expected: all commands pass.
 
-- [ ] **Step 5: Launch for manual testing**
+- [ ] **Step 4: Launch for manual testing**
 
 Run:
 
@@ -1534,44 +488,35 @@ Run:
 open .build/APIInquiry.app
 ```
 
-Expected: macOS launches the menu bar app. If the sandbox requires approval for `open`, request escalation for this command and explain that it launches the local app for manual UI verification.
+Expected: macOS launches the menu bar app. Request approval if the sandbox blocks `open`.
 
-- [ ] **Step 6: Complete manual checks**
+- [ ] **Step 5: Complete manual checks**
 
-Perform these checks:
+Check no-key setup state, saving a real key locally, menu title balance formatting, panel balance formatting, refresh button, replace/delete key behavior, console link, and quit.
 
-- Launch with no API key and confirm the menu bar title is `DS --`.
-- Open the menu and confirm the panel asks for a DeepSeek API key.
-- Save a real DeepSeek API key locally.
-- Confirm the menu bar title changes to `DS ¥<balance with one decimal>`.
-- Confirm the panel shows `¥<balance with two decimals> CNY`.
-- Click refresh and confirm the app stays responsive.
-- Replace the API key and confirm the old key is not displayed.
-- Delete the API key and confirm setup state returns.
-- Click Open Console and confirm `https://platform.deepseek.com/usage` opens.
-- Quit the app from the panel.
-
-- [ ] **Step 7: Commit README and verification docs**
+- [ ] **Step 6: Commit README files**
 
 ```bash
 git add README.md README_zh.md
 git commit -m "docs: add local run instructions"
 ```
 
-- [ ] **Step 8: Final verification before handoff**
+- [ ] **Step 7: Final verification before handoff**
 
 Run:
 
 ```bash
 git status --short
-swift test
+swift run APIInquiryCoreTestsRunner
+swift build
 Scripts/build-local-app.sh
 ```
 
 Expected:
 
 - `git status --short` prints no tracked source changes.
-- `swift test` passes.
+- `swift run APIInquiryCoreTestsRunner` passes.
+- `swift build` passes.
 - `Scripts/build-local-app.sh` builds `.build/APIInquiry.app`.
 
 ---
