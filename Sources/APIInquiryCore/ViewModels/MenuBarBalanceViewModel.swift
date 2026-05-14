@@ -106,6 +106,10 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         isCredentialConfigured ? "Configured" : "Not configured"
     }
 
+    public var isAPIKeyConfigured: Bool {
+        isCredentialConfigured
+    }
+
     public func refresh() async {
         await controller.refresh()
     }
