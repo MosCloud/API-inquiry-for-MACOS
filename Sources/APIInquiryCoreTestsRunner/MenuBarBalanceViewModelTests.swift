@@ -5,6 +5,7 @@ enum MenuBarBalanceViewModelTests {
     @MainActor
     static func run(using harness: TestHarness) async {
         testLoadedMenuTitleFormatting(using: harness)
+        testLoadedMenuBarValueFormatting(using: harness)
         testFailedStatePreservesMenuTitle(using: harness)
         testPanelBalanceTextFormatting(using: harness)
         testStatusText(using: harness)
@@ -21,6 +22,13 @@ enum MenuBarBalanceViewModelTests {
         let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")))
 
         harness.expectEqual(viewModel.menuBarTitle, "DS ¥68.6", "loaded menu title")
+    }
+
+    @MainActor
+    private static func testLoadedMenuBarValueFormatting(using harness: TestHarness) {
+        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")))
+
+        harness.expectEqual(viewModel.menuBarValueText, "¥68.6", "loaded menu bar value")
     }
 
     @MainActor

@@ -63,6 +63,18 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         return "\(provider.menuPrefix) \(Self.formatAmount(snapshot.totalBalance, currency: snapshot.currency, fractionDigits: 1, includeCurrencyCode: false))"
     }
 
+    public var menuBarValueText: String {
+        if case .notConfigured = state {
+            return isCredentialConfigured ? "--" : "Setup"
+        }
+
+        guard let snapshot = state.lastSnapshot else {
+            return "--"
+        }
+
+        return Self.formatAmount(snapshot.totalBalance, currency: snapshot.currency, fractionDigits: 1, includeCurrencyCode: false)
+    }
+
     public var panelBalanceText: String {
         guard let snapshot = state.lastSnapshot else {
             return "--"

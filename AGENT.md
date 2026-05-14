@@ -42,8 +42,8 @@ Read the approved docs before implementation:
 First release includes:
 
 - DeepSeek balance query through `GET https://api.deepseek.com/user/balance`.
-- Menu bar title based on `DS ¥68.6`.
-- Minimal expanded panel with balance, status, last refresh time, refresh button, console link, settings, and quit.
+- Menu bar label based on a DeepSeek template icon plus compact value such as `¥68.6`.
+- Minimal expanded panel with DeepSeek logo, balance, status, last refresh time, refresh button, console link, settings, and quit.
 - Provider abstraction for future API providers.
 
 First release excludes:

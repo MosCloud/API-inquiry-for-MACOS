@@ -18,8 +18,19 @@ struct APIInquiryApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra(viewModel.menuBarTitle) {
+        MenuBarExtra {
             MenuBarContentView(viewModel: viewModel)
+        } label: {
+            HStack(spacing: 4) {
+                Image("deepseek-menu-icon-template", bundle: .module)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 17, height: 17)
+
+                Text(viewModel.menuBarValueText)
+                    .monospacedDigit()
+            }
         }
         .menuBarExtraStyle(.window)
     }

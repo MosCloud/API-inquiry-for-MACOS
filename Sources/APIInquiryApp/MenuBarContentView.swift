@@ -31,8 +31,12 @@ struct MenuBarContentView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Text(viewModel.providerDisplayName)
-                .font(.headline)
+            Image("deepseek-logo-header", bundle: .module)
+                .resizable()
+                .renderingMode(.original)
+                .scaledToFit()
+                .frame(width: 156, height: 33, alignment: .leading)
+                .accessibilityLabel(viewModel.providerDisplayName)
 
             Spacer()
 

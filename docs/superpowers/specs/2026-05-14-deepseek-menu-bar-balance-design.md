@@ -4,7 +4,7 @@
 
 Build a native macOS menu bar app named API Inquiry. The first release focuses on one job: use DeepSeek's official API to query the account balance and keep that balance visible in the macOS menu bar.
 
-The menu bar title starts with `DS ¥68.6` style text. The expanded panel shows a minimal DeepSeek balance view with manual refresh, status, last refresh time, API key settings, an external console link, and quit. Detailed usage charts, local DeepSeek console features, and multi-provider UI are intentionally deferred.
+The menu bar title uses a DeepSeek template icon plus compact balance text such as `¥68.6`. The expanded panel shows a minimal DeepSeek balance view headed by the DeepSeek logo, with manual refresh, status, last refresh time, API key settings, an external console link, and quit. Detailed usage charts, local DeepSeek console features, and multi-provider UI are intentionally deferred.
 
 ## Goals
 
@@ -71,27 +71,27 @@ The API key is visible only while the user is typing it. After saving, the norma
 
 ### Normal Menu Bar Title
 
-The base title format is:
+The base menu bar label format is:
 
 ```text
-DS ¥68.6
+[DeepSeek icon] ¥68.6
 ```
 
 Rules:
 
-- Use provider prefix `DS`.
+- Use a monochrome template DeepSeek icon in place of the `DS` text prefix.
 - Use the currency symbol for CNY when possible.
 - Show one decimal place in the menu bar to save space.
 - Keep the last successful balance visible if a later refresh fails.
-- If the app has no successful balance yet, show `DS --`.
+- If the app has no successful balance yet, show the DeepSeek icon plus `--`.
 
-An optimized future display can add a provider icon before the balance, such as icon plus `¥68.65`. The first implementation should keep room in the view model for this display mode but does not need a settings toggle.
+The textual `DS` fallback remains available in the view model for tests and accessibility, while the app label uses the icon-first display.
 
 ### Expanded Panel
 
 The expanded panel should be extremely minimal:
 
-- DeepSeek label
+- DeepSeek logo image
 - large balance value, such as `¥68.65 CNY`
 - small status line:
   - available
@@ -190,7 +190,7 @@ The first release ships one concrete provider: `DeepSeekBalanceProvider`.
 - Missing key: show setup state.
 - Invalid key or authentication failure: show a clear "API key may be invalid" message and offer replace/delete.
 - Insufficient balance response: show balance plus unavailable status.
-- Network failure: keep last successful value if present; otherwise show `DS --`.
+- Network failure: keep last successful value if present; otherwise show the DeepSeek icon plus `--`.
 - Non-JSON or schema mismatch: show refresh failed and preserve last successful value.
 - Rate limit or server error: show refresh failed with a short retry-oriented message.
 
@@ -211,7 +211,7 @@ Errors must not include the API key, authorization header, or any other secret.
 - Decode a successful DeepSeek balance response.
 - Prefer CNY balance when multiple currencies are returned.
 - Fall back to the first balance when CNY is absent.
-- Format menu bar title as `DS ¥68.6`.
+- Format menu bar title as DeepSeek icon plus `¥68.6`.
 - Format full panel balance as `¥68.65 CNY`.
 - Preserve last successful snapshot when refresh fails.
 - Map missing key, invalid key, insufficient balance, network failure, and server failure into correct UI states.

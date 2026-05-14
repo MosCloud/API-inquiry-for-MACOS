@@ -30,7 +30,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "APIInquiryApp",
-            dependencies: ["APIInquiryCore"]
+            dependencies: ["APIInquiryCore"],
+            resources: [
+                .process("Resources")
+            ]
         )
     ]
 )
