@@ -39,6 +39,7 @@
 - 创建 `Sources/APIInquiryApp/MenuBarContentView.swift`：极简展开面板和 API Key 设置 UI。
 - 创建 `Scripts/build-local-app.sh`：带 `LSUIElement=true` 的本地 `.app` bundle 构建脚本。
 - 创建 `Sources/APIInquiryCoreTestsRunner/TestHarness.swift`：用于本地验证的轻量断言 harness。
+- 创建 `Sources/APIInquiryCoreTestsRunner/TestHarnessTests.swift`：自检 runner 在没有执行任何断言时会失败。
 - 创建 `Sources/APIInquiryCoreTestsRunner/main.swift`：运行全部 core 行为测试的 async 入口。
 - 创建 `Sources/APIInquiryCoreTestsRunner/DeepSeekBalanceProviderTests.swift`：供应商解码和错误测试。
 - 创建 `Sources/APIInquiryCoreTestsRunner/BalanceRefreshControllerTests.swift`：刷新状态和上次快照测试。
@@ -273,6 +274,8 @@ git commit -m "chore: add swift package skeleton and balance models"
 **文件：**
 - 创建：`Sources/APIInquiryCore/Providers/DeepSeekBalanceProvider.swift`
 - 创建：`Sources/APIInquiryCoreTestsRunner/DeepSeekBalanceProviderTests.swift`
+- 创建：`Sources/APIInquiryCoreTestsRunner/TestHarnessTests.swift`
+- 修改：`Sources/APIInquiryCoreTestsRunner/TestHarness.swift`
 - 必要时修改：`Sources/APIInquiryCoreTestsRunner/main.swift`，注册新的测试套件
 
 - [ ] **步骤 1：在本地 runner 中编写失败的 provider 测试**
@@ -283,7 +286,8 @@ git commit -m "chore: add swift package skeleton and balance models"
 - 没有 CNY 时回退到第一个返回币种。
 - HTTP 401 映射为 `.authenticationFailed`。
 - HTTP 429 映射为 `.rateLimited`。
-- 非法 `total_balance` 映射为 `.invalidBalanceAmount("not-a-number")`。
+- 非法 `total_balance` 映射为 `.invalidBalanceAmount(...)`，包括完全非数字字符串、`1.23abc` 这类尾随脏字符，以及 `1,234.56` 这类分组分隔符。
+- 本地 `TestHarness` 在没有执行任何断言时必须失败，而不是报告 `PASS: 0 expectations`。
 
 如果测试套件还没有被调用，需要从 `Sources/APIInquiryCoreTestsRunner/main.swift` 注册。
 

@@ -8,6 +8,8 @@ enum DeepSeekBalanceProviderTests {
         await testAuthenticationFailureMapsToProviderError(using: harness)
         await testRateLimitMapsToProviderError(using: harness)
         await testInvalidAmountMapsToProviderError(using: harness)
+        await testInvalidAmountRejectsTrailingCharacters(using: harness)
+        await testInvalidAmountRejectsGroupingSeparators(using: harness)
     }
 
     private static func testFetchBalancePrefersCNY(using harness: TestHarness) async {
@@ -128,8 +130,46 @@ enum DeepSeekBalanceProviderTests {
         }, "invalid total_balance maps to invalidBalanceAmount")
     }
 
+    private static func testInvalidAmountRejectsTrailingCharacters(using harness: TestHarness) async {
+        let provider = DeepSeekBalanceProvider(httpClient: MockHTTPClient(response: HTTPResponse(
+            data: responseData(totalBalance: "1.23abc"),
+            statusCode: 200
+        )))
+
+        await harness.expectThrowsBalanceProviderError(.invalidBalanceAmount("1.23abc"), {
+            _ = try await provider.fetchBalance(apiKey: "test-key")
+        }, "trailing characters map to invalidBalanceAmount")
+    }
+
+    private static func testInvalidAmountRejectsGroupingSeparators(using harness: TestHarness) async {
+        let provider = DeepSeekBalanceProvider(httpClient: MockHTTPClient(response: HTTPResponse(
+            data: responseData(totalBalance: "1,234.56"),
+            statusCode: 200
+        )))
+
+        await harness.expectThrowsBalanceProviderError(.invalidBalanceAmount("1,234.56"), {
+            _ = try await provider.fetchBalance(apiKey: "test-key")
+        }, "grouping separators map to invalidBalanceAmount")
+    }
+
     private static func decimal(_ value: String) -> Decimal {
         Decimal(string: value, locale: Locale(identifier: "en_US_POSIX"))!
+    }
+
+    private static func responseData(totalBalance: String) -> Data {
+        """
+        {
+          "is_available": true,
+          "balance_infos": [
+            {
+              "currency": "CNY",
+              "total_balance": "\(totalBalance)",
+              "granted_balance": "0.23",
+              "topped_up_balance": "1.00"
+            }
+          ]
+        }
+        """.data(using: .utf8)!
     }
 }
 

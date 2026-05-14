@@ -72,10 +72,40 @@ public final class DeepSeekBalanceProvider: BalanceProvider {
     }
 
     private func parseAmount(_ value: String) throws -> Decimal {
-        guard let decimal = Decimal(string: value, locale: decimalLocale) else {
+        guard isPlainDecimalString(value),
+              let decimal = Decimal(string: value, locale: decimalLocale) else {
             throw BalanceProviderError.invalidBalanceAmount(value)
         }
         return decimal
+    }
+
+    private func isPlainDecimalString(_ value: String) -> Bool {
+        guard !value.isEmpty else {
+            return false
+        }
+
+        var hasDigit = false
+        var hasDecimalSeparator = false
+
+        for (offset, scalar) in value.unicodeScalars.enumerated() {
+            switch scalar.value {
+            case 45:
+                guard offset == 0 else {
+                    return false
+                }
+            case 46:
+                guard hasDigit, !hasDecimalSeparator else {
+                    return false
+                }
+                hasDecimalSeparator = true
+            case 48...57:
+                hasDigit = true
+            default:
+                return false
+            }
+        }
+
+        return hasDigit && value.unicodeScalars.last?.value != 46
     }
 }
 

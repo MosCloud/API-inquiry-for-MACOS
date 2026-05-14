@@ -2,6 +2,11 @@ import APIInquiryCore
 import Darwin
 import Foundation
 
+enum TestHarnessResult: Equatable {
+    case passed(expectationCount: Int)
+    case failed(expectationCount: Int, failures: [String])
+}
+
 final class TestHarness {
     private var expectationCount = 0
     private var failures: [String] = []
@@ -41,16 +46,30 @@ final class TestHarness {
         }
     }
 
-    func finish() -> Never {
-        if failures.isEmpty {
-            print("PASS: \(expectationCount) expectations")
-            exit(0)
+    var result: TestHarnessResult {
+        if expectationCount == 0 && failures.isEmpty {
+            return .failed(expectationCount: 0, failures: ["No expectations were run."])
         }
 
-        print("FAIL: \(failures.count) failure(s) across \(expectationCount) expectations")
-        for failure in failures {
-            print("- \(failure)")
+        if failures.isEmpty {
+            return .passed(expectationCount: expectationCount)
         }
-        exit(1)
+
+        return .failed(expectationCount: expectationCount, failures: failures)
+    }
+
+    func finish() -> Never {
+        switch result {
+        case .passed(let expectationCount):
+            print("PASS: \(expectationCount) expectations")
+            exit(0)
+
+        case .failed(let expectationCount, let failures):
+            print("FAIL: \(failures.count) failure(s) across \(expectationCount) expectations")
+            for failure in failures {
+                print("- \(failure)")
+            }
+            exit(1)
+        }
     }
 }

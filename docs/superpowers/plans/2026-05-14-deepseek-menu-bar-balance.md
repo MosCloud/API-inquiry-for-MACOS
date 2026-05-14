@@ -39,6 +39,7 @@ Use these rules for implementation tasks:
 - Create `Sources/APIInquiryApp/MenuBarContentView.swift`: minimal expanded panel and API key settings UI.
 - Create `Scripts/build-local-app.sh`: local `.app` bundle builder with `LSUIElement=true`.
 - Create `Sources/APIInquiryCoreTestsRunner/TestHarness.swift`: lightweight assertion harness for local verification.
+- Create `Sources/APIInquiryCoreTestsRunner/TestHarnessTests.swift`: self-checks that the runner fails if no expectations are executed.
 - Create `Sources/APIInquiryCoreTestsRunner/main.swift`: async entry point that runs all core behavior tests.
 - Create `Sources/APIInquiryCoreTestsRunner/DeepSeekBalanceProviderTests.swift`: provider decoding and error tests.
 - Create `Sources/APIInquiryCoreTestsRunner/BalanceRefreshControllerTests.swift`: refresh state and last-snapshot tests.
@@ -273,6 +274,8 @@ git commit -m "chore: add swift package skeleton and balance models"
 **Files:**
 - Create: `Sources/APIInquiryCore/Providers/DeepSeekBalanceProvider.swift`
 - Create: `Sources/APIInquiryCoreTestsRunner/DeepSeekBalanceProviderTests.swift`
+- Create: `Sources/APIInquiryCoreTestsRunner/TestHarnessTests.swift`
+- Modify: `Sources/APIInquiryCoreTestsRunner/TestHarness.swift`
 - Modify: `Sources/APIInquiryCoreTestsRunner/main.swift` if the new test suite needs to be registered
 
 - [ ] **Step 1: Write failing provider tests in the local runner**
@@ -283,7 +286,8 @@ Create `Sources/APIInquiryCoreTestsRunner/DeepSeekBalanceProviderTests.swift` us
 - The first returned currency is used when CNY is absent.
 - HTTP 401 maps to `.authenticationFailed`.
 - HTTP 429 maps to `.rateLimited`.
-- Invalid `total_balance` maps to `.invalidBalanceAmount("not-a-number")`.
+- Invalid `total_balance` maps to `.invalidBalanceAmount(...)`, including fully nonnumeric strings, trailing junk such as `1.23abc`, and grouping separators such as `1,234.56`.
+- The local `TestHarness` fails instead of reporting `PASS: 0 expectations` when no expectations are executed.
 
 Register the test suite from `Sources/APIInquiryCoreTestsRunner/main.swift` if it is not already called.
 
