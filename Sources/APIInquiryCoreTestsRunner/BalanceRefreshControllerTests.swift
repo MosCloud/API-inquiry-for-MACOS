@@ -8,6 +8,8 @@ enum BalanceRefreshControllerTests {
         await testSuccessfulRefreshLoadsSnapshot(using: harness)
         await testFailurePreservesLastSnapshot(using: harness)
         await testOverlappingRefreshDoesNotStartSecondProviderCall(using: harness)
+        await testCancellationRestoresPreviousState(using: harness)
+        await testCancelledURLErrorRestoresPreviousState(using: harness)
         testDefaultRefreshIntervalIsFiveMinutes(using: harness)
     }
 
@@ -79,6 +81,38 @@ enum BalanceRefreshControllerTests {
         await secondRefresh.value
 
         harness.expectEqual(controller.state, .loaded(snapshot), "overlapping refresh final state")
+    }
+
+    @MainActor
+    private static func testCancellationRestoresPreviousState(using harness: TestHarness) async {
+        let snapshot = makeSnapshot(total: "68.65")
+        let provider = MockBalanceProvider(results: [
+            .success(snapshot),
+            .failure(CancellationError())
+        ])
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+
+        await controller.refresh()
+        await controller.refresh()
+
+        harness.expectEqual(controller.state, .loaded(snapshot), "cancellation restores previous state")
+    }
+
+    @MainActor
+    private static func testCancelledURLErrorRestoresPreviousState(using harness: TestHarness) async {
+        let snapshot = makeSnapshot(total: "68.65")
+        let provider = MockBalanceProvider(results: [
+            .success(snapshot),
+            .failure(URLError(.cancelled))
+        ])
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+
+        await controller.refresh()
+        await controller.refresh()
+
+        harness.expectEqual(controller.state, .loaded(snapshot), "cancelled URL error restores previous state")
     }
 
     @MainActor

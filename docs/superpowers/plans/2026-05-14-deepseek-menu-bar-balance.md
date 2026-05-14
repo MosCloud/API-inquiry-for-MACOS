@@ -377,7 +377,7 @@ git commit -m "feat: store api keys in keychain"
 
 - [ ] **Step 1: Add failing refresh and view-model runner tests**
 
-Add runner tests for missing credential, successful refresh, overlapping refresh prevention, failure preserving the last snapshot, loaded menu title formatting, configured-key placeholder title, failed-state title preservation, panel balance text, status text, and API key input clearing after save/configure. Use mock providers and fake keys only.
+Add runner tests for missing credential, successful refresh, overlapping refresh prevention, cancellation restoring the previous state without surfacing a false failure, failure preserving the last snapshot, loaded menu title formatting, configured-key placeholder title, failed-state title preservation, panel balance text, status text, and API key input clearing after save/configure. Use mock providers and fake keys only.
 
 - [ ] **Step 2: Verify red state**
 

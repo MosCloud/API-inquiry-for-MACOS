@@ -35,6 +35,8 @@ public final class BalanceRefreshController: ObservableObject {
         isRefreshing = true
         defer { isRefreshing = false }
 
+        let previousState = state
+
         do {
             guard let apiKey = try credentialStore.credential(forAccount: provider.credentialAccount),
                   !apiKey.isEmpty else {
@@ -44,7 +46,12 @@ public final class BalanceRefreshController: ObservableObject {
 
             state = .loading(last: state.lastSnapshot)
             let snapshot = try await provider.fetchBalance(apiKey: apiKey)
+            try Task.checkCancellation()
             state = .loaded(snapshot)
+        } catch is CancellationError {
+            state = previousState
+        } catch let error as URLError where error.code == .cancelled {
+            state = previousState
         } catch {
             state = .failed(message: Self.userMessage(for: error), last: state.lastSnapshot)
         }
