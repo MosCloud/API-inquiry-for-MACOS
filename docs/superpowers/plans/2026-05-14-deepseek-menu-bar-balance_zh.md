@@ -6,13 +6,30 @@
 
 **架构：** 使用 Swift Package，拆成可测试的 `APIInquiryCore` library 和很薄的 `APIInquiryApp` SwiftUI executable。Core 负责供应商抽象、DeepSeek 解码、Keychain 存储、刷新编排和格式化；App target 负责 `MenuBarExtra` UI 和 macOS 行为。
 
-**技术栈：** Swift 5.9+、SwiftUI、AppKit、URLSession、Security/Keychain、XCTest、Swift Package Manager。
+**技术栈：** Swift 5.9+、SwiftUI、AppKit、URLSession、Security/Keychain、Swift Package Manager、本地 Swift 可执行测试 runner。
 
 ---
 
+## 测试环境修订
+
+这台机器安装了 CommandLineTools，但没有完整 Xcode。根因检查显示：`xcrun --find xctest` 失败，系统没有安装 `XCTest.framework`，Swift 的 `Testing` 模块也不可用。因此本项目使用本地可执行测试 runner，而不是 XCTest。
+
+本修订覆盖本计划后续旧片段中提到的 `XCTest`、`Tests/APIInquiryCoreTests`、`testTarget`、`swift test` 或 `swift test --filter ...`。
+
+实现任务使用以下规则：
+
+- 测试 runner target：`APIInquiryCoreTestsRunner`。
+- 测试 runner 文件放在 `Sources/APIInquiryCoreTestsRunner/`。
+- 行为测试写成函数，并从 `Sources/APIInquiryCoreTestsRunner/main.swift` 调用。
+- 使用本地 `TestHarness` 辅助方法，不使用 XCTest 断言。
+- 使用 `swift run APIInquiryCoreTestsRunner` 运行测试。
+- 继续使用 `swift build` 做编译验证。
+
+当后续任务要求在 `Tests/APIInquiryCoreTests` 下添加测试时，改为在 `Sources/APIInquiryCoreTestsRunner` 下添加等价 runner 文件。当后续任务要求运行 `swift test --filter ...` 时，改为运行 `swift run APIInquiryCoreTestsRunner`。
+
 ## 文件结构
 
-- 创建 `Package.swift`：先定义 core library 和 test target；当 UI 入口存在后再加入 app executable target。
+- 创建 `Package.swift`：定义 core library 和本地测试 runner executable；当 UI 入口存在后再加入 app executable target。
 - 创建 `Sources/APIInquiryCore/Models/BalanceModels.swift`：供应商 id、余额快照、余额状态和展示模式模型。
 - 创建 `Sources/APIInquiryCore/Providers/BalanceProvider.swift`：供应商协议和供应商错误定义。
 - 创建 `Sources/APIInquiryCore/Networking/HTTPClient.swift`：可注入 HTTP client 抽象和 URLSession 实现。
@@ -23,10 +40,12 @@
 - 创建 `Sources/APIInquiryApp/APIInquiryApp.swift`：SwiftUI `MenuBarExtra` 应用入口。
 - 创建 `Sources/APIInquiryApp/MenuBarContentView.swift`：极简展开面板和 API Key 设置 UI。
 - 创建 `Scripts/build-local-app.sh`：带 `LSUIElement=true` 的本地 `.app` bundle 构建脚本。
-- 创建 `Tests/APIInquiryCoreTests/DeepSeekBalanceProviderTests.swift`：供应商解码和错误测试。
-- 创建 `Tests/APIInquiryCoreTests/BalanceRefreshControllerTests.swift`：刷新状态和上次快照测试。
-- 创建 `Tests/APIInquiryCoreTests/MenuBarBalanceViewModelTests.swift`：标题、面板文本和 key 可见性测试。
-- 创建 `Tests/APIInquiryCoreTests/KeychainCredentialStoreTests.swift`：使用隔离 service name 测试保存、读取、替换和删除。
+- 创建 `Sources/APIInquiryCoreTestsRunner/TestHarness.swift`：用于本地验证的轻量断言 harness。
+- 创建 `Sources/APIInquiryCoreTestsRunner/main.swift`：运行全部 core 行为测试的 async 入口。
+- 创建 `Sources/APIInquiryCoreTestsRunner/DeepSeekBalanceProviderTests.swift`：供应商解码和错误测试。
+- 创建 `Sources/APIInquiryCoreTestsRunner/BalanceRefreshControllerTests.swift`：刷新状态和上次快照测试。
+- 创建 `Sources/APIInquiryCoreTestsRunner/MenuBarBalanceViewModelTests.swift`：标题、面板文本和 key 可见性测试。
+- 创建 `Sources/APIInquiryCoreTestsRunner/KeychainCredentialStoreTests.swift`：使用隔离 service name 测试保存、读取、替换和删除。
 
 ---
 
@@ -37,7 +56,7 @@
 - 创建：`Sources/APIInquiryCore/Models/BalanceModels.swift`
 - 创建：`Sources/APIInquiryCore/Providers/BalanceProvider.swift`
 - 创建：`Sources/APIInquiryCore/Networking/HTTPClient.swift`
-- 测试：后续测试文件加入后，`swift test` 编译空测试 target。
+- 测试：`swift build` 编译初始 core target；测试 runner 创建后，通过 `APIInquiryCoreTestsRunner` 运行行为测试。
 
 - [ ] **步骤 1：创建 `Package.swift`**
 

@@ -6,13 +6,30 @@
 
 **Architecture:** Use a Swift Package with a testable `APIInquiryCore` library and a thin `APIInquiryApp` SwiftUI executable. Core owns provider abstractions, DeepSeek decoding, Keychain storage, refresh orchestration, and formatting; the app target owns `MenuBarExtra` UI and macOS actions.
 
-**Tech Stack:** Swift 5.9+, SwiftUI, AppKit, URLSession, Security/Keychain, XCTest, Swift Package Manager.
+**Tech Stack:** Swift 5.9+, SwiftUI, AppKit, URLSession, Security/Keychain, Swift Package Manager, local Swift executable test runner.
 
 ---
 
+## Testing Environment Amendment
+
+This machine has CommandLineTools but no full Xcode installation. Root-cause checks showed that `xcrun --find xctest` fails, no `XCTest.framework` is installed, and Swift's `Testing` module is unavailable. Therefore this project uses a local executable test runner instead of XCTest.
+
+This amendment supersedes older task snippets in this plan that mention `XCTest`, `Tests/APIInquiryCoreTests`, `testTarget`, `swift test`, or `swift test --filter ...`.
+
+Use these rules for implementation tasks:
+
+- Test runner target: `APIInquiryCoreTestsRunner`.
+- Test runner files live under `Sources/APIInquiryCoreTestsRunner/`.
+- Add behavior tests as functions called from `Sources/APIInquiryCoreTestsRunner/main.swift`.
+- Use the local `TestHarness` helpers instead of XCTest assertions.
+- Run tests with `swift run APIInquiryCoreTestsRunner`.
+- Keep using `swift build` for compile verification.
+
+When later tasks say to add tests under `Tests/APIInquiryCoreTests`, add equivalent runner files under `Sources/APIInquiryCoreTestsRunner` instead. When later tasks say `swift test --filter ...`, run `swift run APIInquiryCoreTestsRunner` instead.
+
 ## File Structure
 
-- Create `Package.swift`: Swift Package definition with a core library and test target first; the app executable target is added when the UI entry point exists.
+- Create `Package.swift`: Swift Package definition with a core library and local test runner executable; the app executable target is added when the UI entry point exists.
 - Create `Sources/APIInquiryCore/Models/BalanceModels.swift`: provider id, balance snapshot, balance state, and display mode models.
 - Create `Sources/APIInquiryCore/Providers/BalanceProvider.swift`: provider protocol and provider error definitions.
 - Create `Sources/APIInquiryCore/Networking/HTTPClient.swift`: injectable HTTP client abstraction plus URLSession implementation.
@@ -23,10 +40,12 @@
 - Create `Sources/APIInquiryApp/APIInquiryApp.swift`: SwiftUI `MenuBarExtra` app entry point.
 - Create `Sources/APIInquiryApp/MenuBarContentView.swift`: minimal expanded panel and API key settings UI.
 - Create `Scripts/build-local-app.sh`: local `.app` bundle builder with `LSUIElement=true`.
-- Create `Tests/APIInquiryCoreTests/DeepSeekBalanceProviderTests.swift`: provider decoding and error tests.
-- Create `Tests/APIInquiryCoreTests/BalanceRefreshControllerTests.swift`: refresh state and last-snapshot tests.
-- Create `Tests/APIInquiryCoreTests/MenuBarBalanceViewModelTests.swift`: title, panel text, and key visibility tests.
-- Create `Tests/APIInquiryCoreTests/KeychainCredentialStoreTests.swift`: save/load/replace/delete tests with an isolated service name.
+- Create `Sources/APIInquiryCoreTestsRunner/TestHarness.swift`: lightweight assertion harness for local verification.
+- Create `Sources/APIInquiryCoreTestsRunner/main.swift`: async entry point that runs all core behavior tests.
+- Create `Sources/APIInquiryCoreTestsRunner/DeepSeekBalanceProviderTests.swift`: provider decoding and error tests.
+- Create `Sources/APIInquiryCoreTestsRunner/BalanceRefreshControllerTests.swift`: refresh state and last-snapshot tests.
+- Create `Sources/APIInquiryCoreTestsRunner/MenuBarBalanceViewModelTests.swift`: title, panel text, and key visibility tests.
+- Create `Sources/APIInquiryCoreTestsRunner/KeychainCredentialStoreTests.swift`: save/load/replace/delete tests with an isolated service name.
 
 ---
 
@@ -37,7 +56,7 @@
 - Create: `Sources/APIInquiryCore/Models/BalanceModels.swift`
 - Create: `Sources/APIInquiryCore/Providers/BalanceProvider.swift`
 - Create: `Sources/APIInquiryCore/Networking/HTTPClient.swift`
-- Test: `swift test` initially compiles the empty test target after later tests are added.
+- Test: `swift build` compiles the initial core target; behavior tests run through `APIInquiryCoreTestsRunner` once that runner exists.
 
 - [ ] **Step 1: Create `Package.swift`**
 

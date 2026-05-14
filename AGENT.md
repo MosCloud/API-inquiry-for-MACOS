@@ -27,7 +27,7 @@ Read the approved docs before implementation:
 - Core package: Swift Package Manager.
 - Networking: `URLSession` behind an injectable HTTP client.
 - Secure storage: macOS Keychain.
-- Tests: XCTest, with fake API keys only.
+- Tests: local Swift executable runner `APIInquiryCoreTestsRunner`, with fake API keys only.
 
 ## Security Rules
 
@@ -69,7 +69,7 @@ First release excludes:
 Expected commands after implementation begins:
 
 ```bash
-swift test
+swift run APIInquiryCoreTestsRunner
 swift build
 Scripts/build-local-app.sh
 ```
