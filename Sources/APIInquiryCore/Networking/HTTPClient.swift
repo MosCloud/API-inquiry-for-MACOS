@@ -14,6 +14,17 @@ public protocol HTTPClient {
     func data(for request: URLRequest) async throws -> HTTPResponse
 }
 
+public enum HTTPClientError: Error, Equatable, LocalizedError {
+    case invalidResponse
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidResponse:
+            return "The server response was invalid."
+        }
+    }
+}
+
 public final class URLSessionHTTPClient: HTTPClient {
     private let session: URLSession
 
@@ -24,7 +35,7 @@ public final class URLSessionHTTPClient: HTTPClient {
     public func data(for request: URLRequest) async throws -> HTTPResponse {
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw BalanceProviderError.serverError(statusCode: -1)
+            throw HTTPClientError.invalidResponse
         }
         return HTTPResponse(data: data, statusCode: httpResponse.statusCode)
     }
