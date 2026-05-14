@@ -10,14 +10,18 @@ let package = Package(
         .library(
             name: "APIInquiryCore",
             targets: ["APIInquiryCore"]
+        ),
+        .executable(
+            name: "APIInquiryCoreTestsRunner",
+            targets: ["APIInquiryCoreTestsRunner"]
         )
     ],
     targets: [
         .target(
             name: "APIInquiryCore"
         ),
-        .testTarget(
-            name: "APIInquiryCoreTests",
+        .executableTarget(
+            name: "APIInquiryCoreTestsRunner",
             dependencies: ["APIInquiryCore"]
         )
     ]
