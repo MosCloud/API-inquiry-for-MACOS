@@ -161,19 +161,19 @@ public enum BalanceProviderError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "DeepSeek balance URL is invalid."
+            return "Balance API URL is invalid."
         case .authenticationFailed:
             return "API key may be invalid. Replace or delete it in settings."
         case .rateLimited:
-            return "DeepSeek rate limit reached. Try again shortly."
+            return "Balance API rate limit reached. Try again shortly."
         case .serverError(let statusCode):
-            return "DeepSeek returned HTTP \(statusCode). Try again shortly."
+            return "Balance API returned HTTP \(statusCode). Try again shortly."
         case .missingBalanceInfo:
-            return "DeepSeek did not return balance information."
-        case .invalidBalanceAmount(let value):
-            return "DeepSeek returned an invalid balance amount: \(value)."
+            return "Balance API did not return balance information."
+        case .invalidBalanceAmount:
+            return "Balance API returned an invalid balance amount."
         case .decodingFailed:
-            return "DeepSeek balance response could not be decoded."
+            return "Balance API response could not be decoded."
         }
     }
 }
@@ -200,6 +200,17 @@ public protocol HTTPClient {
     func data(for request: URLRequest) async throws -> HTTPResponse
 }
 
+public enum HTTPClientError: Error, Equatable, LocalizedError {
+    case invalidResponse
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidResponse:
+            return "The server response was invalid."
+        }
+    }
+}
+
 public final class URLSessionHTTPClient: HTTPClient {
     private let session: URLSession
 
@@ -210,7 +221,7 @@ public final class URLSessionHTTPClient: HTTPClient {
     public func data(for request: URLRequest) async throws -> HTTPResponse {
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw BalanceProviderError.serverError(statusCode: -1)
+            throw HTTPClientError.invalidResponse
         }
         return HTTPResponse(data: data, statusCode: httpResponse.statusCode)
     }
@@ -743,7 +754,7 @@ final class BalanceRefreshControllerTests: XCTestCase {
         provider.shouldFail = true
         await controller.refresh()
 
-        XCTAssertEqual(controller.state, .failed(message: "DeepSeek rate limit reached. Try again shortly.", last: .sample))
+        XCTAssertEqual(controller.state, .failed(message: "Balance API rate limit reached. Try again shortly.", last: .sample))
     }
 }
 
