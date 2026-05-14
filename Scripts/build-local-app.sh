@@ -20,6 +20,7 @@ chmod +x "$MACOS_DIR/$EXECUTABLE_NAME"
 RESOURCE_BUNDLE="$ROOT_DIR/.build/debug/APIInquiry_APIInquiryApp.bundle"
 if [ -d "$RESOURCE_BUNDLE" ]; then
     cp -R "$RESOURCE_BUNDLE" "$APP_DIR/APIInquiry_APIInquiryApp.bundle"
+    find "$RESOURCE_BUNDLE" -maxdepth 1 -type f -name "*.png" -exec cp {} "$RESOURCES_DIR/" \;
 fi
 
 cat > "$CONTENTS_DIR/Info.plist" <<PLIST

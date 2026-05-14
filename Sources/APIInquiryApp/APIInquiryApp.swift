@@ -21,16 +21,9 @@ struct APIInquiryApp: App {
         MenuBarExtra {
             MenuBarContentView(viewModel: viewModel)
         } label: {
-            HStack(spacing: 4) {
-                Image("deepseek-menu-icon-template", bundle: .module)
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 17, height: 17)
-
-                Text(viewModel.menuBarValueText)
-                    .monospacedDigit()
-            }
+            Image(nsImage: DeepSeekImages.menuBarLabelImage(text: viewModel.menuBarValueText))
+                .renderingMode(.template)
+                .accessibilityLabel("\(viewModel.providerDisplayName) \(viewModel.menuBarValueText)")
         }
         .menuBarExtraStyle(.window)
     }
