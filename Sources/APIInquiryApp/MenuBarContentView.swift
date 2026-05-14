@@ -36,7 +36,7 @@ struct MenuBarContentView: View {
                 .renderingMode(.template)
                 .scaledToFit()
                 .foregroundStyle(.primary)
-                .frame(width: 156, height: 33, alignment: .leading)
+                .frame(width: 132, height: 28, alignment: .leading)
                 .accessibilityLabel(viewModel.providerDisplayName)
 
             Spacer()
@@ -53,9 +53,25 @@ struct MenuBarContentView: View {
     }
 
     private var balance: some View {
-        Text(viewModel.panelBalanceText)
-            .font(.system(size: 30, weight: .semibold, design: .rounded))
-            .monospacedDigit()
+        let parts = viewModel.panelBalanceDisplayParts
+        let amountSize: CGFloat = parts.amountText == "--" ? 30 : 44
+
+        return HStack(alignment: .firstTextBaseline, spacing: 4) {
+            if !parts.leadingText.isEmpty {
+                Text(parts.leadingText)
+                    .font(.system(size: 30, weight: .semibold, design: .rounded))
+            }
+
+            Text(parts.amountText)
+                .font(.system(size: amountSize, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+
+            if !parts.trailingText.isEmpty {
+                Text(parts.trailingText)
+                    .font(.system(size: 30, weight: .semibold, design: .rounded))
+                    .padding(.leading, 2)
+            }
+        }
             .lineLimit(1)
             .minimumScaleFactor(0.75)
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -8,6 +8,7 @@ enum MenuBarBalanceViewModelTests {
         testLoadedMenuBarValueFormatting(using: harness)
         testFailedStatePreservesMenuTitle(using: harness)
         testPanelBalanceTextFormatting(using: harness)
+        testPanelBalanceDisplayParts(using: harness)
         testStatusText(using: harness)
         testConfiguredKeyIsNotLoadedIntoInput(using: harness)
         testConfiguredKeyWithoutSnapshotShowsPlaceholderTitle(using: harness)
@@ -45,6 +46,15 @@ enum MenuBarBalanceViewModelTests {
         let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")))
 
         harness.expectEqual(viewModel.panelBalanceText, "¥68.65 CNY", "panel balance text")
+    }
+
+    @MainActor
+    private static func testPanelBalanceDisplayParts(using harness: TestHarness) {
+        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")))
+
+        harness.expectEqual(viewModel.panelBalanceDisplayParts.leadingText, "¥", "panel balance leading text")
+        harness.expectEqual(viewModel.panelBalanceDisplayParts.amountText, "68.65", "panel balance amount text")
+        harness.expectEqual(viewModel.panelBalanceDisplayParts.trailingText, "CNY", "panel balance trailing text")
     }
 
     @MainActor

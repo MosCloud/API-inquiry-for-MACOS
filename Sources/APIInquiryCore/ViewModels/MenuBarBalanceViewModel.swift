@@ -1,6 +1,12 @@
 import Combine
 import Foundation
 
+public struct BalanceDisplayParts: Equatable {
+    public let leadingText: String
+    public let amountText: String
+    public let trailingText: String
+}
+
 @MainActor
 public final class MenuBarBalanceViewModel: ObservableObject {
     @Published public var apiKeyInput = ""
@@ -81,6 +87,21 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         }
 
         return Self.formatAmount(snapshot.totalBalance, currency: snapshot.currency, fractionDigits: 2, includeCurrencyCode: true)
+    }
+
+    public var panelBalanceDisplayParts: BalanceDisplayParts {
+        guard let snapshot = state.lastSnapshot else {
+            return BalanceDisplayParts(leadingText: "", amountText: "--", trailingText: "")
+        }
+
+        let currencyCode = snapshot.currency.uppercased()
+        let amountText = Self.formatNumber(Self.truncate(snapshot.totalBalance, scale: 2), fractionDigits: 2)
+
+        if currencyCode == "CNY" {
+            return BalanceDisplayParts(leadingText: "¥", amountText: amountText, trailingText: currencyCode)
+        }
+
+        return BalanceDisplayParts(leadingText: "", amountText: amountText, trailingText: currencyCode)
     }
 
     public var statusText: String {

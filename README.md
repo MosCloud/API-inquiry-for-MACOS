@@ -63,8 +63,9 @@ Manual checks:
 - Saving a key clears the input field and stores the key in Keychain.
 - After a key is configured, the API key row is collapsed until you expand it.
 - The menu bar uses a dynamic DeepSeek template label plus compact balance formatting, for example `¥68.6`.
+- The menu bar icon is slightly taller than the amount text, matching common macOS status items.
 - The expanded panel logo adapts automatically to light and dark appearance.
-- The panel uses full balance formatting, for example `¥68.65 CNY`.
+- The panel uses full balance formatting, for example `¥68.65 CNY`, with the numeric amount emphasized.
 - Manual refresh uses the same refresh path as automatic refresh.
 - Delete removes the key and returns the app to setup state.
 

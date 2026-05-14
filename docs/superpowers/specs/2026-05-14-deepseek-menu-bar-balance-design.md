@@ -80,6 +80,7 @@ The base menu bar label format is:
 Rules:
 
 - Use a dynamically rendered monochrome template DeepSeek image in place of the `DS` text prefix.
+- Size the menu bar icon slightly taller than the amount text, following common macOS status item proportions.
 - Use the currency symbol for CNY when possible.
 - Show one decimal place in the menu bar to save space.
 - Keep the last successful balance visible if a later refresh fails.
@@ -92,7 +93,8 @@ The textual `DS` fallback remains available in the view model for tests and acce
 The expanded panel should be extremely minimal:
 
 - DeepSeek logo image rendered as a template so it adapts to light and dark appearance
-- large balance value, such as `¥68.65 CNY`
+- compact top logo sizing so the balance remains the visual focus
+- large balance value, such as `¥68.65 CNY`, with only the numeric amount enlarged and the currency symbol/code kept at the previous scale
 - small status line:
   - available
   - balance insufficient

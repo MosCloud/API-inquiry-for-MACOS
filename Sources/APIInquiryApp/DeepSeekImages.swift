@@ -9,14 +9,14 @@ enum DeepSeekImages {
 
     static func menuBarLabelImage(text: String) -> NSImage {
         let icon = loadPNG(named: "deepseek-menu-icon-template")
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .medium)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: NSColor.white
         ]
         let textSize = (text as NSString).size(withAttributes: attributes)
-        let height: CGFloat = 18
-        let iconSize: CGFloat = 16
+        let height: CGFloat = 20
+        let iconSize: CGFloat = 18
         let spacing: CGFloat = 4
         let width = ceil(iconSize + spacing + textSize.width)
         let image = NSImage(size: NSSize(width: width, height: height))
