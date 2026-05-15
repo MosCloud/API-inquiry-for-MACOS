@@ -94,7 +94,7 @@ The expanded panel should be extremely minimal:
 
 - DeepSeek logo image rendered as a template so it adapts to light and dark appearance
 - compact top logo sizing so the balance remains the visual focus
-- large balance value, such as `¥68.65 CNY`, with the numeric amount clearly dominant at medium weight and the currency symbol/code kept at the previous scale with regular weight
+- large balance value, such as `¥68.65 CNY`, with the numeric amount clearly dominant at medium weight and the currency symbol/code smaller at regular weight
 - small status line:
   - available
   - balance insufficient

@@ -36,7 +36,7 @@ struct MenuBarContentView: View {
                 .renderingMode(.template)
                 .scaledToFit()
                 .foregroundStyle(.primary)
-                .frame(width: 112, height: 24, alignment: .leading)
+                .frame(width: 96, height: 21, alignment: .leading)
                 .accessibilityLabel(viewModel.providerDisplayName)
 
             Spacer()
@@ -59,7 +59,7 @@ struct MenuBarContentView: View {
         return HStack(alignment: .firstTextBaseline, spacing: 4) {
             if !parts.leadingText.isEmpty {
                 Text(parts.leadingText)
-                    .font(.system(size: 30, weight: .regular, design: .rounded))
+                    .font(.system(size: 24, weight: .regular, design: .rounded))
             }
 
             Text(parts.amountText)
@@ -68,7 +68,7 @@ struct MenuBarContentView: View {
 
             if !parts.trailingText.isEmpty {
                 Text(parts.trailingText)
-                    .font(.system(size: 30, weight: .regular, design: .rounded))
+                    .font(.system(size: 24, weight: .regular, design: .rounded))
                     .padding(.leading, 2)
             }
         }
