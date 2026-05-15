@@ -119,6 +119,7 @@ Rules:
 
 - Generate the icon through `Scripts/generate-app-icon.swift` so the source asset, preview PNG, and `.icns` stay reproducible.
 - Use a rounded blue macOS-style base, a clean DeepSeek symbol, and a small usage-bars mark to connect the icon to API balance monitoring.
+- Preserve the DeepSeek symbol's source aspect ratio when drawing it into the icon; do not force it into a square frame.
 - Bundle `Sources/APIInquiryApp/Resources/AppIcon.icns` and set `CFBundleIconFile` / `CFBundleIconName` to `AppIcon`.
 
 ## Architecture

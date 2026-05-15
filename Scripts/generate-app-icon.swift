@@ -42,6 +42,43 @@ func bitmapRepresentation(from image: NSImage) -> NSBitmapImageRep? {
     return NSBitmapImageRep(data: tiffData)
 }
 
+func imageAspectRatio(_ image: NSImage) -> CGFloat {
+    if let representation = bitmapRepresentation(from: image), representation.pixelsHigh > 0 {
+        return CGFloat(representation.pixelsWide) / CGFloat(representation.pixelsHigh)
+    }
+
+    guard image.size.height > 0 else {
+        return 1
+    }
+
+    return image.size.width / image.size.height
+}
+
+func aspectFitRect(in bounds: CGRect, aspectRatio: CGFloat) -> CGRect {
+    guard aspectRatio > 0 else {
+        return bounds
+    }
+
+    let boundsRatio = bounds.width / bounds.height
+    if aspectRatio >= boundsRatio {
+        let height = bounds.width / aspectRatio
+        return CGRect(
+            x: bounds.minX,
+            y: bounds.midY - height / 2,
+            width: bounds.width,
+            height: height
+        )
+    }
+
+    let width = bounds.height * aspectRatio
+    return CGRect(
+        x: bounds.midX - width / 2,
+        y: bounds.minY,
+        width: width,
+        height: bounds.height
+    )
+}
+
 func foregroundAlpha(from color: NSColor, hasTransparentBackground: Bool) -> CGFloat {
     guard let deviceColor = color.usingColorSpace(.deviceRGB) else {
         return 0
@@ -232,12 +269,13 @@ func drawAppIcon(size: Int, whaleImage: NSImage) throws -> NSBitmapImageRep {
     basePath.lineWidth = 3 * scale
     basePath.stroke()
 
-    let whaleRect = CGRect(
-        x: iconRect.midX - 322 * scale,
-        y: iconRect.midY - 238 * scale,
-        width: 560 * scale,
-        height: 560 * scale
+    let whaleFrame = CGRect(
+        x: iconRect.minX + 122 * scale,
+        y: iconRect.minY + 272 * scale,
+        width: 620 * scale,
+        height: 466 * scale
     )
+    let whaleRect = aspectFitRect(in: whaleFrame, aspectRatio: imageAspectRatio(whaleImage))
     graphicsContext.cgContext.setShadow(
         offset: CGSize(width: 0, height: -12 * scale),
         blur: 24 * scale,
