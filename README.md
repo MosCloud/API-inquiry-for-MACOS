@@ -55,7 +55,7 @@ The script creates:
 .build/APIInquiry.app
 ```
 
-The generated `Info.plist` sets `LSUIElement=true`, so the app runs as a menu bar accessory app.
+The app sets its accessory activation policy at launch, so it runs as a menu bar utility while remaining visible in installer DMGs.
 The build scripts regenerate and bundle the custom `AppIcon.icns` automatically.
 
 Package a release macOS app bundle:

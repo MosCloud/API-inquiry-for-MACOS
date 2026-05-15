@@ -10,6 +10,7 @@ DMG_ROOT="$DIST_DIR/dmg-root"
 DMG_NAME="API-Inquiry-alpha.dmg"
 DMG_PATH="$DIST_DIR/$DMG_NAME"
 VOLUME_NAME="API Inquiry Alpha"
+VERIFY_MOUNT="$DIST_DIR/dmg-verify-mount"
 
 cd "$ROOT_DIR"
 
@@ -19,16 +20,52 @@ rm -rf "$DMG_ROOT" "$DMG_PATH"
 mkdir -p "$DMG_ROOT"
 
 ditto "$APP_DIR" "$DMG_ROOT/$APP_NAME"
+chflags -R nohidden "$DMG_ROOT/$APP_NAME"
+xattr -cr "$DMG_ROOT/$APP_NAME"
 ln -s /Applications "$DMG_ROOT/Applications"
+
+if ls -ldO "$DMG_ROOT/$APP_NAME" | grep -q hidden; then
+    echo "$APP_NAME is hidden and would not appear in Finder." >&2
+    exit 1
+fi
 
 hdiutil create \
     -volname "$VOLUME_NAME" \
     -srcfolder "$DMG_ROOT" \
     -ov \
+    -fs HFS+ \
     -format UDZO \
     "$DMG_PATH"
 
 hdiutil verify "$DMG_PATH"
+
+rm -rf "$VERIFY_MOUNT"
+mkdir -p "$VERIFY_MOUNT"
+hdiutil attach -nobrowse -readonly -mountpoint "$VERIFY_MOUNT" "$DMG_PATH" >/dev/null
+
+cleanup_verify_mount() {
+    hdiutil detach "$VERIFY_MOUNT" >/dev/null 2>&1 || true
+    rm -rf "$VERIFY_MOUNT"
+}
+trap cleanup_verify_mount EXIT
+
+if [ ! -d "$VERIFY_MOUNT/$APP_NAME" ]; then
+    echo "$APP_NAME is missing from $DMG_NAME." >&2
+    exit 1
+fi
+
+if ls -ldO "$VERIFY_MOUNT/$APP_NAME" | grep -q hidden; then
+    echo "$APP_NAME is hidden in $DMG_NAME and would not appear in Finder." >&2
+    exit 1
+fi
+
+if [ ! -L "$VERIFY_MOUNT/Applications" ]; then
+    echo "Applications shortcut is missing from $DMG_NAME." >&2
+    exit 1
+fi
+
+cleanup_verify_mount
+trap - EXIT
 rm -rf "$DMG_ROOT"
 
 echo "Packaged $DMG_PATH"

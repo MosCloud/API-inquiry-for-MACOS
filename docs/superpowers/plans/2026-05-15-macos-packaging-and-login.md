@@ -97,3 +97,4 @@
 - [x] Include `API Inquiry.app` and an `Applications` symlink in the DMG.
 - [x] Document that the alpha DMG is ad-hoc signed but not Apple notarized.
 - [x] Prepare English and Chinese alpha release notes.
+- [x] Keep `LSUIElement` out of generated app bundles and verify the finished DMG shows `API Inquiry.app` in Finder.

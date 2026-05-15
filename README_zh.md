@@ -55,7 +55,7 @@ Scripts/build-local-app.sh
 .build/APIInquiry.app
 ```
 
-生成的 `Info.plist` 设置了 `LSUIElement=true`，因此应用会以菜单栏 accessory app 形式运行。
+应用会在启动时设置 accessory activation policy，因此既能以菜单栏工具形式运行，也能在安装 DMG 中保持可见。
 构建脚本会自动重新生成并打包自定义 `AppIcon.icns`。
 
 打包 release macOS app bundle：

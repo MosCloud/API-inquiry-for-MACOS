@@ -97,3 +97,4 @@
 - [x] 在 DMG 中包含 `API Inquiry.app` 和 `Applications` 快捷方式。
 - [x] 说明 alpha DMG 使用 ad-hoc 签名，但没有 Apple notarization 公证。
 - [x] 准备英文和中文 alpha release notes。
+- [x] 生成的 app bundle 不再写入 `LSUIElement`，并校验最终 DMG 中 `API Inquiry.app` 在 Finder 可见。
