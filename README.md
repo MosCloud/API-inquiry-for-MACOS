@@ -65,7 +65,7 @@ Manual checks:
 - The menu bar uses a dynamic DeepSeek template label plus compact balance formatting, for example `¥68.6`.
 - The menu bar icon is larger than the amount text, matching common macOS status items, while the amount uses regular weight to keep the label light.
 - The expanded panel logo adapts automatically to light and dark appearance.
-- The panel uses full balance formatting, for example `¥68.65 CNY`, with the numeric amount emphasized at medium weight.
+- The panel uses full balance formatting, for example `¥68.65 CNY`, with the logo kept compact, the numeric amount dominant at medium weight, and the currency symbol/code at regular weight.
 - Manual refresh uses the same refresh path as automatic refresh.
 - Delete removes the key and returns the app to setup state.
 
