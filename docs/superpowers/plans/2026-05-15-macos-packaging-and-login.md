@@ -42,9 +42,11 @@
 - Modify: `README.md`
 - Modify: `README_zh.md`
 
-- [ ] Install `dist/API Inquiry.app` into `~/Applications/API Inquiry.app`.
-- [ ] Restart from `~/Applications/API Inquiry.app`.
-- [ ] Verify the running process path is under `~/Applications`.
+- [x] Create `Scripts/install-mac-app.sh` to build, package, copy, and verify `~/Applications/API Inquiry.app`.
+- [x] Create `Scripts/restart-installed-app.sh` to stop any running `APIInquiry` process and start the installed app.
+- [x] Install `dist/API Inquiry.app` into `~/Applications/API Inquiry.app`.
+- [x] Restart from `~/Applications/API Inquiry.app`.
+- [x] Verify the running process path is under `~/Applications`.
 
 ### Task 3: Launch At Login
 

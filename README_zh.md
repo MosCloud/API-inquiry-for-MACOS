@@ -75,6 +75,24 @@ open .build/APIInquiry.app
 open "dist/API Inquiry.app"
 ```
 
+将打包后的 app 安装到当前用户的 Applications 目录：
+
+```bash
+Scripts/install-mac-app.sh
+```
+
+重启安装后的 app：
+
+```bash
+Scripts/restart-installed-app.sh
+```
+
+安装后的 app 路径为：
+
+```text
+~/Applications/API Inquiry.app
+```
+
 手动检查项：
 
 - 首次启动且没有 key 时显示 setup 状态。

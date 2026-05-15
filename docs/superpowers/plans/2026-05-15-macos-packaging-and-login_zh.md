@@ -42,9 +42,11 @@
 - 修改：`README.md`
 - 修改：`README_zh.md`
 
-- [ ] 将 `dist/API Inquiry.app` 安装到 `~/Applications/API Inquiry.app`。
-- [ ] 从 `~/Applications/API Inquiry.app` 重启应用。
-- [ ] 验证运行进程路径位于 `~/Applications` 下。
+- [x] 创建 `Scripts/install-mac-app.sh`，用于构建、打包、复制并验证 `~/Applications/API Inquiry.app`。
+- [x] 创建 `Scripts/restart-installed-app.sh`，用于停止正在运行的 `APIInquiry` 进程并启动安装后的 app。
+- [x] 将 `dist/API Inquiry.app` 安装到 `~/Applications/API Inquiry.app`。
+- [x] 从 `~/Applications/API Inquiry.app` 重启应用。
+- [x] 验证运行进程路径位于 `~/Applications` 下。
 
 ### 任务 3：登录启动
 

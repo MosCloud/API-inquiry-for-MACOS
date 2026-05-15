@@ -75,6 +75,24 @@ Run the packaged release app:
 open "dist/API Inquiry.app"
 ```
 
+Install the packaged app into your user Applications folder:
+
+```bash
+Scripts/install-mac-app.sh
+```
+
+Restart the installed app:
+
+```bash
+Scripts/restart-installed-app.sh
+```
+
+The installed app path is:
+
+```text
+~/Applications/API Inquiry.app
+```
+
 Manual checks:
 
 - First launch with no key shows setup state.
