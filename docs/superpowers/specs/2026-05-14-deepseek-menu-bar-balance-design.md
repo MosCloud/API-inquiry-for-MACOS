@@ -4,7 +4,7 @@
 
 Build a native macOS menu bar app named API Inquiry. The first release focuses on one job: use DeepSeek's official API to query the account balance and keep that balance visible in the macOS menu bar.
 
-The menu bar label uses a dynamically rendered DeepSeek template image plus compact balance text such as `¥68.6`. The expanded panel shows a minimal DeepSeek balance view headed by an adaptive monochrome DeepSeek logo, with manual refresh, status, last refresh time, API key settings, an external console link, and quit. Detailed usage charts, local DeepSeek console features, and multi-provider UI are intentionally deferred.
+The menu bar label uses a dynamically rendered DeepSeek template image plus compact balance text such as `¥68.6`. The expanded panel shows a minimal DeepSeek balance view headed by an adaptive monochrome DeepSeek logo, with manual refresh, status, last refresh time, API key settings, an external console link, and quit. The installed `.app` includes a custom Apple-style application icon generated from local assets and bundled as `AppIcon.icns`. Detailed usage charts, local DeepSeek console features, and multi-provider UI are intentionally deferred.
 
 ## Goals
 
@@ -110,6 +110,16 @@ The expanded panel should be extremely minimal:
   - quit
 
 Do not show 充值余额 or 赠金余额 in this first-release panel.
+
+### App Bundle Icon
+
+The packaged app uses a custom macOS icon rather than the default executable icon.
+
+Rules:
+
+- Generate the icon through `Scripts/generate-app-icon.swift` so the source asset, preview PNG, and `.icns` stay reproducible.
+- Use a rounded blue macOS-style base, a clean DeepSeek symbol, and a small usage-bars mark to connect the icon to API balance monitoring.
+- Bundle `Sources/APIInquiryApp/Resources/AppIcon.icns` and set `CFBundleIconFile` / `CFBundleIconName` to `AppIcon`.
 
 ## Architecture
 

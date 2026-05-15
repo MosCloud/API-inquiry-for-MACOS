@@ -15,6 +15,7 @@ RESOURCE_BUNDLE_NAME="APIInquiry_APIInquiryApp.bundle"
 
 cd "$ROOT_DIR"
 
+swift Scripts/generate-app-icon.swift
 swift build --configuration "$CONFIGURATION" --product "$PRODUCT_NAME"
 
 rm -rf "$APP_DIR"
@@ -25,7 +26,7 @@ chmod +x "$MACOS_DIR/$EXECUTABLE_NAME"
 
 RESOURCE_BUNDLE="$ROOT_DIR/.build/$CONFIGURATION/$RESOURCE_BUNDLE_NAME"
 if [ -d "$RESOURCE_BUNDLE" ]; then
-    find "$RESOURCE_BUNDLE" -maxdepth 1 -type f -name "*.png" -exec cp {} "$RESOURCES_DIR/" \;
+    find "$RESOURCE_BUNDLE" -maxdepth 1 -type f \( -name "*.png" -o -name "*.icns" \) -exec cp {} "$RESOURCES_DIR/" \;
 fi
 
 cat > "$CONTENTS_DIR/Info.plist" <<PLIST
@@ -41,6 +42,10 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <string>$EXECUTABLE_NAME</string>
     <key>CFBundleIdentifier</key>
     <string>com.api-inquiry.APIInquiry</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleName</key>
     <string>API Inquiry</string>
     <key>CFBundlePackageType</key>

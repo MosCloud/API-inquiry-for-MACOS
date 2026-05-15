@@ -37,6 +37,12 @@ Compile all package targets:
 swift build
 ```
 
+Regenerate the bundled macOS app icon:
+
+```bash
+swift Scripts/generate-app-icon.swift
+```
+
 Build a local macOS app bundle:
 
 ```bash
@@ -50,6 +56,7 @@ The script creates:
 ```
 
 The generated `Info.plist` sets `LSUIElement=true`, so the app runs as a menu bar accessory app.
+The build scripts regenerate and bundle the custom `AppIcon.icns` automatically.
 
 Package a release macOS app bundle:
 
@@ -102,6 +109,7 @@ Manual checks:
 - The menu bar icon is larger than the amount text, matching common macOS status items, while the amount uses regular weight to keep the label light.
 - The expanded panel logo adapts automatically to light and dark appearance.
 - The panel uses full balance formatting, for example `¥68.65 CNY`, with a smaller header logo, the numeric amount dominant at medium weight, and the currency symbol/code smaller at regular weight.
+- The installed app uses the custom Apple-style icon from `AppIcon.icns`.
 - Manual refresh uses the same refresh path as automatic refresh.
 - Delete removes the key and returns the app to setup state.
 
@@ -114,6 +122,7 @@ Included in this release:
 - 5-minute automatic refresh and manual refresh
 - Minimal native `MenuBarExtra` UI
 - Local `.app` bundle generation
+- Custom macOS app icon generation and bundling
 
 Deferred:
 

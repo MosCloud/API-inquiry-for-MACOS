@@ -4,7 +4,7 @@
 
 **Goal:** Turn API Inquiry from a development `.build` app into a durable local macOS app package with a path that can later support install and login launch.
 
-**Architecture:** Add a release packaging script that builds `APIInquiryApp`, assembles a standard `dist/API Inquiry.app` bundle, copies image resources into `Contents/Resources`, validates `Info.plist`, and ad-hoc signs the app. Keep the existing `.build/APIInquiry.app` development builder unchanged for quick local debugging.
+**Architecture:** Add a release packaging script that builds `APIInquiryApp`, assembles a standard `dist/API Inquiry.app` bundle, copies image resources and the custom `AppIcon.icns` into `Contents/Resources`, validates `Info.plist`, and ad-hoc signs the app. Keep the existing `.build/APIInquiry.app` development builder unchanged for quick local debugging.
 
 **Tech Stack:** Swift Package Manager, Bash, macOS app bundle layout, `plutil`, ad-hoc `codesign`.
 
@@ -59,3 +59,22 @@
 - [ ] Add an `SMAppService.mainApp` wrapper for status, register, and unregister.
 - [ ] Add a compact `Launch at Login` toggle in the details panel.
 - [ ] Verify the toggle against the installed app package.
+
+### Task 4: Custom App Icon
+
+**Files:**
+- Create: `Scripts/generate-app-icon.swift`
+- Create: `Scripts/Assets/deepseek-app-symbol-source.png`
+- Create: `Sources/APIInquiryApp/Resources/AppIcon.png`
+- Create: `Sources/APIInquiryApp/Resources/AppIcon.icns`
+- Modify: `Scripts/build-local-app.sh`
+- Modify: `Scripts/package-mac-app.sh`
+- Modify: `README.md`
+- Modify: `README_zh.md`
+
+- [x] Generate a reproducible Apple-style icon with a rounded blue base, DeepSeek symbol, and small usage bars.
+- [x] Add a 1024px preview PNG and multi-size `.icns` output.
+- [x] Make local and release app builders regenerate the icon before building.
+- [x] Copy `.icns` resources into `Contents/Resources`.
+- [x] Set `CFBundleIconFile` and `CFBundleIconName` to `AppIcon` in generated `Info.plist`.
+- [x] Document the icon generation flow in English and Chinese README files.
