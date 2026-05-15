@@ -59,16 +59,16 @@ struct MenuBarContentView: View {
         return HStack(alignment: .firstTextBaseline, spacing: 4) {
             if !parts.leadingText.isEmpty {
                 Text(parts.leadingText)
-                    .font(.system(size: 30, weight: .semibold, design: .rounded))
+                    .font(.system(size: 30, weight: .medium, design: .rounded))
             }
 
             Text(parts.amountText)
-                .font(.system(size: amountSize, weight: .semibold, design: .rounded))
+                .font(.system(size: amountSize, weight: .medium, design: .rounded))
                 .monospacedDigit()
 
             if !parts.trailingText.isEmpty {
                 Text(parts.trailingText)
-                    .font(.system(size: 30, weight: .semibold, design: .rounded))
+                    .font(.system(size: 30, weight: .medium, design: .rounded))
                     .padding(.leading, 2)
             }
         }
