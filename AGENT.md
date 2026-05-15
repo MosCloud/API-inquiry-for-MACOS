@@ -45,6 +45,7 @@ First release includes:
 - Menu bar label based on a dynamically rendered DeepSeek template image plus compact value such as `¥68.6`.
 - Minimal expanded panel with an adaptive monochrome DeepSeek logo, balance, status, last refresh time, refresh button, console link, settings, and quit.
 - Provider abstraction for future API providers.
+- Local release `.app` packaging under `dist/API Inquiry.app` with ad-hoc signing.
 
 First release excludes:
 
@@ -52,7 +53,7 @@ First release excludes:
 - DeepSeek web console scraping or automation.
 - Multi-provider UI.
 - Local DeepSeek usage console.
-- Packaging, signing, notarization, and distribution.
+- Developer ID signing, notarization, and external distribution.
 
 ## Development Workflow
 

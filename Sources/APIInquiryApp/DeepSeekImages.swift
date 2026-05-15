@@ -56,10 +56,6 @@ enum DeepSeekImages {
     private static func resourceURLs(named name: String) -> [URL] {
         var urls: [URL] = []
 
-        if let moduleURL = Bundle.module.url(forResource: name, withExtension: "png") {
-            urls.append(moduleURL)
-        }
-
         if let mainURL = Bundle.main.url(forResource: name, withExtension: "png") {
             urls.append(mainURL)
         }
@@ -68,6 +64,10 @@ enum DeepSeekImages {
         if let resourceBundle = Bundle(url: bundleURL),
            let bundledURL = resourceBundle.url(forResource: name, withExtension: "png") {
             urls.append(bundledURL)
+        }
+
+        if urls.isEmpty, let moduleURL = Bundle.module.url(forResource: name, withExtension: "png") {
+            urls.append(moduleURL)
         }
 
         return urls

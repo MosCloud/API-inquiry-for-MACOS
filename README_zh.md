@@ -26,7 +26,7 @@ swift run APIInquiryCoreTestsRunner
 预期结果：
 
 ```text
-PASS: 54 expectations
+PASS: 60 expectations
 ```
 
 ## 构建
@@ -51,10 +51,28 @@ Scripts/build-local-app.sh
 
 生成的 `Info.plist` 设置了 `LSUIElement=true`，因此应用会以菜单栏 accessory app 形式运行。
 
+打包 release macOS app bundle：
+
+```bash
+Scripts/package-mac-app.sh
+```
+
+脚本会生成并进行 ad-hoc 签名：
+
+```text
+dist/API Inquiry.app
+```
+
 ## 本地运行
 
 ```bash
 open .build/APIInquiry.app
+```
+
+运行打包后的 release app：
+
+```bash
+open "dist/API Inquiry.app"
 ```
 
 手动检查项：

@@ -26,7 +26,7 @@ swift run APIInquiryCoreTestsRunner
 Expected result:
 
 ```text
-PASS: 54 expectations
+PASS: 60 expectations
 ```
 
 ## Build
@@ -51,10 +51,28 @@ The script creates:
 
 The generated `Info.plist` sets `LSUIElement=true`, so the app runs as a menu bar accessory app.
 
+Package a release macOS app bundle:
+
+```bash
+Scripts/package-mac-app.sh
+```
+
+The script creates and ad-hoc signs:
+
+```text
+dist/API Inquiry.app
+```
+
 ## Run Locally
 
 ```bash
 open .build/APIInquiry.app
+```
+
+Run the packaged release app:
+
+```bash
+open "dist/API Inquiry.app"
 ```
 
 Manual checks:

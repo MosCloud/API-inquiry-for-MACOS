@@ -2,3 +2,4 @@
 .worktrees
 .worktrees/
 .build/
+dist/

@@ -22,7 +22,7 @@ The menu bar label uses a dynamically rendered DeepSeek template image plus comp
 - Do not show topped-up balance or granted balance in the UI yet, even though the API model can retain those fields.
 - Do not support multiple providers in the UI yet.
 - Do not build a local DeepSeek console yet.
-- Do not package, notarize, or distribute the app in the first release.
+- Do not notarize or distribute the app in the first release; local ad-hoc `.app` packaging is included.
 
 ## Platform And Technology
 
@@ -251,7 +251,7 @@ Errors must not include the API key, authorization header, or any other secret.
 - Add UI for monthly spend, request count, and token charts when a stable data source is available.
 - Add additional providers behind the existing provider abstraction.
 - Add optional icon plus balance menu-bar display.
-- Add packaging, signing, notarization, and distribution.
+- Add Developer ID signing, notarization, and distribution.
 
 ## References
 
