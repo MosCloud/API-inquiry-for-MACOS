@@ -110,6 +110,7 @@ The expanded panel should be extremely minimal:
   - delete API key
   - quit
 - footer actions use three evenly sized icon-plus-text modules: `AutoStart`, `Console`, and `Quit`
+- footer action labels share one compact 13 pt medium-weight style and a restrained 32 pt minimum height
 - `AutoStart` changes color when launch at login is enabled and returns to the neutral style when disabled
 
 Do not show 充值余额 or 赠金余额 in this first-release panel.

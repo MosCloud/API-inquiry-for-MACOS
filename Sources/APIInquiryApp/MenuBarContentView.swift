@@ -202,8 +202,8 @@ struct MenuBarContentView: View {
                     .imageScale(.medium)
             }
             .labelStyle(.titleAndIcon)
-            .font(.system(size: 13, weight: .semibold, design: .rounded))
-            .frame(maxWidth: .infinity, minHeight: 36)
+            .font(.system(size: 13, weight: .medium, design: .rounded))
+            .frame(maxWidth: .infinity, minHeight: 32)
             .contentShape(Rectangle())
         }
         .buttonStyle(FooterActionButtonStyle(isHighlighted: isHighlighted))
