@@ -3,6 +3,7 @@ import Foundation
 let harness = TestHarness()
 TestHarnessTests.run(using: harness)
 KeychainCredentialStoreTests.run(using: harness)
+AutoStartModelsTests.run(using: harness)
 await BalanceRefreshControllerTests.run(using: harness)
 await MenuBarBalanceViewModelTests.run(using: harness)
 await DeepSeekBalanceProviderTests.run(using: harness)

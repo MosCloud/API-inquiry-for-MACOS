@@ -52,13 +52,17 @@
 
 **文件：**
 - 创建：`Sources/APIInquiryApp/LaunchAtLoginController.swift`
+- 创建：`Sources/APIInquiryCore/Models/AutoStartModels.swift`
+- 创建：`Sources/APIInquiryCoreTestsRunner/AutoStartModelsTests.swift`
 - 修改：`Sources/APIInquiryApp/MenuBarContentView.swift`
 - 修改：`README.md`
 - 修改：`README_zh.md`
 
-- [ ] 增加 `SMAppService.mainApp` wrapper，负责状态读取、注册和取消注册。
-- [ ] 在详情面板中增加紧凑的 `Launch at Login` 开关。
-- [ ] 基于已安装 app 包验证开关行为。
+- [x] 增加 `SMAppService.mainApp` wrapper，负责状态读取、注册和取消注册。
+- [x] 在详情面板底部增加紧凑的 `AutoStart` 开关。
+- [x] 将 `AutoStart`、`Console` 和 `Quit` 做成三个等宽的图标加文字模块。
+- [x] 开机自启启用时改变 `AutoStart` 模块颜色。
+- [x] 基于已安装 app 包验证开关行为。
 
 ### 任务 4：自定义 App 图标
 

@@ -110,6 +110,8 @@ Manual checks:
 - The expanded panel logo adapts automatically to light and dark appearance.
 - The panel uses full balance formatting, for example `¥68.65 CNY`, with a smaller header logo, the numeric amount dominant at medium weight, and the currency symbol/code smaller at regular weight.
 - The installed app uses the custom Apple-style icon from `AppIcon.icns`.
+- The footer shows three evenly sized actions: `AutoStart`, `Console`, and `Quit`.
+- The `AutoStart` action toggles launch at login and changes color when enabled.
 - Manual refresh uses the same refresh path as automatic refresh.
 - Delete removes the key and returns the app to setup state.
 
@@ -123,6 +125,7 @@ Included in this release:
 - Minimal native `MenuBarExtra` UI
 - Local `.app` bundle generation
 - Custom macOS app icon generation and bundling
+- Launch at login control from the details panel
 
 Deferred:
 

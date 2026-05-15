@@ -52,13 +52,17 @@
 
 **Files:**
 - Create: `Sources/APIInquiryApp/LaunchAtLoginController.swift`
+- Create: `Sources/APIInquiryCore/Models/AutoStartModels.swift`
+- Create: `Sources/APIInquiryCoreTestsRunner/AutoStartModelsTests.swift`
 - Modify: `Sources/APIInquiryApp/MenuBarContentView.swift`
 - Modify: `README.md`
 - Modify: `README_zh.md`
 
-- [ ] Add an `SMAppService.mainApp` wrapper for status, register, and unregister.
-- [ ] Add a compact `Launch at Login` toggle in the details panel.
-- [ ] Verify the toggle against the installed app package.
+- [x] Add an `SMAppService.mainApp` wrapper for status, register, and unregister.
+- [x] Add a compact `AutoStart` toggle in the details panel footer.
+- [x] Make `AutoStart`, `Console`, and `Quit` three evenly sized icon-plus-text modules.
+- [x] Change the `AutoStart` module color when launch at login is enabled.
+- [x] Verify the toggle against the installed app package.
 
 ### Task 4: Custom App Icon
 

@@ -104,10 +104,13 @@ The expanded panel should be extremely minimal:
 - last successful refresh time
 - refresh button placed where it is easy to reach but visually quiet
 - secondary actions:
+  - toggle launch at login through `AutoStart`
   - open DeepSeek console at `https://platform.deepseek.com/usage`
   - set or replace API key
   - delete API key
   - quit
+- footer actions use three evenly sized icon-plus-text modules: `AutoStart`, `Console`, and `Quit`
+- `AutoStart` changes color when launch at login is enabled and returns to the neutral style when disabled
 
 Do not show 充值余额 or 赠金余额 in this first-release panel.
 

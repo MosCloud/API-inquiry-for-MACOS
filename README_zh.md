@@ -110,6 +110,8 @@ Scripts/restart-installed-app.sh
 - 展开面板 logo 会自动适配浅色和深色外观。
 - 面板使用完整余额格式，例如 `¥68.65 CNY`，顶部 logo 进一步缩小，数字部分使用 medium 字重占据视觉主导，货币符号和货币代码以更小的 regular 字重显示。
 - 安装后的 app 使用来自 `AppIcon.icns` 的自定义苹果风格图标。
+- 底部显示三个等宽操作模块：`AutoStart`、`Console` 和 `Quit`。
+- `AutoStart` 操作用于切换开机自启，启用后模块颜色会变化。
 - 手动刷新与自动刷新使用同一条刷新路径。
 - 删除 key 后回到 setup 状态。
 
@@ -123,6 +125,7 @@ Scripts/restart-installed-app.sh
 - 极简原生 `MenuBarExtra` UI
 - 本地 `.app` bundle 生成
 - 自定义 macOS 应用图标生成与打包
+- 详情面板中的开机自启控制
 
 延后处理：
 
