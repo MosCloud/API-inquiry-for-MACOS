@@ -82,3 +82,18 @@
 - [x] Copy `.icns` resources into `Contents/Resources`.
 - [x] Set `CFBundleIconFile` and `CFBundleIconName` to `AppIcon` in generated `Info.plist`.
 - [x] Document the icon generation flow in English and Chinese README files.
+
+### Task 5: Free GitHub Alpha DMG Release
+
+**Files:**
+- Create: `Scripts/package-dmg.sh`
+- Create: `docs/releases/v0.1.0-alpha.1.md`
+- Create: `docs/releases/v0.1.0-alpha.1_zh.md`
+- Modify: `README.md`
+- Modify: `README_zh.md`
+
+- [x] Add a DMG packaging script that reuses the ad-hoc signed `.app`.
+- [x] Name the downloadable DMG asset `API-Inquiry-alpha.dmg`.
+- [x] Include `API Inquiry.app` and an `Applications` symlink in the DMG.
+- [x] Document that the alpha DMG is ad-hoc signed but not Apple notarized.
+- [x] Prepare English and Chinese alpha release notes.

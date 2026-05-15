@@ -26,7 +26,7 @@ swift run APIInquiryCoreTestsRunner
 预期结果：
 
 ```text
-PASS: 60 expectations
+PASS: 71 expectations
 ```
 
 ## 构建
@@ -69,6 +69,35 @@ Scripts/package-mac-app.sh
 ```text
 dist/API Inquiry.app
 ```
+
+打包 GitHub Release 用 DMG：
+
+```bash
+Scripts/package-dmg.sh
+```
+
+脚本会生成：
+
+```text
+dist/API-Inquiry-alpha.dmg
+```
+
+## 通过 GitHub DMG 安装
+
+本项目采用免费 alpha 发布策略上传 GitHub Releases。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。
+
+1. 从 GitHub Releases 下载 `API-Inquiry-alpha.dmg`。
+2. 打开 DMG。
+3. 将 `API Inquiry.app` 拖入 `Applications`。
+4. 从 Applications 启动 API Inquiry。
+
+如果 macOS 首次启动时提示无法验证开发者：
+
+1. 右键点击 `API Inquiry.app`。
+2. 选择 `Open`。
+3. 在系统提示中再次确认 `Open`。
+
+也可以进入 `System Settings > Privacy & Security`，允许该应用打开。
 
 ## 本地运行
 
@@ -127,9 +156,11 @@ Scripts/restart-installed-app.sh
 - 本地 `.app` bundle 生成
 - 自定义 macOS 应用图标生成与打包
 - 详情面板中的开机自启控制
+- 不使用 Apple 公证的免费 GitHub DMG 打包
 
 延后处理：
 
 - 详细用量图表
 - 本地 DeepSeek 用量控制台
 - 多供应商 UI
+- Developer ID 签名和 Apple notarization 公证

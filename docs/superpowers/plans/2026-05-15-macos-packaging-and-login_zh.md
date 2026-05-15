@@ -82,3 +82,18 @@
 - [x] 将 `.icns` 资源复制到 `Contents/Resources`。
 - [x] 在生成的 `Info.plist` 中将 `CFBundleIconFile` 和 `CFBundleIconName` 设置为 `AppIcon`。
 - [x] 在英文和中文 README 中记录图标生成流程。
+
+### 任务 5：免费 GitHub Alpha DMG 发布
+
+**文件：**
+- 创建：`Scripts/package-dmg.sh`
+- 创建：`docs/releases/v0.1.0-alpha.1.md`
+- 创建：`docs/releases/v0.1.0-alpha.1_zh.md`
+- 修改：`README.md`
+- 修改：`README_zh.md`
+
+- [x] 增加 DMG 打包脚本，复用 ad-hoc 签名后的 `.app`。
+- [x] 将可下载 DMG 资产命名为 `API-Inquiry-alpha.dmg`。
+- [x] 在 DMG 中包含 `API Inquiry.app` 和 `Applications` 快捷方式。
+- [x] 说明 alpha DMG 使用 ad-hoc 签名，但没有 Apple notarization 公证。
+- [x] 准备英文和中文 alpha release notes。

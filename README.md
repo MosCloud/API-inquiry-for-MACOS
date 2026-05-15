@@ -26,7 +26,7 @@ swift run APIInquiryCoreTestsRunner
 Expected result:
 
 ```text
-PASS: 60 expectations
+PASS: 71 expectations
 ```
 
 ## Build
@@ -69,6 +69,35 @@ The script creates and ad-hoc signs:
 ```text
 dist/API Inquiry.app
 ```
+
+Package a GitHub Release DMG:
+
+```bash
+Scripts/package-dmg.sh
+```
+
+The script creates:
+
+```text
+dist/API-Inquiry-alpha.dmg
+```
+
+## Install From GitHub DMG
+
+This project uses a free alpha distribution strategy for GitHub Releases. The DMG is ad-hoc signed but not Apple notarized.
+
+1. Download `API-Inquiry-alpha.dmg` from GitHub Releases.
+2. Open the DMG.
+3. Drag `API Inquiry.app` into `Applications`.
+4. Launch API Inquiry from Applications.
+
+If macOS blocks the first launch because the developer cannot be verified:
+
+1. Right-click `API Inquiry.app`.
+2. Choose `Open`.
+3. Confirm `Open` in the system prompt.
+
+You can also allow the app from `System Settings > Privacy & Security`.
 
 ## Run Locally
 
@@ -127,9 +156,11 @@ Included in this release:
 - Local `.app` bundle generation
 - Custom macOS app icon generation and bundling
 - Launch at login control from the details panel
+- Free GitHub DMG packaging without Apple notarization
 
 Deferred:
 
 - Detailed usage charts
 - Local DeepSeek usage console
 - Multi-provider UI
+- Developer ID signing and notarization
