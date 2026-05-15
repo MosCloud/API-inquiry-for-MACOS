@@ -101,7 +101,7 @@ The expanded panel should be extremely minimal:
   - not configured
   - refreshing
   - refresh failed
-- last successful refresh time
+- last successful refresh time, formatted with the user's system 12-hour or 24-hour clock preference
 - refresh button placed where it is easy to reach but visually quiet
 - secondary actions:
   - toggle launch at login through `AutoStart`

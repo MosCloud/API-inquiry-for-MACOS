@@ -112,6 +112,7 @@ Scripts/restart-installed-app.sh
 - 安装后的 app 使用来自 `AppIcon.icns` 的自定义苹果风格图标。
 - 底部显示三个等宽操作模块：`AutoStart`、`Console` 和 `Quit`。
 - `AutoStart` 操作用于切换开机自启，启用后模块颜色会变化。
+- 最近更新时间会跟随系统的 12 小时制或 24 小时制设置。
 - 手动刷新与自动刷新使用同一条刷新路径。
 - 删除 key 后回到 setup 状态。
 

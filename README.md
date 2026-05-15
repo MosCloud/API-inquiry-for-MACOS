@@ -112,6 +112,7 @@ Manual checks:
 - The installed app uses the custom Apple-style icon from `AppIcon.icns`.
 - The footer shows three evenly sized actions: `AutoStart`, `Console`, and `Quit`.
 - The `AutoStart` action toggles launch at login and changes color when enabled.
+- The last updated time follows the system 12-hour or 24-hour clock setting.
 - Manual refresh uses the same refresh path as automatic refresh.
 - Delete removes the key and returns the app to setup state.
 

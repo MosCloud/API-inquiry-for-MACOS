@@ -21,6 +21,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     private let provider: BalanceProvider
     private let credentialStore: CredentialStore
     private let controller: BalanceRefreshController
+    private let lastRefreshTimeFormatter: LastRefreshTimeFormatter
     private var cancellables: Set<AnyCancellable> = []
 
     public convenience init() {
@@ -34,11 +35,13 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         provider: BalanceProvider,
         credentialStore: CredentialStore,
         controller: BalanceRefreshController,
-        displayMode: MenuBarDisplayMode = .text
+        displayMode: MenuBarDisplayMode = .text,
+        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter()
     ) {
         self.provider = provider
         self.credentialStore = credentialStore
         self.controller = controller
+        self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
         self.providerDisplayName = provider.displayName
         self.displayMode = displayMode
         self.isCredentialConfigured = Self.hasConfiguredCredential(
@@ -125,15 +128,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var lastRefreshText: String {
-        guard let fetchedAt = state.lastSnapshot?.fetchedAt else {
-            return "Last updated: --"
-        }
-
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        return "Last updated: \(formatter.string(from: fetchedAt))"
+        lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt)
     }
 
     public var credentialStatusText: String {
