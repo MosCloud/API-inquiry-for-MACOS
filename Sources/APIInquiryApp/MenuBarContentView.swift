@@ -6,7 +6,6 @@ import SwiftUI
 struct MenuBarContentView: View {
     @ObservedObject var viewModel: MenuBarBalanceViewModel
     @StateObject private var launchAtLoginController: LaunchAtLoginController
-    @State private var isShowingDeleteConfirmation = false
 
     init(viewModel: MenuBarBalanceViewModel) {
         self.viewModel = viewModel
@@ -54,19 +53,6 @@ struct MenuBarContentView: View {
         .frame(width: 320)
         .onAppear {
             launchAtLoginController.refreshStatus()
-        }
-        .confirmationDialog(
-            "Delete API Key?",
-            isPresented: $isShowingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                Task { await viewModel.deleteAPIKey() }
-            }
-
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("API Inquiry will remove the saved key from Keychain.")
         }
     }
 
@@ -186,11 +172,15 @@ struct MenuBarContentView: View {
                     }
                     .disabled(viewModel.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                    if viewModel.isAPIKeyConfigured {
+                    if viewModel.isAPIKeyConfigured && !viewModel.isAPIKeyDeleteConfirmationPresented {
                         Button("Delete", role: .destructive) {
-                            isShowingDeleteConfirmation = true
+                            viewModel.requestAPIKeyDeletion()
                         }
                     }
+                }
+
+                if viewModel.isAPIKeyDeleteConfirmationPresented {
+                    deleteConfirmation
                 }
 
                 if let settingsFeedback = viewModel.settingsFeedback {
@@ -217,9 +207,34 @@ struct MenuBarContentView: View {
             }
         case .deleteKey:
             Button("Delete Key", role: .destructive) {
-                isShowingDeleteConfirmation = true
+                viewModel.requestAPIKeyDeletion()
             }
         }
+    }
+
+    private var deleteConfirmation: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Remove the saved API key from Keychain?")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                Button("Cancel") {
+                    viewModel.cancelAPIKeyDeletion()
+                }
+                .controlSize(.small)
+
+                Button("Delete", role: .destructive) {
+                    Task { await viewModel.confirmAPIKeyDeletion() }
+                }
+                .controlSize(.small)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.secondary.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var footer: some View {

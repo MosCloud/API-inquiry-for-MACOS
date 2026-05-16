@@ -28,6 +28,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     @Published public var apiKeyInput = ""
     @Published public var displayMode: MenuBarDisplayMode
     @Published public private(set) var isAPIKeyEditorExpanded = false
+    @Published public private(set) var isAPIKeyDeleteConfirmationPresented = false
     @Published public private(set) var settingsFeedback: SettingsFeedback?
     @Published private var isCredentialConfigured: Bool
 
@@ -198,6 +199,9 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         }
 
         isAPIKeyEditorExpanded.toggle()
+        if !isAPIKeyEditorExpanded {
+            isAPIKeyDeleteConfirmationPresented = false
+        }
     }
 
     public func refresh() async {
@@ -214,8 +218,31 @@ public final class MenuBarBalanceViewModel: ObservableObject {
 
     public func beginReplacingAPIKey() {
         isAPIKeyEditorExpanded = true
+        isAPIKeyDeleteConfirmationPresented = false
         apiKeyInput = ""
         settingsFeedback = nil
+    }
+
+    public func requestAPIKeyDeletion() {
+        guard isCredentialConfigured else {
+            return
+        }
+
+        isAPIKeyEditorExpanded = true
+        isAPIKeyDeleteConfirmationPresented = true
+    }
+
+    public func cancelAPIKeyDeletion() {
+        isAPIKeyDeleteConfirmationPresented = false
+    }
+
+    public func confirmAPIKeyDeletion() async {
+        guard isAPIKeyDeleteConfirmationPresented else {
+            return
+        }
+
+        isAPIKeyDeleteConfirmationPresented = false
+        await deleteAPIKey()
     }
 
     public func saveAPIKey() async {
@@ -227,6 +254,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
 
         do {
             try credentialStore.saveCredential(apiKey, forAccount: provider.credentialAccount)
+            isAPIKeyDeleteConfirmationPresented = false
             isCredentialConfigured = true
             await controller.refresh()
 
@@ -258,11 +286,13 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         do {
             try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
             apiKeyInput = ""
+            isAPIKeyDeleteConfirmationPresented = false
             settingsFeedback = SettingsFeedback(kind: .success, message: "API key deleted.")
             isCredentialConfigured = false
             isAPIKeyEditorExpanded = false
             controller.markNotConfigured()
         } catch {
+            isAPIKeyDeleteConfirmationPresented = false
             settingsFeedback = SettingsFeedback(
                 kind: .error,
                 message: Self.settingsMessage(for: error, fallback: "API key could not be deleted.")

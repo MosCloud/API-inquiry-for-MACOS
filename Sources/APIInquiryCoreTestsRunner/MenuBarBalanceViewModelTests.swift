@@ -18,10 +18,13 @@ enum MenuBarBalanceViewModelTests {
         testAuthenticationFailureExposesKeyRecoveryActions(using: harness)
         testRateLimitExposesRetryAction(using: harness)
         testRefreshingDisablesRefresh(using: harness)
+        testRequestingAPIKeyDeletionShowsConfirmation(using: harness)
+        testCancelingAPIKeyDeletionHidesConfirmationAndKeepsKey(using: harness)
         await testSavingAPIKeyClearsInputAndRefreshes(using: harness)
         await testSavingAPIKeyShowsSafeSuccessFeedback(using: harness)
         await testSaveFailureKeepsInput(using: harness)
         await testSavingEmptyAPIKeyShowsErrorFeedback(using: harness)
+        await testConfirmingAPIKeyDeletionDeletesCredential(using: harness)
         await testDeletingAPIKeyReturnsToSetup(using: harness)
     }
 
@@ -154,6 +157,35 @@ enum MenuBarBalanceViewModelTests {
     }
 
     @MainActor
+    private static func testRequestingAPIKeyDeletionShowsConfirmation(using harness: TestHarness) {
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")), credentialStore: store)
+
+        viewModel.requestAPIKeyDeletion()
+
+        harness.expectTrue(
+            viewModel.isAPIKeyDeleteConfirmationPresented,
+            "requesting api key deletion shows confirmation"
+        )
+    }
+
+    @MainActor
+    private static func testCancelingAPIKeyDeletionHidesConfirmationAndKeepsKey(using harness: TestHarness) {
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")), credentialStore: store)
+
+        viewModel.requestAPIKeyDeletion()
+        viewModel.cancelAPIKeyDeletion()
+
+        harness.expectTrue(
+            !viewModel.isAPIKeyDeleteConfirmationPresented,
+            "canceling api key deletion hides confirmation"
+        )
+        harness.expectEqual(try? store.credential(forAccount: "deepseek-api-key"), "test-key", "cancel keeps api key")
+        harness.expectEqual(viewModel.credentialStatusText, "Configured", "cancel keeps credential configured")
+    }
+
+    @MainActor
     private static func testSavingAPIKeyClearsInputAndRefreshes(using harness: TestHarness) async {
         let snapshot = makeSnapshot(total: "68.65")
         let provider = MockBalanceProvider(results: [.success(snapshot)])
@@ -224,6 +256,22 @@ enum MenuBarBalanceViewModelTests {
             "empty key error feedback"
         )
         harness.expectEqual(viewModel.settingsMessage, "API key is required.", "empty key derived message")
+    }
+
+    @MainActor
+    private static func testConfirmingAPIKeyDeletionDeletesCredential(using harness: TestHarness) async {
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")), credentialStore: store)
+
+        viewModel.requestAPIKeyDeletion()
+        await viewModel.confirmAPIKeyDeletion()
+
+        harness.expectTrue(
+            !viewModel.isAPIKeyDeleteConfirmationPresented,
+            "confirming api key deletion hides confirmation"
+        )
+        harness.expectEqual(try? store.credential(forAccount: "deepseek-api-key"), nil, "confirm deletes api key")
+        harness.expectEqual(viewModel.credentialStatusText, "Not configured", "confirm updates credential status")
     }
 
     @MainActor
