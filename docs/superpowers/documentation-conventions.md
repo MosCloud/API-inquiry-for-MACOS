@@ -12,3 +12,12 @@ For each substantial document:
 - Prefer reviewing the Chinese version with the user when the conversation is in Chinese.
 
 This convention applies to design specs, implementation plans, review notes, and similar project documents.
+
+## Release Notes
+
+Release notes should only include:
+
+- New features added in the released version.
+- Bug fixes for issues that existed in the previous published version.
+
+Do not list bugs that were introduced and fixed during the same unreleased development cycle.
