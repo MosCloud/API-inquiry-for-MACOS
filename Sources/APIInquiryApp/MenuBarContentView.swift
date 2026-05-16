@@ -6,6 +6,7 @@ import SwiftUI
 struct MenuBarContentView: View {
     @ObservedObject var viewModel: MenuBarBalanceViewModel
     @StateObject private var launchAtLoginController: LaunchAtLoginController
+    @State private var isShowingDeleteConfirmation = false
 
     init(viewModel: MenuBarBalanceViewModel) {
         self.viewModel = viewModel
@@ -18,10 +19,20 @@ struct MenuBarContentView: View {
             balance
             status
             if let errorText = viewModel.errorText {
-                Text(errorText)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(errorText)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if !viewModel.recoveryActions.isEmpty {
+                        HStack(spacing: 8) {
+                            ForEach(viewModel.recoveryActions, id: \.self) { action in
+                                recoveryButton(for: action)
+                            }
+                        }
+                    }
+                }
             }
 
             Divider()
@@ -44,6 +55,19 @@ struct MenuBarContentView: View {
         .onAppear {
             launchAtLoginController.refreshStatus()
         }
+        .confirmationDialog(
+            "Delete API Key?",
+            isPresented: $isShowingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                Task { await viewModel.deleteAPIKey() }
+            }
+
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("API Inquiry will remove the saved key from Keychain.")
+        }
     }
 
     private var header: some View {
@@ -61,11 +85,12 @@ struct MenuBarContentView: View {
             Button {
                 Task { await viewModel.refresh() }
             } label: {
-                Image(systemName: "arrow.clockwise")
+                Image(systemName: viewModel.isRefreshDisabled ? "arrow.clockwise.circle" : "arrow.clockwise")
                     .imageScale(.medium)
             }
             .buttonStyle(.borderless)
-            .help("Refresh")
+            .disabled(viewModel.isRefreshDisabled)
+            .help(viewModel.isRefreshDisabled ? "Refreshing" : "Refresh")
         }
     }
 
@@ -138,6 +163,20 @@ struct MenuBarContentView: View {
             }
 
             if viewModel.shouldShowAPIKeyEditor {
+                if viewModel.shouldShowSetupGuidance {
+                    Text(viewModel.setupGuidanceText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        NSWorkspace.shared.open(viewModel.consoleURL)
+                    } label: {
+                        Label("Open DeepSeek Console", systemImage: "safari")
+                    }
+                    .buttonStyle(.borderless)
+                }
+
                 SecureField(viewModel.isAPIKeyConfigured ? "New DeepSeek API key" : "DeepSeek API key", text: $viewModel.apiKeyInput)
                     .textFieldStyle(.roundedBorder)
 
@@ -149,17 +188,36 @@ struct MenuBarContentView: View {
 
                     if viewModel.isAPIKeyConfigured {
                         Button("Delete", role: .destructive) {
-                            Task { await viewModel.deleteAPIKey() }
+                            isShowingDeleteConfirmation = true
                         }
                     }
                 }
 
-                if let settingsMessage = viewModel.settingsMessage {
-                    Text(settingsMessage)
+                if let settingsFeedback = viewModel.settingsFeedback {
+                    Text(settingsFeedback.message)
                         .font(.caption)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(settingsFeedbackColor(for: settingsFeedback.kind))
                         .fixedSize(horizontal: false, vertical: true)
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func recoveryButton(for action: BalanceRecoveryAction) -> some View {
+        switch action {
+        case .retry:
+            Button("Retry") {
+                Task { await viewModel.refresh() }
+            }
+            .disabled(viewModel.isRefreshDisabled)
+        case .replaceKey:
+            Button("Replace Key") {
+                viewModel.beginReplacingAPIKey()
+            }
+        case .deleteKey:
+            Button("Delete Key", role: .destructive) {
+                isShowingDeleteConfirmation = true
             }
         }
     }
@@ -221,6 +279,17 @@ struct MenuBarContentView: View {
             return .orange
         default:
             return .secondary
+        }
+    }
+
+    private func settingsFeedbackColor(for kind: SettingsFeedbackKind) -> Color {
+        switch kind {
+        case .success:
+            return .green
+        case .warning:
+            return .orange
+        case .error:
+            return .red
         }
     }
 }
