@@ -6,17 +6,28 @@ source "$ROOT_DIR/Scripts/version.env"
 DIST_DIR="$ROOT_DIR/dist"
 APP_NAME="API Inquiry.app"
 APP_DIR="$DIST_DIR/$APP_NAME"
-DMG_ROOT="$DIST_DIR/dmg-root"
 DMG_NAME="$DMG_BASENAME.dmg"
 DMG_PATH="$DIST_DIR/$DMG_NAME"
 CHECKSUM_PATH="$DMG_PATH.sha256"
-VERIFY_MOUNT="$DIST_DIR/dmg-verify-mount"
+DMG_WORK_ROOT="${API_INQUIRY_DMG_WORK_ROOT:-/private/tmp/api-inquiry-dmg-$$}"
+DMG_ROOT="$DMG_WORK_ROOT/dmg-root"
+VERIFY_MOUNT="$DMG_WORK_ROOT/dmg-verify-mount"
+
+detach_verify_mount() {
+    hdiutil detach "$VERIFY_MOUNT" >/dev/null 2>&1 || true
+}
+
+cleanup_dmg_work() {
+    detach_verify_mount
+    rm -rf "$DMG_WORK_ROOT"
+}
+trap cleanup_dmg_work EXIT
 
 cd "$ROOT_DIR"
 
 Scripts/package-mac-app.sh
 
-rm -rf "$DMG_ROOT" "$DMG_PATH"
+rm -rf "$DMG_WORK_ROOT" "$DMG_PATH" "$CHECKSUM_PATH"
 mkdir -p "$DMG_ROOT"
 
 ditto "$APP_DIR" "$DMG_ROOT/$APP_NAME"
@@ -39,15 +50,8 @@ hdiutil create \
 
 hdiutil verify "$DMG_PATH"
 
-rm -rf "$VERIFY_MOUNT"
 mkdir -p "$VERIFY_MOUNT"
 hdiutil attach -nobrowse -readonly -mountpoint "$VERIFY_MOUNT" "$DMG_PATH" >/dev/null
-
-cleanup_verify_mount() {
-    hdiutil detach "$VERIFY_MOUNT" >/dev/null 2>&1 || true
-    rm -rf "$VERIFY_MOUNT"
-}
-trap cleanup_verify_mount EXIT
 
 if [ ! -d "$VERIFY_MOUNT/$APP_NAME" ]; then
     echo "$APP_NAME is missing from $DMG_NAME." >&2
@@ -91,9 +95,9 @@ if [ ! -L "$VERIFY_MOUNT/Applications" ]; then
     exit 1
 fi
 
-cleanup_verify_mount
+detach_verify_mount
 trap - EXIT
-rm -rf "$DMG_ROOT"
+rm -rf "$DMG_WORK_ROOT"
 
 (cd "$DIST_DIR" && /usr/bin/shasum -a 256 "$DMG_NAME" > "$DMG_NAME.sha256")
 (cd "$DIST_DIR" && /usr/bin/shasum -a 256 -c "$DMG_NAME.sha256")
