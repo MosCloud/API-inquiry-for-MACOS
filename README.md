@@ -87,17 +87,24 @@ Scripts/package-dmg.sh
 The script creates:
 
 ```text
-dist/API-Inquiry-alpha.dmg
+dist/API-Inquiry-v0.1.1-alpha.1.dmg
+dist/API-Inquiry-v0.1.1-alpha.1.dmg.sha256
 ```
 
 ## Install From GitHub DMG
 
 This project uses a free alpha distribution strategy for GitHub Releases. The DMG is ad-hoc signed but not Apple notarized.
 
-1. Download `API-Inquiry-alpha.dmg` from GitHub Releases.
-2. Open the DMG.
-3. Drag `API Inquiry.app` into `Applications`.
-4. Launch API Inquiry from Applications.
+1. Download `API-Inquiry-v0.1.1-alpha.1.dmg` and `API-Inquiry-v0.1.1-alpha.1.dmg.sha256` from GitHub Releases.
+2. Verify the download:
+
+   ```bash
+   shasum -a 256 -c API-Inquiry-v0.1.1-alpha.1.dmg.sha256
+   ```
+
+3. Open the DMG.
+4. Drag `API Inquiry.app` into `Applications`.
+5. Launch API Inquiry from Applications.
 
 If macOS blocks the first launch because the developer cannot be verified:
 

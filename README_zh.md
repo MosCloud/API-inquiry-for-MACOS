@@ -87,17 +87,24 @@ Scripts/package-dmg.sh
 脚本会生成：
 
 ```text
-dist/API-Inquiry-alpha.dmg
+dist/API-Inquiry-v0.1.1-alpha.1.dmg
+dist/API-Inquiry-v0.1.1-alpha.1.dmg.sha256
 ```
 
 ## 通过 GitHub DMG 安装
 
 本项目采用免费 alpha 发布策略上传 GitHub Releases。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。
 
-1. 从 GitHub Releases 下载 `API-Inquiry-alpha.dmg`。
-2. 打开 DMG。
-3. 将 `API Inquiry.app` 拖入 `Applications`。
-4. 从 Applications 启动 API Inquiry。
+1. 从 GitHub Releases 下载 `API-Inquiry-v0.1.1-alpha.1.dmg` 和 `API-Inquiry-v0.1.1-alpha.1.dmg.sha256`。
+2. 校验下载文件：
+
+   ```bash
+   shasum -a 256 -c API-Inquiry-v0.1.1-alpha.1.dmg.sha256
+   ```
+
+3. 打开 DMG。
+4. 将 `API Inquiry.app` 拖入 `Applications`。
+5. 从 Applications 启动 API Inquiry。
 
 如果 macOS 首次启动时提示无法验证开发者：
 
