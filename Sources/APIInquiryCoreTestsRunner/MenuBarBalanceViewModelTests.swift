@@ -14,7 +14,13 @@ enum MenuBarBalanceViewModelTests {
         testConfiguredKeyWithoutSnapshotShowsPlaceholderTitle(using: harness)
         testConfiguredKeyEditorIsCollapsedByDefault(using: harness)
         testToggleAPIKeyEditorExpandsConfiguredEditor(using: harness)
+        testSetupGuidanceShowsWhenKeyIsMissing(using: harness)
+        testAuthenticationFailureExposesKeyRecoveryActions(using: harness)
+        testRateLimitExposesRetryAction(using: harness)
+        testRefreshingDisablesRefresh(using: harness)
         await testSavingAPIKeyClearsInputAndRefreshes(using: harness)
+        await testSavingAPIKeyShowsSafeSuccessFeedback(using: harness)
+        await testSaveFailureKeepsInput(using: harness)
         await testDeletingAPIKeyReturnsToSetup(using: harness)
     }
 
@@ -101,6 +107,52 @@ enum MenuBarBalanceViewModelTests {
     }
 
     @MainActor
+    private static func testSetupGuidanceShowsWhenKeyIsMissing(using harness: TestHarness) {
+        let viewModel = makeViewModel(state: .notConfigured)
+
+        harness.expectTrue(viewModel.shouldShowSetupGuidance, "setup guidance visible without key")
+        harness.expectEqual(
+            viewModel.setupGuidanceText,
+            "Add a DeepSeek API key to start checking your balance.",
+            "setup guidance text"
+        )
+    }
+
+    @MainActor
+    private static func testAuthenticationFailureExposesKeyRecoveryActions(using harness: TestHarness) {
+        let viewModel = makeViewModel(
+            state: .failed(
+                message: "API key may be invalid. Replace or delete it in settings.",
+                kind: .authenticationFailed,
+                last: nil
+            ),
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
+        )
+
+        harness.expectEqual(viewModel.recoveryActions, [.replaceKey, .deleteKey], "auth failure actions")
+    }
+
+    @MainActor
+    private static func testRateLimitExposesRetryAction(using harness: TestHarness) {
+        let viewModel = makeViewModel(
+            state: .failed(
+                message: "Balance API rate limit reached. Try again shortly.",
+                kind: .rateLimited,
+                last: makeSnapshot(total: "68.65")
+            )
+        )
+
+        harness.expectEqual(viewModel.recoveryActions, [.retry], "rate limit retry action")
+    }
+
+    @MainActor
+    private static func testRefreshingDisablesRefresh(using harness: TestHarness) {
+        let viewModel = makeViewModel(state: .loading(last: makeSnapshot(total: "68.65")))
+
+        harness.expectTrue(viewModel.isRefreshDisabled, "refresh disabled while loading")
+    }
+
+    @MainActor
     private static func testSavingAPIKeyClearsInputAndRefreshes(using harness: TestHarness) async {
         let snapshot = makeSnapshot(total: "68.65")
         let provider = MockBalanceProvider(results: [.success(snapshot)])
@@ -116,6 +168,33 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(provider.lastAPIKey, "test-key", "save triggers refresh")
         harness.expectEqual(viewModel.credentialStatusText, "Configured", "credential configured after save")
         harness.expectEqual(viewModel.menuBarTitle, "DS ¥68.6", "menu title after save refresh")
+    }
+
+    @MainActor
+    private static func testSavingAPIKeyShowsSafeSuccessFeedback(using harness: TestHarness) async {
+        let snapshot = makeSnapshot(total: "68.65")
+        let provider = MockBalanceProvider(results: [.success(snapshot)])
+        let store = InMemoryCredentialStore()
+        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+        let viewModel = MenuBarBalanceViewModel(provider: provider, credentialStore: store, controller: controller)
+        viewModel.apiKeyInput = "test-key"
+
+        await viewModel.saveAPIKey()
+
+        harness.expectEqual(viewModel.settingsMessage, "Saved securely.", "safe save feedback")
+    }
+
+    @MainActor
+    private static func testSaveFailureKeepsInput(using harness: TestHarness) async {
+        let provider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
+        let store = InMemoryCredentialStore()
+        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+        let viewModel = MenuBarBalanceViewModel(provider: provider, credentialStore: store, controller: controller)
+        viewModel.apiKeyInput = "bad-key"
+
+        await viewModel.saveAPIKey()
+
+        harness.expectEqual(viewModel.apiKeyInput, "bad-key", "save failure keeps input")
     }
 
     @MainActor

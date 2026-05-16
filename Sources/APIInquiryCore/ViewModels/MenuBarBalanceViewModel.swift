@@ -139,6 +139,34 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         isCredentialConfigured
     }
 
+    public var shouldShowSetupGuidance: Bool {
+        !isCredentialConfigured
+    }
+
+    public var setupGuidanceText: String {
+        "Add a DeepSeek API key to start checking your balance."
+    }
+
+    public var isRefreshDisabled: Bool {
+        if case .loading = state {
+            return true
+        }
+        return false
+    }
+
+    public var recoveryActions: [BalanceRecoveryAction] {
+        guard case .failed(_, let kind, _) = state else {
+            return []
+        }
+
+        switch kind {
+        case .authenticationFailed:
+            return [.replaceKey, .deleteKey]
+        case .rateLimited, .networkUnavailable, .serverError, .decodingFailed, .invalidResponse, .unknown:
+            return [.retry]
+        }
+    }
+
     public var shouldShowAPIKeyEditor: Bool {
         !isCredentialConfigured || isAPIKeyEditorExpanded
     }
@@ -179,11 +207,22 @@ public final class MenuBarBalanceViewModel: ObservableObject {
 
         do {
             try credentialStore.saveCredential(apiKey, forAccount: provider.credentialAccount)
-            apiKeyInput = ""
-            settingsMessage = nil
             isCredentialConfigured = true
-            isAPIKeyEditorExpanded = false
             await controller.refresh()
+
+            switch state {
+            case .loaded:
+                apiKeyInput = ""
+                settingsMessage = "Saved securely."
+                isCredentialConfigured = true
+                isAPIKeyEditorExpanded = false
+            case .failed:
+                settingsMessage = errorText ?? "API key could not be saved."
+                isCredentialConfigured = true
+                isAPIKeyEditorExpanded = true
+            case .notConfigured, .loading:
+                settingsMessage = nil
+            }
         } catch {
             settingsMessage = Self.settingsMessage(for: error)
         }
@@ -193,7 +232,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         do {
             try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
             apiKeyInput = ""
-            settingsMessage = nil
+            settingsMessage = "API key deleted."
             isCredentialConfigured = false
             isAPIKeyEditorExpanded = false
             controller.markNotConfigured()
