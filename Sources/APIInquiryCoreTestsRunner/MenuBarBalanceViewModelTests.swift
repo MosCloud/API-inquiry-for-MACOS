@@ -35,7 +35,7 @@ enum MenuBarBalanceViewModelTests {
     @MainActor
     private static func testFailedStatePreservesMenuTitle(using harness: TestHarness) {
         let viewModel = makeViewModel(
-            state: .failed(message: "Refresh failed.", last: makeSnapshot(total: "68.65"))
+            state: .failed(message: "Refresh failed.", kind: .unknown, last: makeSnapshot(total: "68.65"))
         )
 
         harness.expectEqual(viewModel.menuBarTitle, "DS ¥68.6", "failed menu title keeps last balance")
@@ -62,7 +62,7 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(makeViewModel(state: .notConfigured).statusText, "Not configured", "not configured status")
         harness.expectEqual(makeViewModel(state: .loading(last: nil)).statusText, "Refreshing", "refreshing status")
         harness.expectEqual(makeViewModel(state: .loaded(makeSnapshot(total: "0.00", isAvailable: false))).statusText, "Balance insufficient", "insufficient status")
-        harness.expectEqual(makeViewModel(state: .failed(message: "Refresh failed.", last: nil)).statusText, "Refresh failed", "failed status")
+        harness.expectEqual(makeViewModel(state: .failed(message: "Refresh failed.", kind: .unknown, last: nil)).statusText, "Refresh failed", "failed status")
     }
 
     @MainActor

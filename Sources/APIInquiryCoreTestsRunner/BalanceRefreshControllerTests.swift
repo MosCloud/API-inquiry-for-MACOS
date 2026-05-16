@@ -7,6 +7,7 @@ enum BalanceRefreshControllerTests {
         await testMissingCredentialSetsNotConfigured(using: harness)
         await testSuccessfulRefreshLoadsSnapshot(using: harness)
         await testFailurePreservesLastSnapshot(using: harness)
+        await testAuthenticationFailureUsesTypedFailureKind(using: harness)
         await testOverlappingRefreshDoesNotStartSecondProviderCall(using: harness)
         await testCancellationRestoresPreviousState(using: harness)
         await testCancelledURLErrorRestoresPreviousState(using: harness)
@@ -55,8 +56,31 @@ enum BalanceRefreshControllerTests {
         harness.expectEqual(controller.state.lastSnapshot, snapshot, "failed refresh last snapshot")
         harness.expectEqual(
             controller.state,
-            .failed(message: "Balance API rate limit reached. Try again shortly.", last: snapshot),
+            .failed(
+                message: "Balance API rate limit reached. Try again shortly.",
+                kind: .rateLimited,
+                last: snapshot
+            ),
             "failed refresh state"
+        )
+    }
+
+    @MainActor
+    private static func testAuthenticationFailureUsesTypedFailureKind(using harness: TestHarness) async {
+        let provider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
+        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+
+        await controller.refresh()
+
+        harness.expectEqual(
+            controller.state,
+            .failed(
+                message: "API key may be invalid. Replace or delete it in settings.",
+                kind: .authenticationFailed,
+                last: nil
+            ),
+            "authentication failure kind"
         )
     }
 

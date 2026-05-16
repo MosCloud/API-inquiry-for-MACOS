@@ -37,3 +37,22 @@ public enum BalanceProviderError: Error, Equatable, LocalizedError {
         }
     }
 }
+
+public extension BalanceProviderError {
+    var failureKind: BalanceFailureKind {
+        switch self {
+        case .authenticationFailed:
+            return .authenticationFailed
+        case .rateLimited:
+            return .rateLimited
+        case .serverError:
+            return .serverError
+        case .decodingFailed:
+            return .decodingFailed
+        case .missingBalanceInfo, .invalidBalanceAmount:
+            return .invalidResponse
+        case .invalidURL:
+            return .unknown
+        }
+    }
+}

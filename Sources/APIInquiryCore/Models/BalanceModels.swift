@@ -9,6 +9,22 @@ public enum MenuBarDisplayMode: Equatable {
     case iconAndText
 }
 
+public enum BalanceFailureKind: Equatable {
+    case authenticationFailed
+    case rateLimited
+    case networkUnavailable
+    case serverError
+    case decodingFailed
+    case invalidResponse
+    case unknown
+}
+
+public enum BalanceRecoveryAction: Equatable {
+    case retry
+    case replaceKey
+    case deleteKey
+}
+
 public struct BalanceSnapshot: Equatable {
     public let providerID: ProviderID
     public let totalBalance: Decimal
@@ -41,7 +57,7 @@ public enum BalanceState: Equatable {
     case notConfigured
     case loading(last: BalanceSnapshot?)
     case loaded(BalanceSnapshot)
-    case failed(message: String, last: BalanceSnapshot?)
+    case failed(message: String, kind: BalanceFailureKind, last: BalanceSnapshot?)
 
     public var lastSnapshot: BalanceSnapshot? {
         switch self {
@@ -51,7 +67,7 @@ public enum BalanceState: Equatable {
             return last
         case .loaded(let snapshot):
             return snapshot
-        case .failed(_, let last):
+        case .failed(_, _, let last):
             return last
         }
     }

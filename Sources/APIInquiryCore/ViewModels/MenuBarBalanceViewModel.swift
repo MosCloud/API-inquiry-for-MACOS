@@ -121,7 +121,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var errorText: String? {
-        if case .failed(let message, _) = state {
+        if case .failed(let message, _, _) = state {
             return message
         }
         return nil

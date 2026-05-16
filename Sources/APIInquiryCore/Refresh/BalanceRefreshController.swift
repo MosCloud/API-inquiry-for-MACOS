@@ -53,7 +53,11 @@ public final class BalanceRefreshController: ObservableObject {
         } catch let error as URLError where error.code == .cancelled {
             state = previousState
         } catch {
-            state = .failed(message: Self.userMessage(for: error), last: state.lastSnapshot)
+            state = .failed(
+                message: Self.userMessage(for: error),
+                kind: Self.failureKind(for: error),
+                last: state.lastSnapshot
+            )
         }
     }
 
@@ -91,6 +95,23 @@ public final class BalanceRefreshController: ObservableObject {
         }
 
         return "Refresh failed. Try again shortly."
+    }
+
+    private static func failureKind(for error: Error) -> BalanceFailureKind {
+        if let providerError = error as? BalanceProviderError {
+            return providerError.failureKind
+        }
+
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost, .timedOut:
+                return .networkUnavailable
+            default:
+                return .unknown
+            }
+        }
+
+        return .unknown
     }
 
     private static func nanoseconds(from interval: TimeInterval) -> UInt64 {
