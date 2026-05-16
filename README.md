@@ -87,19 +87,19 @@ Scripts/package-dmg.sh
 The script creates:
 
 ```text
-dist/API-Inquiry-v0.1.1-alpha.1.dmg
-dist/API-Inquiry-v0.1.1-alpha.1.dmg.sha256
+dist/API-Inquiry-v0.1.1.dmg
+dist/API-Inquiry-v0.1.1.dmg.sha256
 ```
 
 ## Install From GitHub DMG
 
-This project uses a free alpha distribution strategy for GitHub Releases. The DMG is ad-hoc signed but not Apple notarized.
+This project uses a free GitHub Releases distribution strategy. The DMG is ad-hoc signed but not Apple notarized.
 
-1. Download `API-Inquiry-v0.1.1-alpha.1.dmg` and `API-Inquiry-v0.1.1-alpha.1.dmg.sha256` from GitHub Releases.
+1. Download `API-Inquiry-v0.1.1.dmg` and `API-Inquiry-v0.1.1.dmg.sha256` from GitHub Releases.
 2. Verify the download:
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.1.1-alpha.1.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.1.1.dmg.sha256
    ```
 
 3. Open the DMG.

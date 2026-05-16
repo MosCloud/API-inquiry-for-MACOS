@@ -87,19 +87,19 @@ Scripts/package-dmg.sh
 脚本会生成：
 
 ```text
-dist/API-Inquiry-v0.1.1-alpha.1.dmg
-dist/API-Inquiry-v0.1.1-alpha.1.dmg.sha256
+dist/API-Inquiry-v0.1.1.dmg
+dist/API-Inquiry-v0.1.1.dmg.sha256
 ```
 
 ## 通过 GitHub DMG 安装
 
-本项目采用免费 alpha 发布策略上传 GitHub Releases。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。
+本项目采用免费的 GitHub Releases 发布策略。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。
 
-1. 从 GitHub Releases 下载 `API-Inquiry-v0.1.1-alpha.1.dmg` 和 `API-Inquiry-v0.1.1-alpha.1.dmg.sha256`。
+1. 从 GitHub Releases 下载 `API-Inquiry-v0.1.1.dmg` 和 `API-Inquiry-v0.1.1.dmg.sha256`。
 2. 校验下载文件：
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.1.1-alpha.1.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.1.1.dmg.sha256
    ```
 
 3. 打开 DMG。
