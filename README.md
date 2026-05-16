@@ -49,6 +49,14 @@ Build a local macOS app bundle:
 Scripts/build-local-app.sh
 ```
 
+Build and start the local macOS app bundle for quick validation:
+
+```bash
+Scripts/run-local-app.sh
+```
+
+During in-progress development, use this script for fast local validation. Full .app release packaging and DMG generation are reserved for release candidate validation.
+
 The script creates:
 
 ```text
@@ -100,6 +108,12 @@ If macOS blocks the first launch because the developer cannot be verified:
 You can also allow the app from `System Settings > Privacy & Security`.
 
 ## Run Locally
+
+```bash
+Scripts/run-local-app.sh
+```
+
+Open the existing local app bundle directly:
 
 ```bash
 open .build/APIInquiry.app

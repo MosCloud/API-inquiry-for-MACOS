@@ -49,6 +49,14 @@ swift Scripts/generate-app-icon.swift
 Scripts/build-local-app.sh
 ```
 
+构建并启动本地 macOS app bundle，用于快速验证：
+
+```bash
+Scripts/run-local-app.sh
+```
+
+开发过程态优先使用该脚本进行快速本地验证。完整 .app release 打包和 DMG 生成只在 release candidate 验证阶段执行。
+
 脚本会生成：
 
 ```text
@@ -100,6 +108,12 @@ dist/API-Inquiry-alpha.dmg
 也可以进入 `System Settings > Privacy & Security`，允许该应用打开。
 
 ## 本地运行
+
+```bash
+Scripts/run-local-app.sh
+```
+
+直接打开已有的本地 app bundle：
 
 ```bash
 open .build/APIInquiry.app
