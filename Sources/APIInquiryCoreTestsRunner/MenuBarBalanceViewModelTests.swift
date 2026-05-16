@@ -21,6 +21,7 @@ enum MenuBarBalanceViewModelTests {
         await testSavingAPIKeyClearsInputAndRefreshes(using: harness)
         await testSavingAPIKeyShowsSafeSuccessFeedback(using: harness)
         await testSaveFailureKeepsInput(using: harness)
+        await testSavingEmptyAPIKeyShowsErrorFeedback(using: harness)
         await testDeletingAPIKeyReturnsToSetup(using: harness)
     }
 
@@ -181,7 +182,12 @@ enum MenuBarBalanceViewModelTests {
 
         await viewModel.saveAPIKey()
 
-        harness.expectEqual(viewModel.settingsMessage, "Saved securely.", "safe save feedback")
+        harness.expectEqual(
+            viewModel.settingsFeedback,
+            SettingsFeedback(kind: .success, message: "Saved securely."),
+            "structured safe save feedback"
+        )
+        harness.expectEqual(viewModel.settingsMessage, "Saved securely.", "derived safe save message")
     }
 
     @MainActor
@@ -195,6 +201,29 @@ enum MenuBarBalanceViewModelTests {
         await viewModel.saveAPIKey()
 
         harness.expectEqual(viewModel.apiKeyInput, "bad-key", "save failure keeps input")
+        harness.expectTrue(viewModel.shouldShowAPIKeyEditor, "save failure keeps editor expanded")
+        harness.expectEqual(viewModel.credentialStatusText, "Configured", "credential configured after save failure")
+        harness.expectEqual(try? store.credential(forAccount: "deepseek-api-key"), "bad-key", "bad key remains saved")
+        harness.expectEqual(viewModel.settingsFeedback?.kind, .warning, "save failure warning feedback")
+        harness.expectTrue(
+            viewModel.settingsFeedback?.message.contains("bad-key") == false,
+            "save failure feedback does not expose key"
+        )
+    }
+
+    @MainActor
+    private static func testSavingEmptyAPIKeyShowsErrorFeedback(using harness: TestHarness) async {
+        let viewModel = makeViewModel(state: .notConfigured)
+        viewModel.apiKeyInput = "   "
+
+        await viewModel.saveAPIKey()
+
+        harness.expectEqual(
+            viewModel.settingsFeedback,
+            SettingsFeedback(kind: .error, message: "API key is required."),
+            "empty key error feedback"
+        )
+        harness.expectEqual(viewModel.settingsMessage, "API key is required.", "empty key derived message")
     }
 
     @MainActor
@@ -207,6 +236,11 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(try? store.credential(forAccount: "deepseek-api-key"), nil, "api key deleted")
         harness.expectEqual(viewModel.credentialStatusText, "Not configured", "credential status after delete")
         harness.expectEqual(viewModel.menuBarTitle, "DS Setup", "menu title after delete")
+        harness.expectEqual(
+            viewModel.settingsFeedback,
+            SettingsFeedback(kind: .success, message: "API key deleted."),
+            "delete success feedback"
+        )
     }
 
     @MainActor

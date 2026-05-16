@@ -7,12 +7,28 @@ public struct BalanceDisplayParts: Equatable {
     public let trailingText: String
 }
 
+public enum SettingsFeedbackKind: Equatable {
+    case success
+    case warning
+    case error
+}
+
+public struct SettingsFeedback: Equatable {
+    public let kind: SettingsFeedbackKind
+    public let message: String
+
+    public init(kind: SettingsFeedbackKind, message: String) {
+        self.kind = kind
+        self.message = message
+    }
+}
+
 @MainActor
 public final class MenuBarBalanceViewModel: ObservableObject {
     @Published public var apiKeyInput = ""
     @Published public var displayMode: MenuBarDisplayMode
     @Published public private(set) var isAPIKeyEditorExpanded = false
-    @Published public private(set) var settingsMessage: String?
+    @Published public private(set) var settingsFeedback: SettingsFeedback?
     @Published private var isCredentialConfigured: Bool
 
     public let providerDisplayName: String
@@ -139,6 +155,10 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         isCredentialConfigured
     }
 
+    public var settingsMessage: String? {
+        settingsFeedback?.message
+    }
+
     public var shouldShowSetupGuidance: Bool {
         !isCredentialConfigured
     }
@@ -195,13 +215,13 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     public func beginReplacingAPIKey() {
         isAPIKeyEditorExpanded = true
         apiKeyInput = ""
-        settingsMessage = nil
+        settingsFeedback = nil
     }
 
     public func saveAPIKey() async {
         let apiKey = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !apiKey.isEmpty else {
-            settingsMessage = "API key is required."
+            settingsFeedback = SettingsFeedback(kind: .error, message: "API key is required.")
             return
         }
 
@@ -213,18 +233,24 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             switch state {
             case .loaded:
                 apiKeyInput = ""
-                settingsMessage = "Saved securely."
+                settingsFeedback = SettingsFeedback(kind: .success, message: "Saved securely.")
                 isCredentialConfigured = true
                 isAPIKeyEditorExpanded = false
             case .failed:
-                settingsMessage = errorText ?? "API key could not be saved."
+                settingsFeedback = SettingsFeedback(
+                    kind: .warning,
+                    message: "API key saved, but balance refresh failed. API key may be invalid. Replace or delete it in settings."
+                )
                 isCredentialConfigured = true
                 isAPIKeyEditorExpanded = true
             case .notConfigured, .loading:
-                settingsMessage = nil
+                settingsFeedback = nil
             }
         } catch {
-            settingsMessage = Self.settingsMessage(for: error)
+            settingsFeedback = SettingsFeedback(
+                kind: .error,
+                message: Self.settingsMessage(for: error, fallback: "API key could not be saved.")
+            )
         }
     }
 
@@ -232,12 +258,15 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         do {
             try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
             apiKeyInput = ""
-            settingsMessage = "API key deleted."
+            settingsFeedback = SettingsFeedback(kind: .success, message: "API key deleted.")
             isCredentialConfigured = false
             isAPIKeyEditorExpanded = false
             controller.markNotConfigured()
         } catch {
-            settingsMessage = Self.settingsMessage(for: error)
+            settingsFeedback = SettingsFeedback(
+                kind: .error,
+                message: Self.settingsMessage(for: error, fallback: "API key could not be deleted.")
+            )
         }
     }
 
@@ -248,14 +277,14 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         return !credential.isEmpty
     }
 
-    private static func settingsMessage(for error: Error) -> String {
+    private static func settingsMessage(for error: Error, fallback: String) -> String {
         if let localizedError = error as? LocalizedError,
            let description = localizedError.errorDescription,
            !description.isEmpty {
             return description
         }
 
-        return "API key could not be saved."
+        return fallback
     }
 
     private static func formatAmount(
