@@ -2,14 +2,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="${VERSION:-0.1.0-alpha.1}"
+source "$ROOT_DIR/Scripts/version.env"
 DIST_DIR="$ROOT_DIR/dist"
 APP_NAME="API Inquiry.app"
 APP_DIR="$DIST_DIR/$APP_NAME"
 DMG_ROOT="$DIST_DIR/dmg-root"
-DMG_NAME="API-Inquiry-alpha.dmg"
+DMG_NAME="$DMG_BASENAME.dmg"
 DMG_PATH="$DIST_DIR/$DMG_NAME"
-VOLUME_NAME="API Inquiry Alpha"
+CHECKSUM_PATH="$DMG_PATH.sha256"
 VERIFY_MOUNT="$DIST_DIR/dmg-verify-mount"
 
 cd "$ROOT_DIR"
@@ -59,6 +59,33 @@ if ls -ldO "$VERIFY_MOUNT/$APP_NAME" | grep -q hidden; then
     exit 1
 fi
 
+INFO_PLIST="$VERIFY_MOUNT/$APP_NAME/Contents/Info.plist"
+EXECUTABLE_PATH="$VERIFY_MOUNT/$APP_NAME/Contents/MacOS/APIInquiry"
+
+if [ ! -x "$EXECUTABLE_PATH" ]; then
+    echo "Executable missing from $DMG_NAME." >&2
+    exit 1
+fi
+
+BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$INFO_PLIST")
+APP_VERSION_IN_PLIST=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$INFO_PLIST")
+BUILD_NUMBER_IN_PLIST=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$INFO_PLIST")
+
+if [ "$BUNDLE_ID" != "com.api-inquiry.APIInquiry" ]; then
+    echo "Unexpected bundle id: $BUNDLE_ID" >&2
+    exit 1
+fi
+
+if [ "$APP_VERSION_IN_PLIST" != "$APP_VERSION" ]; then
+    echo "Unexpected app version: $APP_VERSION_IN_PLIST" >&2
+    exit 1
+fi
+
+if [ "$BUILD_NUMBER_IN_PLIST" != "$BUILD_NUMBER" ]; then
+    echo "Unexpected build number: $BUILD_NUMBER_IN_PLIST" >&2
+    exit 1
+fi
+
 if [ ! -L "$VERIFY_MOUNT/Applications" ]; then
     echo "Applications shortcut is missing from $DMG_NAME." >&2
     exit 1
@@ -68,4 +95,7 @@ cleanup_verify_mount
 trap - EXIT
 rm -rf "$DMG_ROOT"
 
+(cd "$DIST_DIR" && /usr/bin/shasum -a 256 "$DMG_NAME" > "$DMG_NAME.sha256")
+(cd "$DIST_DIR" && /usr/bin/shasum -a 256 -c "$DMG_NAME.sha256")
+echo "Checksum $CHECKSUM_PATH"
 echo "Packaged $DMG_PATH"
