@@ -6,9 +6,11 @@ import SwiftUI
 struct MenuBarContentView: View {
     @ObservedObject var viewModel: MenuBarBalanceViewModel
     @StateObject private var launchAtLoginController: LaunchAtLoginController
+    private let openConsole: (UsageConsoleSection) -> Void
 
-    init(viewModel: MenuBarBalanceViewModel) {
+    init(viewModel: MenuBarBalanceViewModel, openConsole: @escaping (UsageConsoleSection) -> Void) {
         self.viewModel = viewModel
+        self.openConsole = openConsole
         _launchAtLoginController = StateObject(wrappedValue: LaunchAtLoginController())
     }
 
@@ -36,9 +38,10 @@ struct MenuBarContentView: View {
 
             Divider()
 
-            apiKeySection
-
-            Divider()
+            if viewModel.shouldShowSetupGuidance {
+                consolePrompt
+                Divider()
+            }
 
             if let autoStartMessage = launchAtLoginController.message {
                 Text(autoStartMessage)
@@ -53,6 +56,22 @@ struct MenuBarContentView: View {
         .frame(width: 320)
         .onAppear {
             launchAtLoginController.refreshStatus()
+        }
+    }
+
+    private var consolePrompt: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(viewModel.setupGuidanceText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                openConsole(.api)
+            } label: {
+                Label("Open Console", systemImage: "macwindow")
+            }
+            .buttonStyle(.borderless)
         }
     }
 
@@ -124,75 +143,6 @@ struct MenuBarContentView: View {
         }
     }
 
-    private var apiKeySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("API Key")
-                    .font(.subheadline.weight(.medium))
-
-                Spacer()
-
-                Text(viewModel.credentialStatusText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                if viewModel.isAPIKeyConfigured {
-                    Button {
-                        viewModel.toggleAPIKeyEditor()
-                    } label: {
-                        Image(systemName: viewModel.shouldShowAPIKeyEditor ? "chevron.down" : "chevron.right")
-                            .imageScale(.small)
-                    }
-                    .buttonStyle(.borderless)
-                    .help(viewModel.shouldShowAPIKeyEditor ? "Hide API key controls" : "Show API key controls")
-                }
-            }
-
-            if viewModel.shouldShowAPIKeyEditor {
-                if viewModel.shouldShowSetupGuidance {
-                    Text(viewModel.setupGuidanceText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Button {
-                        NSWorkspace.shared.open(viewModel.consoleURL)
-                    } label: {
-                        Label("Open DeepSeek Console", systemImage: "safari")
-                    }
-                    .buttonStyle(.borderless)
-                }
-
-                SecureField(viewModel.isAPIKeyConfigured ? "New DeepSeek API key" : "DeepSeek API key", text: $viewModel.apiKeyInput)
-                    .textFieldStyle(.roundedBorder)
-
-                HStack(spacing: 8) {
-                    Button(viewModel.isAPIKeyConfigured ? "Replace" : "Save") {
-                        Task { await viewModel.saveAPIKey() }
-                    }
-                    .disabled(viewModel.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                    if viewModel.isAPIKeyConfigured && !viewModel.isAPIKeyDeleteConfirmationPresented {
-                        Button("Delete", role: .destructive) {
-                            viewModel.requestAPIKeyDeletion()
-                        }
-                    }
-                }
-
-                if viewModel.isAPIKeyDeleteConfirmationPresented {
-                    deleteConfirmation
-                }
-
-                if let settingsFeedback = viewModel.settingsFeedback {
-                    Text(settingsFeedback.message)
-                        .font(.caption)
-                        .foregroundStyle(settingsFeedbackColor(for: settingsFeedback.kind))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-
     @ViewBuilder
     private func recoveryButton(for action: BalanceRecoveryAction) -> some View {
         switch action {
@@ -201,44 +151,11 @@ struct MenuBarContentView: View {
                 Task { await viewModel.refresh() }
             }
             .disabled(viewModel.isRefreshDisabled)
-        case .replaceKey:
-            Button("Replace Key") {
-                viewModel.beginReplacingAPIKey()
-            }
-        case .deleteKey:
-            Button("Delete Key", role: .destructive) {
-                viewModel.requestAPIKeyDeletion()
-            }
-        case .openConsole:
+        case .replaceKey, .deleteKey, .openConsole:
             Button("Open Console") {
-                NSWorkspace.shared.open(viewModel.consoleURL)
+                openConsole(.api)
             }
         }
-    }
-
-    private var deleteConfirmation: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Remove the saved API key from Keychain?")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: 8) {
-                Button("Cancel") {
-                    viewModel.cancelAPIKeyDeletion()
-                }
-                .controlSize(.small)
-
-                Button("Delete", role: .destructive) {
-                    Task { await viewModel.confirmAPIKeyDeletion() }
-                }
-                .controlSize(.small)
-            }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondary.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var footer: some View {
@@ -253,8 +170,8 @@ struct MenuBarContentView: View {
                 launchAtLoginController.toggle()
             }
 
-            footerAction(title: "Console", systemImage: "safari") {
-                NSWorkspace.shared.open(viewModel.consoleURL)
+            footerAction(title: "Console", systemImage: "macwindow") {
+                openConsole(.overview)
             }
 
             footerAction(title: "Quit", systemImage: "power") {
@@ -298,17 +215,6 @@ struct MenuBarContentView: View {
             return .orange
         default:
             return .secondary
-        }
-    }
-
-    private func settingsFeedbackColor(for kind: SettingsFeedbackKind) -> Color {
-        switch kind {
-        case .success:
-            return .green
-        case .warning:
-            return .orange
-        case .error:
-            return .red
         }
     }
 }

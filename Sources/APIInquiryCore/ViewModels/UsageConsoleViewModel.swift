@@ -112,6 +112,18 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
     }
 
+    public func importUsageCSVFile(at url: URL, importedAt: Date = Date()) {
+        do {
+            let csvText = try String(contentsOf: url, encoding: .utf8)
+            importUsageCSV(csvText, sourceFileName: url.lastPathComponent, importedAt: importedAt)
+        } catch {
+            usageFeedback = SettingsFeedback(
+                kind: .error,
+                message: Self.settingsMessage(for: error, fallback: "Usage CSV could not be read.")
+            )
+        }
+    }
+
     public func clearUsageData() {
         do {
             try usageDataStore.clearDataset()

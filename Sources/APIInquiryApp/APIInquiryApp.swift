@@ -6,10 +6,29 @@ import SwiftUI
 struct APIInquiryApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var viewModel: MenuBarBalanceViewModel
+    @StateObject private var consoleViewModel: UsageConsoleViewModel
+    @StateObject private var consoleWindowController: UsageConsoleWindowController
 
     init() {
-        let viewModel = MenuBarBalanceViewModel()
+        let provider = DeepSeekBalanceProvider()
+        let credentialStore = KeychainCredentialStore()
+        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let viewModel = MenuBarBalanceViewModel(
+            provider: provider,
+            credentialStore: credentialStore,
+            controller: controller
+        )
+        let consoleViewModel = UsageConsoleViewModel(
+            provider: provider,
+            credentialStore: credentialStore,
+            controller: controller
+        )
+
         _viewModel = StateObject(wrappedValue: viewModel)
+        _consoleViewModel = StateObject(wrappedValue: consoleViewModel)
+        _consoleWindowController = StateObject(
+            wrappedValue: UsageConsoleWindowController(viewModel: consoleViewModel)
+        )
 
         Task { @MainActor in
             await viewModel.refresh()
@@ -19,7 +38,9 @@ struct APIInquiryApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarContentView(viewModel: viewModel)
+            MenuBarContentView(viewModel: viewModel) { section in
+                consoleWindowController.open(defaultSection: section)
+            }
         } label: {
             Image(nsImage: DeepSeekImages.menuBarLabelImage(text: viewModel.menuBarValueText))
                 .renderingMode(.template)
