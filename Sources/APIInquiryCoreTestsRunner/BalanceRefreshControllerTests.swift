@@ -153,6 +153,7 @@ private final class SuspendedBalanceProvider: BalanceProvider {
     let displayName = "DeepSeek"
     let menuPrefix = "DS"
     let credentialAccount = "deepseek-api-key"
+    let homepageURL = URL(string: "https://platform.deepseek.com/usage")!
 
     private let probe: SuspendedRefreshProbe
 
@@ -200,6 +201,7 @@ final class MockBalanceProvider: BalanceProvider {
     let displayName = "DeepSeek"
     let menuPrefix = "DS"
     let credentialAccount = "deepseek-api-key"
+    let homepageURL = URL(string: "https://platform.deepseek.com/usage")!
 
     private var results: [Result<BalanceSnapshot, Error>]
     private(set) var fetchCount = 0

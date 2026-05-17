@@ -5,6 +5,7 @@ public final class DeepSeekBalanceProvider: BalanceProvider {
     public let displayName = "DeepSeek"
     public let menuPrefix = "DS"
     public let credentialAccount = "deepseek-api-key"
+    public let homepageURL = URL(string: "https://platform.deepseek.com/usage")!
 
     private let baseURL: URL
     private let httpClient: HTTPClient

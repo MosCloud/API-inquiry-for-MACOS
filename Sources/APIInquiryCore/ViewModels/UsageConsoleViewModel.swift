@@ -3,17 +3,20 @@ import Foundation
 
 public struct APIProviderSummary: Equatable {
     public let displayName: String
+    public let homepageURL: URL
     public let apiKeyStatusText: String
     public let validationStatusText: String
     public let balanceText: String
 
     public init(
         displayName: String,
+        homepageURL: URL,
         apiKeyStatusText: String,
         validationStatusText: String,
         balanceText: String
     ) {
         self.displayName = displayName
+        self.homepageURL = homepageURL
         self.apiKeyStatusText = apiKeyStatusText
         self.validationStatusText = validationStatusText
         self.balanceText = balanceText
@@ -71,6 +74,7 @@ public final class UsageConsoleViewModel: ObservableObject {
         [
             APIProviderSummary(
                 displayName: providerDisplayName,
+                homepageURL: provider.homepageURL,
                 apiKeyStatusText: credentialStatusText,
                 validationStatusText: validationStatusText,
                 balanceText: balanceText

@@ -26,7 +26,7 @@ swift run APIInquiryCoreTestsRunner
 预期结果：
 
 ```text
-PASS: 88 expectations
+PASS: 89 expectations
 ```
 
 ## 构建

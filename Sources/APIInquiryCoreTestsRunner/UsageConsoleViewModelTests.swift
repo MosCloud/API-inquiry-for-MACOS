@@ -18,6 +18,11 @@ enum UsageConsoleViewModelTests {
 
         harness.expectEqual(viewModel.providerSummaries.count, 1, "console provider summary count")
         harness.expectEqual(viewModel.providerSummaries.first?.displayName, "DeepSeek", "console provider summary name")
+        harness.expectEqual(
+            viewModel.providerSummaries.first?.homepageURL,
+            URL(string: "https://platform.deepseek.com/usage")!,
+            "console provider homepage url"
+        )
         harness.expectEqual(viewModel.providerSummaries.first?.apiKeyStatusText, "Not configured", "console provider key status")
         harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "Not configured", "console provider validation status")
         harness.expectEqual(viewModel.providerSummaries.first?.balanceText, "--", "console provider balance placeholder")

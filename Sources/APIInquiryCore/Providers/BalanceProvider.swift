@@ -5,6 +5,7 @@ public protocol BalanceProvider {
     var displayName: String { get }
     var menuPrefix: String { get }
     var credentialAccount: String { get }
+    var homepageURL: URL { get }
 
     func fetchBalance(apiKey: String) async throws -> BalanceSnapshot
 }

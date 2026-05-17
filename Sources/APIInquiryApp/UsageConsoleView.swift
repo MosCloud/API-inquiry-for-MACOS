@@ -1,4 +1,5 @@
 import APIInquiryCore
+import AppKit
 import SwiftUI
 
 enum UsageConsoleSection: String, CaseIterable, Identifiable {
@@ -105,8 +106,7 @@ struct UsageConsoleView: View {
     private func providerStatusRow(_ summary: APIProviderSummary) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(summary.displayName)
-                    .font(.title3.weight(.semibold))
+                providerHomepageButton(summary, font: .title3.weight(.semibold))
 
                 Spacer()
 
@@ -139,8 +139,7 @@ struct UsageConsoleView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(summary.displayName)
-                        .font(.headline)
+                    providerHomepageButton(summary, font: .headline)
                     Text(summary.validationStatusText)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -214,6 +213,29 @@ struct UsageConsoleView: View {
         .padding(14)
         .background(Color.secondary.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func providerHomepageButton(_ summary: APIProviderSummary, font: Font) -> some View {
+        Button {
+            NSWorkspace.shared.open(summary.homepageURL)
+        } label: {
+            Label {
+                Text(summary.displayName)
+                    .font(font)
+            } icon: {
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .labelStyle(.titleAndIcon)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .foregroundStyle(Color.primary)
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .background(Color.secondary.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .help("Open \(summary.displayName) API page")
     }
 
     private func metricBox(title: String, value: String) -> some View {
