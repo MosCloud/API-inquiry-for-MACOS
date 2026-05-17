@@ -23,7 +23,7 @@ public enum BalanceProviderError: Error, Equatable, LocalizedError {
         case .invalidURL:
             return "Balance API URL is invalid."
         case .authenticationFailed:
-            return "API key may be invalid. Replace or delete it in settings."
+            return "API key may be invalid. Replace or delete it in the console."
         case .rateLimited:
             return "Balance API rate limit reached. Try again shortly."
         case .serverError(let statusCode):

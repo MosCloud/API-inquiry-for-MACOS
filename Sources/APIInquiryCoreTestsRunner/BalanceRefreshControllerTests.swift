@@ -76,7 +76,7 @@ enum BalanceRefreshControllerTests {
         harness.expectEqual(
             controller.state,
             .failed(
-                message: "API key may be invalid. Replace or delete it in settings.",
+                message: "API key may be invalid. Replace or delete it in the console.",
                 kind: .authenticationFailed,
                 last: nil
             ),

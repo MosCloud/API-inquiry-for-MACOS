@@ -100,7 +100,7 @@ enum MenuBarBalanceViewModelTests {
     private static func testAuthenticationFailureExposesKeyRecoveryActions(using harness: TestHarness) {
         let viewModel = makeViewModel(
             state: .failed(
-                message: "API key may be invalid. Replace or delete it in settings.",
+                message: "API key may be invalid. Replace or delete it in the console.",
                 kind: .authenticationFailed,
                 last: nil
             ),
