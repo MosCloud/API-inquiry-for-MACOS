@@ -1,4 +1,5 @@
 import APIInquiryCore
+import AppKit
 import SwiftUI
 
 enum UsageConsoleSection: String, CaseIterable, Identifiable {
@@ -6,6 +7,15 @@ enum UsageConsoleSection: String, CaseIterable, Identifiable {
     case api = "API"
 
     var id: String { rawValue }
+
+    var systemImageName: String {
+        switch self {
+        case .home:
+            return "house"
+        case .api:
+            return "key"
+        }
+    }
 }
 
 struct UsageConsoleView: View {
@@ -19,27 +29,21 @@ struct UsageConsoleView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            header
+        ZStack(alignment: .bottomTrailing) {
+            backgroundAppIcon
 
-            Picker("Section", selection: $selectedSection) {
-                ForEach(UsageConsoleSection.allCases) { section in
-                    Text(section.rawValue).tag(section)
+            VStack(alignment: .leading, spacing: 18) {
+                topNavigation
+
+                Group {
+                    switch selectedSection {
+                    case .home:
+                        homeSection
+                    case .api:
+                        apiSection
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 300)
-
-            Divider()
-
-            Group {
-                switch selectedSection {
-                case .home:
-                    homeSection
-                case .api:
-                    apiSection
-                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
@@ -47,14 +51,60 @@ struct UsageConsoleView: View {
         .frame(minWidth: 720, minHeight: 520)
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text("API Inquiry")
-                .font(.title2.weight(.semibold))
-            Text("API provider status and keys")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    private var topNavigation: some View {
+        HStack(spacing: 6) {
+            ForEach(UsageConsoleSection.allCases) { section in
+                Button {
+                    selectedSection = section
+                } label: {
+                    Label {
+                        Text(section.rawValue)
+                            .font(.system(.headline, design: .rounded).weight(.semibold))
+                    } icon: {
+                        Image(systemName: section.systemImageName)
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .foregroundStyle(section == selectedSection ? Color.white : Color.secondary)
+                    .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .background {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(section == selectedSection ? Color.accentColor : Color.clear)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(section == selectedSection ? Color.white.opacity(0.12) : Color.clear)
+                }
+                .help(section.rawValue)
+            }
         }
+        .padding(6)
+        .frame(maxWidth: .infinity)
+        .background(Color.secondary.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var backgroundAppIcon: some View {
+        GeometryReader { proxy in
+            let markSize = min(max(proxy.size.width * 0.16, CGFloat(96)), CGFloat(168))
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Image(nsImage: DeepSeekImages.appIcon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: markSize, height: markSize)
+                        .opacity(0.16)
+                        .padding(.trailing, max(18, proxy.size.width * 0.03))
+                        .padding(.bottom, max(18, proxy.size.height * 0.04))
+                }
+            }
+        }
+        .allowsHitTesting(false)
     }
 
     private var homeSection: some View {

@@ -1,6 +1,14 @@
 import AppKit
 
 enum DeepSeekImages {
+    static let appIcon: NSImage = {
+        let image = loadPNG(named: "AppIcon")
+            ?? NSImage(named: NSImage.applicationIconName)
+            ?? textTemplateImage("AI", fontSize: 48, height: 72)
+        image.isTemplate = false
+        return image
+    }()
+
     static let headerLogoTemplate: NSImage = {
         let image = loadPNG(named: "deepseek-logo-header") ?? textTemplateImage("deepseek", fontSize: 30, height: 33)
         image.isTemplate = true
