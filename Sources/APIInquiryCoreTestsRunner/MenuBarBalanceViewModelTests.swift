@@ -133,7 +133,7 @@ enum MenuBarBalanceViewModelTests {
             credentialStore: InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
         )
 
-        harness.expectEqual(viewModel.recoveryActions, [.replaceKey, .deleteKey], "auth failure actions")
+        harness.expectEqual(viewModel.recoveryActions, [.openConsole], "auth failure opens console")
     }
 
     @MainActor

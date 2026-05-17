@@ -23,6 +23,7 @@ public enum BalanceRecoveryAction: Equatable {
     case retry
     case replaceKey
     case deleteKey
+    case openConsole
 }
 
 public struct BalanceSnapshot: Equatable {

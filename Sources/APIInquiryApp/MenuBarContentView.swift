@@ -209,6 +209,10 @@ struct MenuBarContentView: View {
             Button("Delete Key", role: .destructive) {
                 viewModel.requestAPIKeyDeletion()
             }
+        case .openConsole:
+            Button("Open Console") {
+                NSWorkspace.shared.open(viewModel.consoleURL)
+            }
         }
     }
 
