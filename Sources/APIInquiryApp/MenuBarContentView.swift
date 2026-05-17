@@ -89,15 +89,19 @@ struct MenuBarContentView: View {
 
             Spacer()
 
-            Button {
-                Task { await viewModel.refresh() }
-            } label: {
-                Image(systemName: viewModel.isRefreshDisabled ? "arrow.clockwise.circle" : "arrow.clockwise")
-                    .imageScale(.medium)
+            HStack(spacing: 6) {
+                headerIconButton(systemImage: "macwindow", help: "Console") {
+                    openConsoleAndCloseMenu(.home)
+                }
+
+                headerIconButton(
+                    systemImage: viewModel.isRefreshDisabled ? "arrow.clockwise.circle" : "arrow.clockwise",
+                    help: viewModel.isRefreshDisabled ? "Refreshing" : "Refresh"
+                ) {
+                    Task { await viewModel.refresh() }
+                }
+                .disabled(viewModel.isRefreshDisabled)
             }
-            .buttonStyle(.borderless)
-            .disabled(viewModel.isRefreshDisabled)
-            .help(viewModel.isRefreshDisabled ? "Refreshing" : "Refresh")
         }
     }
 
@@ -163,7 +167,7 @@ struct MenuBarContentView: View {
     private var footer: some View {
         let autoStartDisplay = launchAtLoginController.status.controlDisplay
 
-        return HStack(spacing: 8) {
+        return HStack(spacing: 10) {
             footerAction(
                 title: autoStartDisplay.title,
                 systemImage: autoStartDisplay.systemImageName,
@@ -172,20 +176,32 @@ struct MenuBarContentView: View {
                 launchAtLoginController.toggle()
             }
 
-            footerAction(title: "Console", systemImage: "macwindow") {
-                openConsoleAndCloseMenu(.home)
-            }
-
-            footerAction(title: "Quit", systemImage: "power") {
+            footerAction(title: "Quit", systemImage: "power", role: .destructive) {
                 NSApplication.shared.terminate(nil)
             }
         }
+    }
+
+    private func headerIconButton(
+        systemImage: String,
+        help: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .imageScale(.medium)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .help(help)
     }
 
     private func footerAction(
         title: String,
         systemImage: String,
         isHighlighted: Bool = false,
+        role: FooterActionRole = .normal,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -199,10 +215,10 @@ struct MenuBarContentView: View {
             }
             .labelStyle(.titleAndIcon)
             .font(.system(size: 13, weight: .medium, design: .rounded))
-            .frame(maxWidth: .infinity, minHeight: 32)
+            .frame(maxWidth: .infinity, minHeight: 34)
             .contentShape(Rectangle())
         }
-        .buttonStyle(FooterActionButtonStyle(isHighlighted: isHighlighted))
+        .buttonStyle(FooterActionButtonStyle(isHighlighted: isHighlighted, role: role))
         .frame(maxWidth: .infinity)
         .help(title)
     }
@@ -226,19 +242,51 @@ struct MenuBarContentView: View {
     }
 }
 
+private enum FooterActionRole {
+    case normal
+    case destructive
+}
+
 private struct FooterActionButtonStyle: ButtonStyle {
     let isHighlighted: Bool
+    let role: FooterActionRole
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .padding(.horizontal, 8)
-            .foregroundStyle(isHighlighted ? Color.white : Color.primary)
+            .padding(.horizontal, 10)
+            .foregroundStyle(foregroundColor)
             .background(backgroundColor(isPressed: configuration.isPressed))
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(isHighlighted ? Color.accentColor.opacity(0.65) : Color.white.opacity(0.05), lineWidth: 1)
+                    .strokeBorder(strokeColor, lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var foregroundColor: Color {
+        if isHighlighted {
+            return .white
+        }
+
+        switch role {
+        case .normal:
+            return .primary
+        case .destructive:
+            return .red
+        }
+    }
+
+    private var strokeColor: Color {
+        if isHighlighted {
+            return Color.accentColor.opacity(0.65)
+        }
+
+        switch role {
+        case .normal:
+            return Color.white.opacity(0.05)
+        case .destructive:
+            return Color.red.opacity(0.20)
+        }
     }
 
     private func backgroundColor(isPressed: Bool) -> Color {
@@ -246,6 +294,11 @@ private struct FooterActionButtonStyle: ButtonStyle {
             return Color.accentColor.opacity(isPressed ? 0.42 : 0.30)
         }
 
-        return Color.secondary.opacity(isPressed ? 0.24 : 0.16)
+        switch role {
+        case .normal:
+            return Color.secondary.opacity(isPressed ? 0.24 : 0.16)
+        case .destructive:
+            return Color.red.opacity(isPressed ? 0.18 : 0.08)
+        }
     }
 }
