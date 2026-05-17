@@ -86,7 +86,7 @@ struct UsageConsoleView: View {
                     metricBox(title: "Tokens", value: formatInt(totals.totalTokens))
                 }
             } else {
-                emptyState("Import a DeepSeek Usage CSV to see local usage totals.")
+                emptyState("Import a DeepSeek Usage export to see local usage totals.")
             }
 
             if let metadata = viewModel.usageDataset?.metadata {
@@ -101,9 +101,9 @@ struct UsageConsoleView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Button {
-                    chooseUsageCSV()
+                    chooseUsageFile()
                 } label: {
-                    Label("Import CSV", systemImage: "square.and.arrow.down")
+                    Label("Import DeepSeek Usage", systemImage: "square.and.arrow.down")
                 }
 
                 Button(role: .destructive) {
@@ -117,7 +117,7 @@ struct UsageConsoleView: View {
             feedbackText(viewModel.usageFeedback)
 
             if viewModel.usageDataset == nil {
-                emptyState("Usage data stays on this Mac. Import a CSV exported from DeepSeek Usage.")
+                emptyState("Usage data stays on this Mac. Import the zip exported from DeepSeek Usage.")
             } else {
                 usageTables
             }
@@ -250,15 +250,19 @@ struct UsageConsoleView: View {
         }
     }
 
-    private func chooseUsageCSV() {
+    private func chooseUsageFile() {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.allowedContentTypes = [UTType(filenameExtension: "csv"), .plainText].compactMap { $0 }
+        panel.allowedContentTypes = [
+            UTType(filenameExtension: "zip"),
+            UTType(filenameExtension: "csv"),
+            .plainText
+        ].compactMap { $0 }
 
         if panel.runModal() == .OK, let url = panel.url {
-            viewModel.importUsageCSVFile(at: url)
+            viewModel.importUsageFile(at: url)
         }
     }
 

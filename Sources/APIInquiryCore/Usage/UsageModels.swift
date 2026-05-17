@@ -3,9 +3,12 @@ import Foundation
 public enum UsageImportError: Error, Equatable, LocalizedError {
     case emptyFile
     case missingRequiredColumns([String])
+    case missingRequiredArchiveEntries([String])
     case invalidDate(column: String, value: String)
     case invalidNumber(column: String, value: String)
     case invalidCSV(String)
+    case unsupportedFileType(String)
+    case archiveReadFailed(String)
 
     public var errorDescription: String? {
         switch self {
@@ -13,12 +16,18 @@ public enum UsageImportError: Error, Equatable, LocalizedError {
             return "The CSV file does not contain any importable usage records."
         case .missingRequiredColumns:
             return "The CSV is missing required usage columns."
+        case .missingRequiredArchiveEntries:
+            return "The DeepSeek usage archive is missing required CSV files."
         case .invalidDate(let column, _):
             return "The CSV date column '\(column)' could not be parsed."
         case .invalidNumber(let column, _):
             return "The CSV number column '\(column)' could not be parsed."
         case .invalidCSV:
             return "The CSV file could not be parsed."
+        case .unsupportedFileType:
+            return "The selected usage file type is not supported."
+        case .archiveReadFailed:
+            return "The DeepSeek usage archive could not be read."
         }
     }
 }

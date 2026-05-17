@@ -18,6 +18,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     private let controller: BalanceRefreshController
     private let usageDataStore: UsageDataStore
     private let parser: DeepSeekUsageCSVParser
+    private let usageFileImporter: UsageFileImporting
     private var cancellables: Set<AnyCancellable> = []
 
     public init(
@@ -25,13 +26,15 @@ public final class UsageConsoleViewModel: ObservableObject {
         credentialStore: CredentialStore,
         controller: BalanceRefreshController,
         usageDataStore: UsageDataStore = JSONUsageDataStore(),
-        parser: DeepSeekUsageCSVParser = DeepSeekUsageCSVParser()
+        parser: DeepSeekUsageCSVParser = DeepSeekUsageCSVParser(),
+        usageFileImporter: UsageFileImporting = DeepSeekUsageFileImporter()
     ) {
         self.provider = provider
         self.credentialStore = credentialStore
         self.controller = controller
         self.usageDataStore = usageDataStore
         self.parser = parser
+        self.usageFileImporter = usageFileImporter
         self.providerDisplayName = provider.displayName
         self.isCredentialConfigured = Self.hasConfiguredCredential(
             in: credentialStore,
@@ -98,12 +101,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     ) {
         do {
             let dataset = try parser.parse(csvText, sourceFileName: sourceFileName, importedAt: importedAt)
-            try usageDataStore.saveDataset(dataset)
-            usageDataset = dataset
-            usageFeedback = SettingsFeedback(
-                kind: .success,
-                message: "Imported \(dataset.records.count) usage records."
-            )
+            try saveImportedDataset(dataset)
         } catch {
             usageFeedback = SettingsFeedback(
                 kind: .error,
@@ -112,16 +110,20 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
     }
 
-    public func importUsageCSVFile(at url: URL, importedAt: Date = Date()) {
+    public func importUsageFile(at url: URL, importedAt: Date = Date()) {
         do {
-            let csvText = try String(contentsOf: url, encoding: .utf8)
-            importUsageCSV(csvText, sourceFileName: url.lastPathComponent, importedAt: importedAt)
+            let dataset = try usageFileImporter.importUsageFile(at: url, importedAt: importedAt)
+            try saveImportedDataset(dataset)
         } catch {
             usageFeedback = SettingsFeedback(
                 kind: .error,
-                message: Self.settingsMessage(for: error, fallback: "Usage CSV could not be read.")
+                message: Self.settingsMessage(for: error, fallback: "Usage file could not be imported.")
             )
         }
+    }
+
+    public func importUsageCSVFile(at url: URL, importedAt: Date = Date()) {
+        importUsageFile(at: url, importedAt: importedAt)
     }
 
     public func clearUsageData() {
@@ -221,6 +223,15 @@ public final class UsageConsoleViewModel: ObservableObject {
             return false
         }
         return !credential.isEmpty
+    }
+
+    private func saveImportedDataset(_ dataset: UsageDataset) throws {
+        try usageDataStore.saveDataset(dataset)
+        usageDataset = dataset
+        usageFeedback = SettingsFeedback(
+            kind: .success,
+            message: "Imported \(dataset.records.count) usage records."
+        )
     }
 
     private static func settingsMessage(for error: Error, fallback: String) -> String {

@@ -5,10 +5,29 @@ enum UsageConsoleViewModelTests {
     @MainActor
     static func run(using harness: TestHarness) async {
         testImportingCSVExposesSummariesAndPersistsDataset(using: harness)
+        testImportingUsageFileUsesImporterAndPersistsDataset(using: harness)
         testClearingUsageDataDoesNotDeleteAPIKey(using: harness)
         await testSavingAPIKeyRefreshesBalance(using: harness)
         await testSaveFailureKeepsInputAndDoesNotExposeKey(using: harness)
         await testConfirmingAPIKeyDeletionReturnsBalanceToSetup(using: harness)
+    }
+
+    @MainActor
+    private static func testImportingUsageFileUsesImporterAndPersistsDataset(using harness: TestHarness) {
+        let dataset = makeDataset(sourceFileName: "usage_data_2026_4.zip")
+        let importer = MockUsageFileImporter(result: .success(dataset))
+        let usageStore = InMemoryUsageDataStore()
+        let viewModel = makeViewModel(usageStore: usageStore, usageFileImporter: importer)
+        let fileURL = URL(fileURLWithPath: "/tmp/usage_data_2026_4.zip")
+        let importedAt = Date(timeIntervalSince1970: 1_716_200_000)
+
+        viewModel.importUsageFile(at: fileURL, importedAt: importedAt)
+
+        harness.expectEqual(importer.lastURL, fileURL, "console usage file importer url")
+        harness.expectEqual(importer.lastImportedAt, importedAt, "console usage file importer date")
+        harness.expectEqual(viewModel.usageDataset?.metadata.sourceFileName, "usage_data_2026_4.zip", "console usage file imported source")
+        harness.expectEqual(try? usageStore.loadDataset(), dataset, "console usage file persisted dataset")
+        harness.expectEqual(viewModel.usageFeedback, SettingsFeedback(kind: .success, message: "Imported 1 usage records."), "console usage file feedback")
     }
 
     @MainActor
@@ -115,7 +134,8 @@ enum UsageConsoleViewModelTests {
     @MainActor
     private static func makeViewModel(
         credentialStore: CredentialStore = InMemoryCredentialStore(),
-        usageStore: UsageDataStore = InMemoryUsageDataStore()
+        usageStore: UsageDataStore = InMemoryUsageDataStore(),
+        usageFileImporter: UsageFileImporting = DeepSeekUsageFileImporter()
     ) -> UsageConsoleViewModel {
         let provider = MockBalanceProvider(results: [])
         let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
@@ -123,11 +143,12 @@ enum UsageConsoleViewModelTests {
             provider: provider,
             credentialStore: credentialStore,
             controller: controller,
-            usageDataStore: usageStore
+            usageDataStore: usageStore,
+            usageFileImporter: usageFileImporter
         )
     }
 
-    private static func makeDataset() -> UsageDataset {
+    private static func makeDataset(sourceFileName: String = "usage.csv") -> UsageDataset {
         UsageDataset(
             records: [
                 UsageRecord(
@@ -142,7 +163,7 @@ enum UsageConsoleViewModelTests {
                 )
             ],
             metadata: UsageImportMetadata(
-                sourceFileName: "usage.csv",
+                sourceFileName: sourceFileName,
                 importedAt: Date(timeIntervalSince1970: 1_716_100_000),
                 parserVersion: 1
             )
@@ -151,5 +172,21 @@ enum UsageConsoleViewModelTests {
 
     private static func decimal(_ value: String) -> Decimal {
         Decimal(string: value, locale: Locale(identifier: "en_US_POSIX"))!
+    }
+}
+
+private final class MockUsageFileImporter: UsageFileImporting {
+    private let result: Result<UsageDataset, Error>
+    private(set) var lastURL: URL?
+    private(set) var lastImportedAt: Date?
+
+    init(result: Result<UsageDataset, Error>) {
+        self.result = result
+    }
+
+    func importUsageFile(at url: URL, importedAt: Date) throws -> UsageDataset {
+        lastURL = url
+        lastImportedAt = importedAt
+        return try result.get()
     }
 }
