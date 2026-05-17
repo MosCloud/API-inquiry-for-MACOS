@@ -43,7 +43,7 @@ enum CSVTableParser {
                 continue
             }
 
-            if (character == "\n" || character == "\r"), !isInQuotes {
+            if isLineBreak(character), !isInQuotes {
                 if character == "\r", nextIndex < text.endIndex, text[nextIndex] == "\n" {
                     index = text.index(after: nextIndex)
                 } else {
@@ -66,5 +66,9 @@ enum CSVTableParser {
         }
 
         return rows
+    }
+
+    private static func isLineBreak(_ character: Character) -> Bool {
+        character == "\n" || character == "\r" || character == "\r\n"
     }
 }

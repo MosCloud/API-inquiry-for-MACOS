@@ -4,12 +4,30 @@ import Foundation
 enum UsageCSVParserTests {
     static func run(using harness: TestHarness) {
         testParsesCSVWithoutDependingOnColumnOrder(using: harness)
+        testParsesCRLFLineEndings(using: harness)
         testParsesQuotedCommasAndEscapedQuotes(using: harness)
         testSkipsBlankRows(using: harness)
         testMissingRequiredColumnsFails(using: harness)
         testInvalidDateFails(using: harness)
         testInvalidNumberFails(using: harness)
         testEmptyCSVFails(using: harness)
+    }
+
+    private static func testParsesCRLFLineEndings(using harness: TestHarness) {
+        let csv = [
+            "Date,Model,Requests,Input Tokens,Output Tokens,Total Tokens,Cost,Currency",
+            "2024-05-01,deepseek-chat,1,10,4,14,0.50,CNY",
+            "2024-05-02,deepseek-chat,2,20,6,26,0.75,CNY"
+        ].joined(separator: "\r\n")
+
+        let dataset = try? DeepSeekUsageCSVParser().parse(
+            csv,
+            sourceFileName: "crlf.csv",
+            importedAt: importedAt
+        )
+
+        harness.expectEqual(dataset?.records.count, 2, "crlf csv record count")
+        harness.expectEqual(dataset?.totals.totalTokens, 40, "crlf csv total tokens")
     }
 
     private static func testParsesCSVWithoutDependingOnColumnOrder(using harness: TestHarness) {

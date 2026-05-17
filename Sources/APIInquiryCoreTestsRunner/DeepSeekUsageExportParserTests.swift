@@ -4,7 +4,20 @@ import Foundation
 enum DeepSeekUsageExportParserTests {
     static func run(using harness: TestHarness) {
         testParsesOfficialCostAndAmountExports(using: harness)
+        testParsesOfficialExportsWithCRLFLineEndings(using: harness)
         testMissingOfficialExportFileFails(using: harness)
+    }
+
+    private static func testParsesOfficialExportsWithCRLFLineEndings(using harness: TestHarness) {
+        let dataset = try? DeepSeekUsageExportParser().parse(
+            costCSV: crlf(DeepSeekUsageOfficialExportFixture.costCSV),
+            amountCSV: crlf(DeepSeekUsageOfficialExportFixture.amountCSV),
+            sourceFileName: DeepSeekUsageOfficialExportFixture.sourceFileName,
+            importedAt: DeepSeekUsageOfficialExportFixture.importedAt
+        )
+
+        harness.expectEqual(dataset?.records.count, 4, "official export crlf record count")
+        harness.expectEqual(dataset?.totals.totalTokens, 47_812_442, "official export crlf total tokens")
     }
 
     private static func testParsesOfficialCostAndAmountExports(using harness: TestHarness) {
@@ -74,4 +87,7 @@ enum DeepSeekUsageExportParserTests {
         return formatter
     }()
 
+    private static func crlf(_ text: String) -> String {
+        text.replacingOccurrences(of: "\n", with: "\r\n")
+    }
 }
