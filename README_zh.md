@@ -91,6 +91,12 @@ dist/API-Inquiry-v0.2.0.dmg
 dist/API-Inquiry-v0.2.0.dmg.sha256
 ```
 
+完成发布验证和上传后，删除本机开发态 app bundle，避免 Launchpad 将非正式副本索引成重复图标：
+
+```bash
+Scripts/clean-development-apps.sh
+```
+
 ## 通过 GitHub DMG 安装
 
 本项目采用免费的 GitHub Releases 发布策略。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。

@@ -91,6 +91,12 @@ dist/API-Inquiry-v0.2.0.dmg
 dist/API-Inquiry-v0.2.0.dmg.sha256
 ```
 
+After release validation and upload, remove local development app bundles so Launchpad only indexes the installed app:
+
+```bash
+Scripts/clean-development-apps.sh
+```
+
 ## Install From GitHub DMG
 
 This project uses a free GitHub Releases distribution strategy. The DMG is ad-hoc signed but not Apple notarized.
