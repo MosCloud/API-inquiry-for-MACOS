@@ -1,6 +1,6 @@
 # API Inquiry
 
-API Inquiry is a native macOS menu bar app for checking a DeepSeek API account balance. The first release is intentionally minimal: it stores one DeepSeek API key in macOS Keychain, refreshes the official balance API every 5 minutes, supports manual refresh, and shows the current balance in the menu bar.
+API Inquiry is a native macOS menu bar app for checking a DeepSeek API account balance and reviewing local DeepSeek usage exports. It stores one DeepSeek API key in macOS Keychain, refreshes the official balance API every 5 minutes, supports manual refresh, shows the current balance in the menu bar, and imports DeepSeek Usage CSV files into a local console.
 
 ## Requirements
 
@@ -11,7 +11,8 @@ API Inquiry is a native macOS menu bar app for checking a DeepSeek API account b
 ## Security
 
 - The API key is stored only in macOS Keychain through `KeychainCredentialStore`.
-- The saved key is never shown in plain text after saving. The UI shows `Configured` by default; the input field, `Replace`, and `Delete` controls appear only after expanding the API key row.
+- The saved key is never shown in plain text after saving. API key setup, replacement, and deletion happen in the local console.
+- Imported usage data is stored only as normalized local records under Application Support. API Inquiry does not copy the original CSV file into its data directory.
 - Tests use fake keys only and do not require a real DeepSeek account.
 - Do not put real API keys in source files, docs, logs, screenshots, or shell history.
 
@@ -26,7 +27,7 @@ swift run APIInquiryCoreTestsRunner
 Expected result:
 
 ```text
-PASS: 71 expectations
+PASS: 126 expectations
 ```
 
 ## Build
@@ -87,19 +88,19 @@ Scripts/package-dmg.sh
 The script creates:
 
 ```text
-dist/API-Inquiry-v0.1.1.dmg
-dist/API-Inquiry-v0.1.1.dmg.sha256
+dist/API-Inquiry-v0.2.0.dmg
+dist/API-Inquiry-v0.2.0.dmg.sha256
 ```
 
 ## Install From GitHub DMG
 
 This project uses a free GitHub Releases distribution strategy. The DMG is ad-hoc signed but not Apple notarized.
 
-1. Download `API-Inquiry-v0.1.1.dmg` and `API-Inquiry-v0.1.1.dmg.sha256` from GitHub Releases.
+1. Download `API-Inquiry-v0.2.0.dmg` and `API-Inquiry-v0.2.0.dmg.sha256` from GitHub Releases.
 2. Verify the download:
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.1.1.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.2.0.dmg.sha256
    ```
 
 3. Open the DMG.
@@ -153,18 +154,22 @@ The installed app path is:
 Manual checks:
 
 - First launch with no key shows setup state.
-- Saving a key clears the input field and stores the key in Keychain.
-- After a key is configured, the API key row is collapsed until you expand it.
+- When no key is configured, the menu bar panel points you to the local console.
+- Saving a key from the console clears the input field and stores the key in Keychain.
+- After a key is configured, the console shows `Configured` without revealing the saved key.
 - The menu bar uses a dynamic DeepSeek template label plus compact balance formatting, for example `¥68.6`.
 - The menu bar icon is larger than the amount text, matching common macOS status items, while the amount uses regular weight to keep the label light.
 - The expanded panel logo adapts automatically to light and dark appearance.
 - The panel uses full balance formatting, for example `¥68.65 CNY`, with a smaller header logo, the numeric amount dominant at medium weight, and the currency symbol/code smaller at regular weight.
 - The installed app uses the custom Apple-style icon from `AppIcon.icns`.
 - The footer shows three evenly sized actions: `AutoStart`, `Console`, and `Quit`.
+- `Console` opens the local API Inquiry console window.
+- The console imports DeepSeek Usage CSV files and shows local totals, model summaries, and detail rows.
+- Clearing usage data removes local usage records without deleting the API key.
 - The `AutoStart` action toggles launch at login and changes color when enabled.
 - The last updated time follows the system 12-hour or 24-hour clock setting.
 - Manual refresh uses the same refresh path as automatic refresh.
-- Delete removes the key and returns the app to setup state.
+- Deleting the key from the console returns the app to setup state.
 
 ## Scope
 
@@ -173,7 +178,10 @@ Included in this release:
 - DeepSeek balance API integration
 - Secure Keychain storage
 - 5-minute automatic refresh and manual refresh
-- Minimal native `MenuBarExtra` UI
+- Minimal native `MenuBarExtra` status UI
+- Local API Inquiry console window
+- DeepSeek Usage CSV import
+- Local usage totals, model summaries, and detail records
 - Local `.app` bundle generation
 - Custom macOS app icon generation and bundling
 - Launch at login control from the details panel
@@ -182,6 +190,6 @@ Included in this release:
 Deferred:
 
 - Detailed usage charts
-- Local DeepSeek usage console
+- CSV history merge and month-based append
 - Multi-provider UI
 - Developer ID signing and notarization
