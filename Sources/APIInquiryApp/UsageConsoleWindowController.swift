@@ -11,7 +11,7 @@ final class UsageConsoleWindowController: ObservableObject {
         self.viewModel = viewModel
     }
 
-    func open(defaultSection: UsageConsoleSection = .overview) {
+    func open(defaultSection: UsageConsoleSection = .home) {
         let rootView = UsageConsoleView(viewModel: viewModel, initialSection: defaultSection)
 
         if let window {

@@ -1,46 +1,52 @@
 import Combine
 import Foundation
 
+public struct APIProviderSummary: Equatable {
+    public let displayName: String
+    public let apiKeyStatusText: String
+    public let validationStatusText: String
+    public let balanceText: String
+
+    public init(
+        displayName: String,
+        apiKeyStatusText: String,
+        validationStatusText: String,
+        balanceText: String
+    ) {
+        self.displayName = displayName
+        self.apiKeyStatusText = apiKeyStatusText
+        self.validationStatusText = validationStatusText
+        self.balanceText = balanceText
+    }
+}
+
 @MainActor
 public final class UsageConsoleViewModel: ObservableObject {
     @Published public var apiKeyInput = ""
     @Published public private(set) var isAPIKeyDeleteConfirmationPresented = false
     @Published public private(set) var settingsFeedback: SettingsFeedback?
-    @Published public private(set) var usageFeedback: SettingsFeedback?
-    @Published public private(set) var usageDataset: UsageDataset?
     @Published private var isCredentialConfigured: Bool
 
     public let providerDisplayName: String
-    public let officialUsageURL = URL(string: "https://platform.deepseek.com/usage")!
 
     private let provider: BalanceProvider
     private let credentialStore: CredentialStore
     private let controller: BalanceRefreshController
-    private let usageDataStore: UsageDataStore
-    private let parser: DeepSeekUsageCSVParser
-    private let usageFileImporter: UsageFileImporting
     private var cancellables: Set<AnyCancellable> = []
 
     public init(
         provider: BalanceProvider,
         credentialStore: CredentialStore,
-        controller: BalanceRefreshController,
-        usageDataStore: UsageDataStore = JSONUsageDataStore(),
-        parser: DeepSeekUsageCSVParser = DeepSeekUsageCSVParser(),
-        usageFileImporter: UsageFileImporting = DeepSeekUsageFileImporter()
+        controller: BalanceRefreshController
     ) {
         self.provider = provider
         self.credentialStore = credentialStore
         self.controller = controller
-        self.usageDataStore = usageDataStore
-        self.parser = parser
-        self.usageFileImporter = usageFileImporter
         self.providerDisplayName = provider.displayName
         self.isCredentialConfigured = Self.hasConfiguredCredential(
             in: credentialStore,
             account: provider.credentialAccount
         )
-        self.usageDataset = try? usageDataStore.loadDataset()
 
         controller.objectWillChange
             .sink { [weak self] _ in
@@ -61,82 +67,19 @@ public final class UsageConsoleViewModel: ObservableObject {
         isCredentialConfigured
     }
 
-    public var usageTotals: UsageTotals? {
-        usageDataset?.totals
-    }
-
-    public var modelSummaries: [UsageModelSummary] {
-        usageDataset?.modelSummaries ?? []
-    }
-
-    public var detailRecords: [UsageRecord] {
-        (usageDataset?.records ?? []).sorted {
-            if $0.occurredAt == $1.occurredAt {
-                return $0.model < $1.model
-            }
-            return $0.occurredAt > $1.occurredAt
-        }
+    public var providerSummaries: [APIProviderSummary] {
+        [
+            APIProviderSummary(
+                displayName: providerDisplayName,
+                apiKeyStatusText: credentialStatusText,
+                validationStatusText: validationStatusText,
+                balanceText: balanceText
+            )
+        ]
     }
 
     public func refresh() async {
         await controller.refresh()
-    }
-
-    public func loadUsageData() {
-        do {
-            usageDataset = try usageDataStore.loadDataset()
-            usageFeedback = nil
-        } catch {
-            usageFeedback = SettingsFeedback(
-                kind: .error,
-                message: Self.settingsMessage(for: error, fallback: "Usage data could not be loaded.")
-            )
-        }
-    }
-
-    public func importUsageCSV(
-        _ csvText: String,
-        sourceFileName: String,
-        importedAt: Date = Date()
-    ) {
-        do {
-            let dataset = try parser.parse(csvText, sourceFileName: sourceFileName, importedAt: importedAt)
-            try saveImportedDataset(dataset)
-        } catch {
-            usageFeedback = SettingsFeedback(
-                kind: .error,
-                message: Self.settingsMessage(for: error, fallback: "Usage CSV could not be imported.")
-            )
-        }
-    }
-
-    public func importUsageFile(at url: URL, importedAt: Date = Date()) {
-        do {
-            let dataset = try usageFileImporter.importUsageFile(at: url, importedAt: importedAt)
-            try saveImportedDataset(dataset)
-        } catch {
-            usageFeedback = SettingsFeedback(
-                kind: .error,
-                message: Self.settingsMessage(for: error, fallback: "Usage file could not be imported.")
-            )
-        }
-    }
-
-    public func importUsageCSVFile(at url: URL, importedAt: Date = Date()) {
-        importUsageFile(at: url, importedAt: importedAt)
-    }
-
-    public func clearUsageData() {
-        do {
-            try usageDataStore.clearDataset()
-            usageDataset = nil
-            usageFeedback = SettingsFeedback(kind: .success, message: "Usage data cleared.")
-        } catch {
-            usageFeedback = SettingsFeedback(
-                kind: .error,
-                message: Self.settingsMessage(for: error, fallback: "Usage data could not be cleared.")
-            )
-        }
     }
 
     public func beginReplacingAPIKey() {
@@ -218,20 +161,32 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
     }
 
+    private var validationStatusText: String {
+        switch state {
+        case .notConfigured:
+            return "Not configured"
+        case .loading:
+            return "Checking"
+        case .loaded(let snapshot):
+            return snapshot.isAvailable ? "Active" : "Insufficient balance"
+        case .failed(_, let kind, _):
+            return kind == .authenticationFailed ? "Invalid" : "Unavailable"
+        }
+    }
+
+    private var balanceText: String {
+        guard let snapshot = state.lastSnapshot else {
+            return "--"
+        }
+
+        return Self.formatAmount(snapshot.totalBalance, currency: snapshot.currency)
+    }
+
     private static func hasConfiguredCredential(in store: CredentialStore, account: String) -> Bool {
         guard let credential = try? store.credential(forAccount: account) else {
             return false
         }
         return !credential.isEmpty
-    }
-
-    private func saveImportedDataset(_ dataset: UsageDataset) throws {
-        try usageDataStore.saveDataset(dataset)
-        usageDataset = dataset
-        usageFeedback = SettingsFeedback(
-            kind: .success,
-            message: "Imported \(dataset.records.count) usage records."
-        )
     }
 
     private static func settingsMessage(for error: Error, fallback: String) -> String {
@@ -242,5 +197,21 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
 
         return fallback
+    }
+
+    private static func formatAmount(_ amount: Decimal, currency: String) -> String {
+        let currencyCode = currency.uppercased()
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        let amountText = formatter.string(from: NSDecimalNumber(decimal: amount)) ?? "--"
+
+        if currencyCode == "CNY" {
+            return "¥\(amountText) \(currencyCode)"
+        }
+
+        return "\(amountText) \(currencyCode)"
     }
 }

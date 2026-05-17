@@ -173,7 +173,7 @@ struct MenuBarContentView: View {
             }
 
             footerAction(title: "Console", systemImage: "macwindow") {
-                openConsoleAndCloseMenu(.overview)
+                openConsoleAndCloseMenu(.home)
             }
 
             footerAction(title: "Quit", systemImage: "power") {

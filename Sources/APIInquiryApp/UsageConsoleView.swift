@@ -1,11 +1,8 @@
 import APIInquiryCore
-import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 enum UsageConsoleSection: String, CaseIterable, Identifiable {
-    case overview = "Overview"
-    case usage = "Usage"
+    case home = "Home"
     case api = "API"
 
     var id: String { rawValue }
@@ -16,7 +13,7 @@ struct UsageConsoleView: View {
     @State private var selectedSection: UsageConsoleSection
     @State private var isReplacingKey = false
 
-    init(viewModel: UsageConsoleViewModel, initialSection: UsageConsoleSection = .overview) {
+    init(viewModel: UsageConsoleViewModel, initialSection: UsageConsoleSection = .home) {
         self.viewModel = viewModel
         _selectedSection = State(initialValue: initialSection)
     }
@@ -32,15 +29,14 @@ struct UsageConsoleView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .frame(width: 300)
 
             Divider()
 
             Group {
                 switch selectedSection {
-                case .overview:
-                    overviewSection
-                case .usage:
-                    usageSection
+                case .home:
+                    homeSection
                 case .api:
                     apiSection
                 }
@@ -52,138 +48,89 @@ struct UsageConsoleView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("API Inquiry")
-                    .font(.title2.weight(.semibold))
-                Text("DeepSeek balance and local usage")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Button {
-                NSWorkspace.shared.open(viewModel.officialUsageURL)
-            } label: {
-                Label("DeepSeek Usage", systemImage: "safari")
-            }
+        VStack(alignment: .leading, spacing: 3) {
+            Text("API Inquiry")
+                .font(.title2.weight(.semibold))
+            Text("API provider status and keys")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
-    private var overviewSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 12) {
-                metricBox(title: "API Key", value: viewModel.credentialStatusText)
-                metricBox(title: "Records", value: "\(viewModel.usageDataset?.records.count ?? 0)")
-                metricBox(title: "Range", value: viewModel.usageDataset?.dateRangeText ?? "--")
-            }
-
-            if let totals = viewModel.usageTotals {
-                HStack(spacing: 12) {
-                    metricBox(title: "Cost", value: "\(formatDecimal(totals.cost)) \(totals.currency)")
-                    metricBox(title: "Requests", value: formatInt(totals.requestCount))
-                    metricBox(title: "Tokens", value: formatInt(totals.totalTokens))
-                }
-            } else {
-                emptyState("Import a DeepSeek Usage export to see local usage totals.")
-            }
-
-            if let metadata = viewModel.usageDataset?.metadata {
-                Text("Last import: \(metadata.sourceFileName)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var usageSection: some View {
+    private var homeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                Button {
-                    chooseUsageFile()
-                } label: {
-                    Label("Import DeepSeek Usage", systemImage: "square.and.arrow.down")
-                }
+            HStack {
+                Text("Providers")
+                    .font(.headline)
 
-                Button(role: .destructive) {
-                    viewModel.clearUsageData()
+                Spacer()
+
+                Button {
+                    selectedSection = .api
                 } label: {
-                    Label("Clear Usage Data", systemImage: "trash")
+                    Label("Add Provider", systemImage: "plus")
                 }
-                .disabled(viewModel.usageDataset == nil)
             }
 
-            feedbackText(viewModel.usageFeedback)
-
-            if viewModel.usageDataset == nil {
-                emptyState("Usage data stays on this Mac. Import the zip exported from DeepSeek Usage.")
-            } else {
-                usageTables
+            ForEach(viewModel.providerSummaries, id: \.displayName) { summary in
+                providerStatusRow(summary)
             }
         }
     }
 
-    private var usageTables: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("By Model")
-                    .font(.headline)
+    private func providerStatusRow(_ summary: APIProviderSummary) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(summary.displayName)
+                    .font(.title3.weight(.semibold))
 
-                tableHeader(columns: ["Model", "Cost", "Tokens"])
-                ForEach(viewModel.modelSummaries, id: \.model) { summary in
-                    HStack {
-                        Text(summary.model)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        Text("\(formatDecimal(summary.cost)) \(summary.currency)")
-                            .frame(width: 110, alignment: .trailing)
-                        Text(formatInt(summary.totalTokens))
-                            .frame(width: 90, alignment: .trailing)
-                    }
-                    .font(.caption)
-                }
+                Spacer()
+
+                statusBadge(summary.validationStatusText)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Details")
-                    .font(.headline)
-
-                tableHeader(columns: ["Date", "Model", "Cost", "Tokens"])
-                ScrollView {
-                    VStack(spacing: 4) {
-                        ForEach(Array(viewModel.detailRecords.enumerated()), id: \.offset) { _, record in
-                            HStack {
-                                Text(formatDate(record.occurredAt))
-                                    .frame(width: 82, alignment: .leading)
-                                Text(record.model)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Text("\(formatDecimal(record.cost)) \(record.currency)")
-                                    .frame(width: 100, alignment: .trailing)
-                                Text(formatInt(record.totalTokens))
-                                    .frame(width: 80, alignment: .trailing)
-                            }
-                            .font(.caption)
-                        }
-                    }
-                }
-                .frame(minHeight: 260)
+            HStack(spacing: 12) {
+                metricBox(title: "API Key", value: summary.apiKeyStatusText)
+                metricBox(title: "Status", value: summary.validationStatusText)
+                metricBox(title: "Balance", value: summary.balanceText)
             }
         }
+        .padding(14)
+        .background(Color.secondary.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var apiSection: some View {
         VStack(alignment: .leading, spacing: 14) {
+            Text("API Providers")
+                .font(.headline)
+
+            ForEach(viewModel.providerSummaries, id: \.displayName) { summary in
+                apiProviderPanel(summary)
+            }
+        }
+    }
+
+    private func apiProviderPanel(_ summary: APIProviderSummary) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("DeepSeek API Key")
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(summary.displayName)
+                        .font(.headline)
+                    Text(summary.validationStatusText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 Spacer()
-                Text(viewModel.credentialStatusText)
+
+                Text(summary.apiKeyStatusText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             if !viewModel.isAPIKeyConfigured || isReplacingKey {
-                SecureField(viewModel.isAPIKeyConfigured ? "New DeepSeek API key" : "DeepSeek API key", text: $viewModel.apiKeyInput)
+                SecureField(viewModel.isAPIKeyConfigured ? "New API key" : "API key", text: $viewModel.apiKeyInput)
                     .textFieldStyle(.roundedBorder)
 
                 HStack(spacing: 8) {
@@ -235,35 +182,14 @@ struct UsageConsoleView: View {
                         }
                     }
                 }
-                .padding(10)
-                .background(Color.secondary.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .padding(.top, 2)
             }
 
             feedbackText(viewModel.settingsFeedback)
-
-            Button {
-                NSWorkspace.shared.open(viewModel.officialUsageURL)
-            } label: {
-                Label("Open DeepSeek Usage", systemImage: "safari")
-            }
         }
-    }
-
-    private func chooseUsageFile() {
-        let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
-        panel.allowedContentTypes = [
-            UTType(filenameExtension: "zip"),
-            UTType(filenameExtension: "csv"),
-            .plainText
-        ].compactMap { $0 }
-
-        if panel.runModal() == .OK, let url = panel.url {
-            viewModel.importUsageFile(at: url)
-        }
+        .padding(14)
+        .background(Color.secondary.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private func metricBox(title: String, value: String) -> some View {
@@ -278,19 +204,16 @@ struct UsageConsoleView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondary.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
-    private func tableHeader(columns: [String]) -> some View {
-        HStack {
-            ForEach(columns, id: \.self) { column in
-                Text(column)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(.secondary)
+    private func statusBadge(_ text: String) -> some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .foregroundStyle(statusColor(for: text))
+            .background(statusColor(for: text).opacity(0.14))
+            .clipShape(Capsule())
     }
 
     @ViewBuilder
@@ -303,13 +226,17 @@ struct UsageConsoleView: View {
         }
     }
 
-    private func emptyState(_ text: String) -> some View {
-        Text(text)
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-            .background(Color.secondary.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    private func statusColor(for text: String) -> Color {
+        switch text {
+        case "Active":
+            return .green
+        case "Checking":
+            return .blue
+        case "Invalid", "Unavailable", "Insufficient balance":
+            return .orange
+        default:
+            return .secondary
+        }
     }
 
     private func feedbackColor(for kind: SettingsFeedbackKind) -> Color {
@@ -322,41 +249,4 @@ struct UsageConsoleView: View {
             return .red
         }
     }
-
-    private func formatDate(_ date: Date) -> String {
-        Self.dateFormatter.string(from: date)
-    }
-
-    private func formatInt(_ value: Int) -> String {
-        Self.intFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
-    }
-
-    private func formatDecimal(_ value: Decimal) -> String {
-        Self.decimalFormatter.string(from: NSDecimalNumber(decimal: value)) ?? "--"
-    }
-
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-
-    private static let intFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.numberStyle = .decimal
-        return formatter
-    }()
-
-    private static let decimalFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 6
-        return formatter
-    }()
 }

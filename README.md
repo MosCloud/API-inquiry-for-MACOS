@@ -1,6 +1,6 @@
 # API Inquiry
 
-API Inquiry is a native macOS menu bar app for checking a DeepSeek API account balance and reviewing local DeepSeek usage exports. It stores one DeepSeek API key in macOS Keychain, refreshes the official balance API every 5 minutes, supports manual refresh, shows the current balance in the menu bar, and imports official DeepSeek Usage zip exports into a local console.
+API Inquiry is a native macOS menu bar app for checking a DeepSeek API account balance and managing provider API keys. It stores one DeepSeek API key in macOS Keychain, refreshes the official balance API every 5 minutes, supports manual refresh, shows the current balance in the menu bar, and provides a lightweight local console for provider status and API management.
 
 ## Requirements
 
@@ -12,7 +12,6 @@ API Inquiry is a native macOS menu bar app for checking a DeepSeek API account b
 
 - The API key is stored only in macOS Keychain through `KeychainCredentialStore`.
 - The saved key is never shown in plain text after saving. API key setup, replacement, and deletion happen in the local console.
-- Imported usage data is stored only as normalized local records under Application Support. API Inquiry does not copy the original export file into its data directory.
 - Tests use fake keys only and do not require a real DeepSeek account.
 - Do not put real API keys in source files, docs, logs, screenshots, or shell history.
 
@@ -27,7 +26,7 @@ swift run APIInquiryCoreTestsRunner
 Expected result:
 
 ```text
-PASS: 154 expectations
+PASS: 88 expectations
 ```
 
 ## Build
@@ -164,8 +163,8 @@ Manual checks:
 - The installed app uses the custom Apple-style icon from `AppIcon.icns`.
 - The footer shows three evenly sized actions: `AutoStart`, `Console`, and `Quit`.
 - `Console` opens the local API Inquiry console window.
-- The console imports official DeepSeek Usage zip exports and shows local totals, model summaries, and detail rows.
-- Clearing usage data removes local usage records without deleting the API key.
+- The console Home page shows provider API key status, validation status, and balance.
+- The console API page manages configured provider API keys.
 - The `AutoStart` action toggles launch at login and changes color when enabled.
 - The last updated time follows the system 12-hour or 24-hour clock setting.
 - Manual refresh uses the same refresh path as automatic refresh.
@@ -180,8 +179,8 @@ Included in this release:
 - 5-minute automatic refresh and manual refresh
 - Minimal native `MenuBarExtra` status UI
 - Local API Inquiry console window
-- DeepSeek Usage official zip import, with compatible CSV fallback
-- Local usage totals, model summaries, and detail records
+- Local API provider console with Home and API pages
+- Provider status summary with API key, validation, and balance state
 - Local `.app` bundle generation
 - Custom macOS app icon generation and bundling
 - Launch at login control from the details panel
@@ -189,7 +188,6 @@ Included in this release:
 
 Deferred:
 
-- Detailed usage charts
-- Usage history merge and month-based append
 - Multi-provider UI
+- Historical usage import and charts
 - Developer ID signing and notarization
