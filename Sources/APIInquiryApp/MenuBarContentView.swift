@@ -4,6 +4,8 @@ import SwiftUI
 
 @MainActor
 struct MenuBarContentView: View {
+    @Environment(\.dismiss) private var dismissMenu
+
     @ObservedObject var viewModel: MenuBarBalanceViewModel
     @StateObject private var launchAtLoginController: LaunchAtLoginController
     private let openConsole: (UsageConsoleSection) -> Void
@@ -67,7 +69,7 @@ struct MenuBarContentView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
-                openConsole(.api)
+                openConsoleAndCloseMenu(.api)
             } label: {
                 Label("Open Console", systemImage: "macwindow")
             }
@@ -153,7 +155,7 @@ struct MenuBarContentView: View {
             .disabled(viewModel.isRefreshDisabled)
         case .replaceKey, .deleteKey, .openConsole:
             Button("Open Console") {
-                openConsole(.api)
+                openConsoleAndCloseMenu(.api)
             }
         }
     }
@@ -171,7 +173,7 @@ struct MenuBarContentView: View {
             }
 
             footerAction(title: "Console", systemImage: "macwindow") {
-                openConsole(.overview)
+                openConsoleAndCloseMenu(.overview)
             }
 
             footerAction(title: "Quit", systemImage: "power") {
@@ -203,6 +205,11 @@ struct MenuBarContentView: View {
         .buttonStyle(FooterActionButtonStyle(isHighlighted: isHighlighted))
         .frame(maxWidth: .infinity)
         .help(title)
+    }
+
+    private func openConsoleAndCloseMenu(_ section: UsageConsoleSection) {
+        openConsole(section)
+        dismissMenu()
     }
 
     private var statusColor: Color {
