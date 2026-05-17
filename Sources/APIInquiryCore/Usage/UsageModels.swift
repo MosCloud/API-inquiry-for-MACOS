@@ -1,5 +1,28 @@
 import Foundation
 
+public enum UsageImportError: Error, Equatable, LocalizedError {
+    case emptyFile
+    case missingRequiredColumns([String])
+    case invalidDate(column: String, value: String)
+    case invalidNumber(column: String, value: String)
+    case invalidCSV(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .emptyFile:
+            return "The CSV file does not contain any importable usage records."
+        case .missingRequiredColumns:
+            return "The CSV is missing required usage columns."
+        case .invalidDate(let column, _):
+            return "The CSV date column '\(column)' could not be parsed."
+        case .invalidNumber(let column, _):
+            return "The CSV number column '\(column)' could not be parsed."
+        case .invalidCSV:
+            return "The CSV file could not be parsed."
+        }
+    }
+}
+
 public struct UsageRecord: Equatable, Codable {
     public let occurredAt: Date
     public let model: String
