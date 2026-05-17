@@ -161,10 +161,11 @@ Manual checks:
 - The expanded panel logo adapts automatically to light and dark appearance.
 - The panel uses full balance formatting, for example `¥68.65 CNY`, with a smaller header logo, the numeric amount dominant at medium weight, and the currency symbol/code smaller at regular weight.
 - The installed app uses the custom Apple-style icon from `AppIcon.icns`.
-- The footer shows three evenly sized actions: `AutoStart`, `Console`, and `Quit`.
-- `Console` opens the local API Inquiry console window.
+- The details panel header shows `Console` and refresh as matched icon actions.
+- The footer shows two evenly sized actions: `AutoStart` and `Quit`.
 - The console Home page shows provider API key status, validation status, and balance.
 - The console API page manages configured provider API keys.
+- Console provider names open the provider's API page; DeepSeek opens `https://platform.deepseek.com/usage`.
 - The `AutoStart` action toggles launch at login and changes color when enabled.
 - The last updated time follows the system 12-hour or 24-hour clock setting.
 - Manual refresh uses the same refresh path as automatic refresh.

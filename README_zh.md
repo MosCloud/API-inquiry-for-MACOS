@@ -161,10 +161,11 @@ Scripts/restart-installed-app.sh
 - 展开面板 logo 会自动适配浅色和深色外观。
 - 面板使用完整余额格式，例如 `¥68.65 CNY`，顶部 logo 进一步缩小，数字部分使用 medium 字重占据视觉主导，货币符号和货币代码以更小的 regular 字重显示。
 - 安装后的 app 使用来自 `AppIcon.icns` 的自定义苹果风格图标。
-- 底部显示三个等宽操作模块：`AutoStart`、`Console` 和 `Quit`。
-- `Console` 会打开本地 API Inquiry 控制台窗口。
+- 详情面板右上角以一致的图标按钮展示 `Console` 和刷新。
+- 底部显示两个等宽操作模块：`AutoStart` 和 `Quit`。
 - 控制台 Home 页面展示供应商 API Key 状态、生效状态和余额。
 - 控制台 API 页面管理已配置供应商的 API Key。
+- Console 中的供应商名称会打开对应 API 页面；DeepSeek 打开 `https://platform.deepseek.com/usage`。
 - `AutoStart` 操作用于切换开机自启，启用后模块颜色会变化。
 - 最近更新时间会跟随系统的 12 小时制或 24 小时制设置。
 - 手动刷新与自动刷新使用同一条刷新路径。
