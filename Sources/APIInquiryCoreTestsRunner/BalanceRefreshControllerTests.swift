@@ -223,13 +223,14 @@ final class MockBalanceProvider: BalanceProvider {
 }
 
 func makeSnapshot(
+    providerID: ProviderID = .deepseek,
     total: String,
     currency: String = "CNY",
     isAvailable: Bool = true,
     fetchedAt: Date = Date(timeIntervalSince1970: 1_715_000_000)
 ) -> BalanceSnapshot {
     BalanceSnapshot(
-        providerID: .deepseek,
+        providerID: providerID,
         totalBalance: Decimal(string: total, locale: Locale(identifier: "en_US_POSIX"))!,
         currency: currency,
         isAvailable: isAvailable,

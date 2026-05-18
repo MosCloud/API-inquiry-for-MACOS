@@ -1,7 +1,70 @@
 import Foundation
 
-public enum ProviderID: String, Equatable {
+public enum ProviderID: String, Equatable, Hashable, CaseIterable {
     case deepseek
+    case zhipuCodingPlan
+}
+
+public enum ProviderDetailKind: Equatable {
+    case balance
+    case planUsage
+}
+
+public struct PlanUsageSnapshot: Equatable {
+    public let providerID: ProviderID
+    public let windowLabel: String
+    public let usagePercentage: Decimal
+    public let resetAt: Date?
+    public let isAvailable: Bool
+    public let fetchedAt: Date
+
+    public init(
+        providerID: ProviderID,
+        windowLabel: String,
+        usagePercentage: Decimal,
+        resetAt: Date?,
+        isAvailable: Bool,
+        fetchedAt: Date
+    ) {
+        self.providerID = providerID
+        self.windowLabel = windowLabel
+        self.usagePercentage = usagePercentage
+        self.resetAt = resetAt
+        self.isAvailable = isAvailable
+        self.fetchedAt = fetchedAt
+    }
+}
+
+public enum ProviderSnapshot: Equatable {
+    case balance(BalanceSnapshot)
+    case planUsage(PlanUsageSnapshot)
+
+    public var providerID: ProviderID {
+        switch self {
+        case .balance(let snapshot):
+            return snapshot.providerID
+        case .planUsage(let snapshot):
+            return snapshot.providerID
+        }
+    }
+
+    public var fetchedAt: Date {
+        switch self {
+        case .balance(let snapshot):
+            return snapshot.fetchedAt
+        case .planUsage(let snapshot):
+            return snapshot.fetchedAt
+        }
+    }
+
+    public var isAvailable: Bool {
+        switch self {
+        case .balance(let snapshot):
+            return snapshot.isAvailable
+        case .planUsage(let snapshot):
+            return snapshot.isAvailable
+        }
+    }
 }
 
 public enum MenuBarDisplayMode: Equatable {
