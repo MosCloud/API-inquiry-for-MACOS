@@ -28,7 +28,7 @@ enum DeepSeekImages {
         case .deepseek:
             return NSSize(width: 96, height: 21)
         case .zhipuCodingPlan:
-            return NSSize(width: 186, height: 29)
+            return NSSize(width: 140, height: 29)
         }
     }
 
@@ -37,7 +37,7 @@ enum DeepSeekImages {
         case .deepseek:
             return NSSize(width: 106, height: 23)
         case .zhipuCodingPlan:
-            return NSSize(width: 194, height: 30)
+            return NSSize(width: 145, height: 30)
         }
     }
 
