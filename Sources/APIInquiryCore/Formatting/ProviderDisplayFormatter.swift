@@ -20,6 +20,13 @@ public struct ProviderDetailRow: Equatable {
     public let resetText: String?
 }
 
+public struct QuotaWindowDisplayRow: Equatable {
+    public let label: String
+    public let detailText: String
+    public let resetText: String?
+    public let isAvailable: Bool
+}
+
 public enum ProviderStatusTone: Equatable {
     case neutral
     case success
@@ -171,6 +178,10 @@ public enum ProviderDisplayFormatter {
         }
 
         return LastRefreshTimeFormatter().resetText(for: resetAt)
+    }
+
+    public static func quotaWindowDetailText(for window: QuotaWindowSnapshot) -> String {
+        "\(formatPercentage(window.remainingPercentage))%"
     }
 
     private static func primaryQuotaWindow(in usage: QuotaUsageSnapshot) -> QuotaWindowSnapshot? {

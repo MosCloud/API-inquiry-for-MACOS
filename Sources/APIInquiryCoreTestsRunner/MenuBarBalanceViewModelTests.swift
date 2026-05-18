@@ -17,8 +17,45 @@ enum MenuBarBalanceViewModelTests {
         testRateLimitExposesRetryAction(using: harness)
         testRefreshingDisablesRefresh(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
+        await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
+        await testCodexSecondaryProviderRowsExposeQuotaUsage(using: harness)
         await testSecondaryProviderRowsExposeOtherProviders(using: harness)
         await testRefreshUpdatesAllAddedProviders(using: harness)
+    }
+
+    @MainActor
+    private static func testCodexPrimaryProviderFormatsQuotaUsage(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex)
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(viewModel.menuBarValueText, "5h 72%", "codex menu bar value")
+        harness.expectEqual(viewModel.menuBarTitle, "5h 72%", "codex menu bar title has no provider prefix")
+        harness.expectEqual(viewModel.primaryDisplayParts.providerID, .codex, "codex primary display id")
+        harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5h", "codex primary display caption")
+        harness.expectEqual(viewModel.primaryDisplayParts.amountText, "72", "codex primary display amount")
+        harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% remaining", "codex primary display trailing")
+        harness.expectEqual(viewModel.statusText, "Quota available", "codex primary status")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.count, 2, "codex quota row count")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "5h", "codex primary quota row label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.detailText, "72%", "codex primary quota row detail")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.resetText, "Resets: 23:05", "codex primary quota reset")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.label, "Week", "codex weekly quota row label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.detailText, "48%", "codex weekly quota row detail")
+    }
+
+    @MainActor
+    private static func testCodexSecondaryProviderRowsExposeQuotaUsage(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(primaryProviderID: .deepseek)
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator)
+
+        let codexRow = viewModel.secondaryProviderRows.first { $0.providerID == .codex }
+        harness.expectEqual(codexRow?.detailText, "5h 72%", "codex secondary row detail")
+        harness.expectEqual(codexRow?.statusText, "Quota available", "codex secondary row status")
     }
 
     @MainActor
@@ -269,6 +306,38 @@ enum MenuBarBalanceViewModelTests {
         )
     }
 
+    @MainActor
+    private static func makeCodexCoordinator(primaryProviderID: ProviderID) -> MultiProviderBalanceCoordinator {
+        MultiProviderBalanceCoordinator(
+            providers: [
+                MockBalanceProvider(
+                    id: .deepseek,
+                    displayName: "DeepSeek",
+                    menuPrefix: "DS",
+                    credentialAccount: "deepseek-api-key",
+                    homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
+                    results: [.success(.balance(makeSnapshot(providerID: .deepseek, total: "68.65")))]
+                ),
+                MockBalanceProvider(
+                    id: .codex,
+                    displayName: "Codex",
+                    menuPrefix: "GPT",
+                    credentialAccount: "codex-session-token",
+                    homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
+                    results: [.success(.quotaUsage(makeCodexSnapshot()))]
+                )
+            ],
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [
+                "deepseek-api-key": "deepseek-key",
+                "codex-session-token": "codex-token"
+            ]),
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.deepseek, .codex],
+                primaryProviderID: primaryProviderID
+            )
+        )
+    }
+
     private static var fixedTimeFormatter: LastRefreshTimeFormatter {
         LastRefreshTimeFormatter(
             locale: Locale(identifier: "en_GB"),
@@ -286,5 +355,27 @@ enum MenuBarBalanceViewModelTests {
         components.hour = 23
         components.minute = 5
         return components.date!
+    }
+
+    private static func makeCodexSnapshot() -> QuotaUsageSnapshot {
+        QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(
+                    label: "5h",
+                    remainingPercentage: Decimal(72),
+                    resetAt: sampleResetDate,
+                    isAvailable: true
+                ),
+                QuotaWindowSnapshot(
+                    label: "Week",
+                    remainingPercentage: Decimal(48),
+                    resetAt: nil,
+                    isAvailable: true
+                )
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
     }
 }

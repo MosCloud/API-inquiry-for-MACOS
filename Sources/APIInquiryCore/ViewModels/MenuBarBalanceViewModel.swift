@@ -90,7 +90,10 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var menuBarTitle: String {
-        "\(activeProvider?.menuPrefix ?? "") \(menuBarValueText)".trimmingCharacters(in: .whitespaces)
+        if activeProvider?.id == .codex {
+            return menuBarValueText
+        }
+        return "\(activeProvider?.menuPrefix ?? "") \(menuBarValueText)".trimmingCharacters(in: .whitespaces)
     }
 
     public var menuBarValueText: String {
@@ -148,6 +151,21 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                     resetText: lastRefreshTimeFormatter.resetText(for: state.lastPlanUsageSnapshot?.resetAt)
                 )
             }
+    }
+
+    public var primaryQuotaWindowRows: [QuotaWindowDisplayRow] {
+        guard let quota = activeState.lastQuotaUsageSnapshot else {
+            return []
+        }
+
+        return quota.windows.map { window in
+            QuotaWindowDisplayRow(
+                label: window.label,
+                detailText: ProviderDisplayFormatter.quotaWindowDetailText(for: window),
+                resetText: lastRefreshTimeFormatter.resetText(for: window.resetAt),
+                isAvailable: window.isAvailable
+            )
+        }
     }
 
     public var statusText: String {

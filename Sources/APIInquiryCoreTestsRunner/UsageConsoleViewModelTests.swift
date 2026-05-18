@@ -15,6 +15,22 @@ enum UsageConsoleViewModelTests {
         testRemovingProviderShowsFeedbackWhenCredentialDeletionFails(using: harness)
         testRemovingProviderClearsProviderScopedAPIKeyInput(using: harness)
         await testSavingProviderScopedAPIKeyRefreshesOnlyThatProvider(using: harness)
+        await testCodexSummaryExposesPlanName(using: harness)
+    }
+
+    @MainActor
+    private static func testCodexSummaryExposesPlanName(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex)
+        await coordinator.refresh(.codex)
+        let viewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+        )
+
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+        harness.expectEqual(codexSummary?.balanceText, "5h 72%", "codex console detail")
+        harness.expectEqual(codexSummary?.planNameText, "Plus", "codex console plan")
+        harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex console status")
     }
 
     @MainActor
@@ -307,6 +323,45 @@ enum UsageConsoleViewModelTests {
             credentialStore: credentialStore,
             preferences: InMemoryProviderPreferencesStore(
                 addedProviderIDs: addedProviderIDs,
+                primaryProviderID: primaryProviderID
+            )
+        )
+    }
+
+    @MainActor
+    private static func makeCodexCoordinator(primaryProviderID: ProviderID) -> MultiProviderBalanceCoordinator {
+        MultiProviderBalanceCoordinator(
+            providers: [
+                MockBalanceProvider(
+                    id: .codex,
+                    displayName: "Codex",
+                    menuPrefix: "GPT",
+                    credentialAccount: "codex-session-token",
+                    homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
+                    results: [.success(.quotaUsage(QuotaUsageSnapshot(
+                        providerID: .codex,
+                        planName: "Plus",
+                        windows: [
+                            QuotaWindowSnapshot(
+                                label: "5h",
+                                remainingPercentage: Decimal(72),
+                                resetAt: nil,
+                                isAvailable: true
+                            ),
+                            QuotaWindowSnapshot(
+                                label: "Week",
+                                remainingPercentage: Decimal(48),
+                                resetAt: nil,
+                                isAvailable: true
+                            )
+                        ],
+                        fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+                    )))]
+                )
+            ],
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"]),
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.codex],
                 primaryProviderID: primaryProviderID
             )
         )

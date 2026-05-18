@@ -11,6 +11,7 @@ public struct APIProviderSummary: Equatable {
     public let balanceText: String
     public let lastRefreshText: String
     public let planNextResetText: String?
+    public let planNameText: String?
     public let isPrimary: Bool
 
     public init(
@@ -23,6 +24,7 @@ public struct APIProviderSummary: Equatable {
         balanceText: String,
         lastRefreshText: String = "Last updated: --",
         planNextResetText: String? = nil,
+        planNameText: String? = nil,
         isPrimary: Bool = false
     ) {
         self.id = id
@@ -34,6 +36,7 @@ public struct APIProviderSummary: Equatable {
         self.balanceText = balanceText
         self.lastRefreshText = lastRefreshText
         self.planNextResetText = planNextResetText
+        self.planNameText = planNameText
         self.isPrimary = isPrimary
     }
 }
@@ -144,6 +147,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                     balanceText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot),
                     lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
                     planNextResetText: lastRefreshTimeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
+                    planNameText: state.lastQuotaUsageSnapshot?.planName,
                     isPrimary: true
                 )
             ]
@@ -164,6 +168,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                 balanceText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot),
                 lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
                 planNextResetText: lastRefreshTimeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
+                planNameText: state.lastQuotaUsageSnapshot?.planName,
                 isPrimary: id == coordinator.primaryProviderID
             )
         }
