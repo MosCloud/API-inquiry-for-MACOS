@@ -391,6 +391,8 @@ public final class UsageConsoleViewModel: ObservableObject {
                 return balance.isAvailable ? "Active" : "Insufficient balance"
             case .planUsage(let usage):
                 return usage.isAvailable ? "Plan available" : "Limit reached"
+            case .quotaUsage(let usage):
+                return usage.isAvailable ? "Quota available" : "Quota exhausted"
             }
         case .failed(_, let kind, _):
             switch kind {

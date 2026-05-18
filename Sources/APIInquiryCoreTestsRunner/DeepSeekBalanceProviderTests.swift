@@ -29,6 +29,8 @@ enum DeepSeekBalanceProviderTests {
                 harness.expectEqual(balance.totalBalance, decimal("68.65"), "deepseek snapshot balance")
             case .planUsage:
                 harness.expectTrue(false, "deepseek snapshot should be a balance")
+            case .quotaUsage:
+                harness.expectTrue(false, "deepseek snapshot should be a balance")
             }
         } catch {
             harness.expectTrue(false, "deepseek snapshot should not throw: \(error)")

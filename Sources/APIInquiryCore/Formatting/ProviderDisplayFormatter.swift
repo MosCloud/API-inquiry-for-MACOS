@@ -42,6 +42,8 @@ public enum ProviderDisplayFormatter {
             return formatAmount(balance.totalBalance, currency: balance.currency, fractionDigits: 1, includeCurrencyCode: false)
         case .planUsage(let usage):
             return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))%"
+        case .quotaUsage(let usage):
+            return quotaWindowText(for: primaryQuotaWindow(in: usage))
         }
     }
 
@@ -55,6 +57,8 @@ public enum ProviderDisplayFormatter {
             return formatAmount(balance.totalBalance, currency: balance.currency, fractionDigits: 2, includeCurrencyCode: true)
         case .planUsage(let usage):
             return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))%"
+        case .quotaUsage(let usage):
+            return quotaWindowText(for: primaryQuotaWindow(in: usage))
         }
     }
 
@@ -97,6 +101,17 @@ public enum ProviderDisplayFormatter {
                 trailingText: "% used",
                 captionText: usage.windowLabel
             )
+        case .quotaUsage(let usage):
+            let window = primaryQuotaWindow(in: usage)
+            return PrimaryProviderDisplayParts(
+                providerID: provider.id,
+                displayName: provider.displayName,
+                detailKind: .quotaUsage,
+                leadingText: "",
+                amountText: formatPercentage(window?.remainingPercentage ?? 0),
+                trailingText: "% remaining",
+                captionText: window?.label ?? ""
+            )
         }
     }
 
@@ -112,6 +127,8 @@ public enum ProviderDisplayFormatter {
                 return balance.isAvailable ? "Available" : "Balance insufficient"
             case .planUsage(let usage):
                 return usage.isAvailable ? "Plan available" : "Limit reached"
+            case .quotaUsage(let usage):
+                return usage.isAvailable ? "Quota available" : "Quota exhausted"
             }
         case .failed(_, let kind, _):
             switch kind {
@@ -139,6 +156,8 @@ public enum ProviderDisplayFormatter {
                 return balance.isAvailable ? .success : .warning
             case .planUsage(let usage):
                 return usage.isAvailable ? .success : .warning
+            case .quotaUsage(let usage):
+                return usage.isAvailable ? .success : .warning
             }
         case .failed:
             return .warning
@@ -152,6 +171,17 @@ public enum ProviderDisplayFormatter {
         }
 
         return LastRefreshTimeFormatter().resetText(for: resetAt)
+    }
+
+    private static func primaryQuotaWindow(in usage: QuotaUsageSnapshot) -> QuotaWindowSnapshot? {
+        usage.windows.first { $0.label == "5h" } ?? usage.windows.first
+    }
+
+    private static func quotaWindowText(for window: QuotaWindowSnapshot?) -> String {
+        guard let window else {
+            return "--"
+        }
+        return "\(window.label) \(formatPercentage(window.remainingPercentage))%"
     }
 
     private static func formatAmount(

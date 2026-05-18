@@ -20,7 +20,7 @@ enum MultiProviderBalanceCoordinatorTests {
 
         harness.expectEqual(coordinator.addedProviderIDs, [.deepseek], "coordinator default added providers")
         harness.expectEqual(coordinator.primaryProviderID, .deepseek, "coordinator default primary")
-        harness.expectEqual(coordinator.availableProviderIDsToAdd, [.zhipuCodingPlan], "coordinator default available providers")
+        harness.expectEqual(coordinator.availableProviderIDsToAdd, [.zhipuCodingPlan, .codex], "coordinator default available providers")
     }
 
     @MainActor
@@ -200,6 +200,14 @@ enum MultiProviderBalanceCoordinatorTests {
                     menuPrefix: "GLM",
                     credentialAccount: "zhipu-coding-plan-api-key",
                     homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
+                    results: []
+                ),
+                MockBalanceProvider(
+                    id: .codex,
+                    displayName: "Codex",
+                    menuPrefix: "GPT",
+                    credentialAccount: "codex-session-token",
+                    homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
                     results: []
                 )
             ],

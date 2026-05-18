@@ -93,6 +93,8 @@ enum ZhipuCodingPlanProviderTests {
                 harness.expectEqual(usage.fetchedAt, fetchedAt, "zhipu fetched date")
             case .balance:
                 harness.expectTrue(false, "zhipu snapshot should be plan usage")
+            case .quotaUsage:
+                harness.expectTrue(false, "zhipu snapshot should be plan usage")
             }
 
             harness.expectEqual(

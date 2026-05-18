@@ -57,6 +57,14 @@ public extension ProviderCatalog {
                 credentialAccount: "zhipu-coding-plan-api-key",
                 homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
                 detailKind: .planUsage
+            ),
+            ProviderDescriptor(
+                id: .codex,
+                displayName: "Codex",
+                menuPrefix: "GPT",
+                credentialAccount: "codex-session-token",
+                homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
+                detailKind: .quotaUsage
             )
         ],
         defaultProviderID: .deepseek

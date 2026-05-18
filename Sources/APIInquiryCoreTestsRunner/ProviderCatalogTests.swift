@@ -6,6 +6,8 @@ enum ProviderCatalogTests {
         testDefaultCatalogOrder(using: harness)
         testProviderDescriptorsHaveUniqueStableFields(using: harness)
         testDeepSeekCredentialAccountIsPreserved(using: harness)
+        testCodexDescriptorExposesQuotaUsage(using: harness)
+        testSnapshotsCanRepresentCodexQuotaUsage(using: harness)
         testSnapshotsCanRepresentZhipuProvider(using: harness)
     }
 
@@ -14,7 +16,7 @@ enum ProviderCatalogTests {
 
         harness.expectEqual(
             catalog.descriptors.map(\.id),
-            [.deepseek, .zhipuCodingPlan],
+            [.deepseek, .zhipuCodingPlan, .codex],
             "default provider catalog order"
         )
         harness.expectEqual(catalog.defaultProviderID, .deepseek, "default provider id")
@@ -37,6 +39,36 @@ enum ProviderCatalogTests {
 
         harness.expectEqual(descriptor?.credentialAccount, "deepseek-api-key", "deepseek keychain account is preserved")
         harness.expectEqual(descriptor?.detailKind, .balance, "deepseek detail kind")
+    }
+
+    private static func testCodexDescriptorExposesQuotaUsage(using harness: TestHarness) {
+        let descriptor = ProviderCatalog.default.descriptor(for: .codex)
+
+        harness.expectEqual(descriptor?.displayName, "Codex", "codex display name")
+        harness.expectEqual(descriptor?.menuPrefix, "GPT", "codex menu prefix")
+        harness.expectEqual(descriptor?.credentialAccount, "codex-session-token", "codex keychain account")
+        harness.expectEqual(descriptor?.homepageURL, URL(string: "https://chatgpt.com/codex/settings/usage")!, "codex homepage url")
+        harness.expectEqual(descriptor?.detailKind, .quotaUsage, "codex detail kind")
+    }
+
+    private static func testSnapshotsCanRepresentCodexQuotaUsage(using harness: TestHarness) {
+        let snapshot = QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(
+                    label: "5h",
+                    remainingPercentage: Decimal(72),
+                    resetAt: nil,
+                    isAvailable: true
+                )
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        let providerSnapshot = ProviderSnapshot.quotaUsage(snapshot)
+
+        harness.expectEqual(snapshot.providerID, .codex, "codex quota provider id")
+        harness.expectEqual(providerSnapshot.providerID, .codex, "codex provider snapshot id")
     }
 
     private static func testSnapshotsCanRepresentZhipuProvider(using harness: TestHarness) {
