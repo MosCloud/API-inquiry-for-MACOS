@@ -1,5 +1,7 @@
 # API Inquiry
 
+[English](README_en.md)
+
 API Inquiry 是一个原生 macOS 菜单栏应用，用于查看 API 供应商状态并管理供应商 API Key。它支持 DeepSeek 余额查询和智谱 GLM Coding Plan 用量查询，会将供应商 API Key 保存到 macOS Keychain，每 5 分钟刷新已配置供应商，在菜单栏显示 Primary Provider，并提供一个轻量本地控制台用于供应商管理。
 
 ## 运行要求

@@ -1,209 +1,211 @@
 # API Inquiry
 
-API Inquiry is a native macOS menu bar app for checking API provider status and managing provider API keys. It supports DeepSeek balance checks and Zhipu GLM Coding Plan usage, stores provider API keys in macOS Keychain, refreshes configured providers every 5 minutes, shows the Primary Provider in the menu bar, and provides a lightweight local console for provider management.
+[English](README_en.md)
 
-## Requirements
+API Inquiry 是一个原生 macOS 菜单栏应用，用于查看 API 供应商状态并管理供应商 API Key。它支持 DeepSeek 余额查询和智谱 GLM Coding Plan 用量查询，会将供应商 API Key 保存到 macOS Keychain，每 5 分钟刷新已配置供应商，在菜单栏显示 Primary Provider，并提供一个轻量本地控制台用于供应商管理。
 
-- macOS 13 or later
+## 运行要求
+
+- macOS 13 或更高版本
 - Swift 5.9+ / Xcode Command Line Tools
-- A DeepSeek API key for real balance checks, or a Zhipu GLM Coding Plan API key for plan usage checks
+- 用于真实余额查询的 DeepSeek API Key，或用于 plan 用量查询的智谱 GLM Coding Plan API Key
 
-## Security
+## 安全说明
 
-- API keys are stored only in macOS Keychain through `KeychainCredentialStore`.
-- Saved keys are never shown in plain text after saving. API key setup, replacement, and deletion happen in the local console.
-- Tests use fake keys only and do not require real DeepSeek or Zhipu accounts.
-- Do not put real API keys in source files, docs, logs, screenshots, or shell history.
+- API Key 只通过 `KeychainCredentialStore` 存储在 macOS Keychain 中。
+- 保存后不会再明文展示已保存的 key。API Key 的配置、更换和删除都在本地控制台中完成。
+- 测试只使用假 key，不需要真实 DeepSeek 或智谱账号。
+- 不要把真实 API Key 写进源码、文档、日志、截图或 shell history。
 
-## Test
+## 测试
 
-This project uses a local executable runner because this development machine has Command Line Tools but not a full XCTest runtime.
+本项目使用本地可执行测试 runner，因为当前开发机只有 Command Line Tools，没有完整 XCTest 运行环境。
 
 ```bash
 swift run APIInquiryCoreTestsRunner
 ```
 
-Expected result:
+预期结果：
 
 ```text
 PASS: 188 expectations
 ```
 
-## Build
+## 构建
 
-Compile all package targets:
+编译所有 package target：
 
 ```bash
 swift build
 ```
 
-Regenerate the bundled macOS app icon:
+重新生成随 app 打包的 macOS 应用图标：
 
 ```bash
 swift Scripts/generate-app-icon.swift
 ```
 
-Build a local macOS app bundle:
+构建本地 macOS app bundle：
 
 ```bash
 Scripts/build-local-app.sh
 ```
 
-Build and start the local macOS app bundle for quick validation:
+构建并启动本地 macOS app bundle，用于快速验证：
 
 ```bash
 Scripts/run-local-app.sh
 ```
 
-During in-progress development, use this script for fast local validation. Full .app release packaging and DMG generation are reserved for release candidate validation.
+开发过程态优先使用该脚本进行快速本地验证。完整 .app release 打包和 DMG 生成只在 release candidate 验证阶段执行。
 
-The script creates:
+脚本会生成：
 
 ```text
 .build/APIInquiry.app
 ```
 
-The app sets its accessory activation policy at launch, so it runs as a menu bar utility while remaining visible in installer DMGs.
-The build scripts regenerate and bundle the custom `AppIcon.icns` automatically.
+应用会在启动时设置 accessory activation policy，因此既能以菜单栏工具形式运行，也能在安装 DMG 中保持可见。
+构建脚本会自动重新生成并打包自定义 `AppIcon.icns`。
 
-Package a release macOS app bundle:
+打包 release macOS app bundle：
 
 ```bash
 Scripts/package-mac-app.sh
 ```
 
-The script creates and ad-hoc signs:
+脚本会生成并进行 ad-hoc 签名：
 
 ```text
 dist/API Inquiry.app
 ```
 
-Package a GitHub Release DMG:
+打包 GitHub Release 用 DMG：
 
 ```bash
 Scripts/package-dmg.sh
 ```
 
-The script creates:
+脚本会生成：
 
 ```text
 dist/API-Inquiry-v0.3.0.dmg
 dist/API-Inquiry-v0.3.0.dmg.sha256
 ```
 
-After release validation and upload, remove local development app bundles so Launchpad only indexes the installed app:
+完成发布验证和上传后，删除本机开发态 app bundle，避免 Launchpad 将非正式副本索引成重复图标：
 
 ```bash
 Scripts/clean-development-apps.sh
 ```
 
-## Install From GitHub DMG
+## 通过 GitHub DMG 安装
 
-This project uses a free GitHub Releases distribution strategy. The DMG is ad-hoc signed but not Apple notarized.
+本项目采用免费的 GitHub Releases 发布策略。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。
 
-1. Download `API-Inquiry-v0.3.0.dmg` and `API-Inquiry-v0.3.0.dmg.sha256` from GitHub Releases.
-2. Verify the download:
+1. 从 GitHub Releases 下载 `API-Inquiry-v0.3.0.dmg` 和 `API-Inquiry-v0.3.0.dmg.sha256`。
+2. 校验下载文件：
 
    ```bash
    shasum -a 256 -c API-Inquiry-v0.3.0.dmg.sha256
    ```
 
-3. Open the DMG.
-4. Drag `API Inquiry.app` into `Applications`.
-5. Launch API Inquiry from Applications.
+3. 打开 DMG。
+4. 将 `API Inquiry.app` 拖入 `Applications`。
+5. 从 Applications 启动 API Inquiry。
 
-If macOS blocks the first launch because the developer cannot be verified:
+如果 macOS 首次启动时提示无法验证开发者：
 
-1. Right-click `API Inquiry.app`.
-2. Choose `Open`.
-3. Confirm `Open` in the system prompt.
+1. 右键点击 `API Inquiry.app`。
+2. 选择 `Open`。
+3. 在系统提示中再次确认 `Open`。
 
-You can also allow the app from `System Settings > Privacy & Security`.
+也可以进入 `System Settings > Privacy & Security`，允许该应用打开。
 
-## Run Locally
+## 本地运行
 
 ```bash
 Scripts/run-local-app.sh
 ```
 
-Open the existing local app bundle directly:
+直接打开已有的本地 app bundle：
 
 ```bash
 open .build/APIInquiry.app
 ```
 
-Run the packaged release app:
+运行打包后的 release app：
 
 ```bash
 open "dist/API Inquiry.app"
 ```
 
-Install the packaged app into your user Applications folder:
+将打包后的 app 安装到当前用户的 Applications 目录：
 
 ```bash
 Scripts/install-mac-app.sh
 ```
 
-Restart the installed app:
+重启安装后的 app：
 
 ```bash
 Scripts/restart-installed-app.sh
 ```
 
-The installed app path is:
+安装后的 app 路径为：
 
 ```text
 ~/Applications/API Inquiry.app
 ```
 
-Manual checks:
+手动检查项：
 
-- First launch with no key shows setup state.
-- When no key is configured, the menu bar panel points you to the local console.
-- Saving a key from the console clears the input field and stores the key in Keychain.
-- After a key is configured, the console shows `Configured` without revealing the saved key.
-- The menu bar uses a dynamic DeepSeek template label plus compact balance formatting, for example `¥68.6`.
-- The menu bar icon is larger than the amount text, matching common macOS status items, while the amount uses regular weight to keep the label light.
-- The expanded panel logo adapts automatically to light and dark appearance.
-- The panel uses full balance formatting, for example `¥68.65 CNY`, with a smaller header logo, the numeric amount dominant at medium weight, and the currency symbol/code smaller at regular weight.
-- The installed app uses the custom Apple-style icon from `AppIcon.icns`.
-- The details panel header shows `Console` and refresh as matched icon actions.
-- The footer shows two evenly sized actions: `AutoStart` and `Quit`.
-- The console Home page shows provider API key status, validation status, and balance.
-- The console API page manages configured provider API keys.
-- Console provider names open the provider's API page; DeepSeek opens `https://platform.deepseek.com/usage`.
-- The `AutoStart` action toggles launch at login and changes color when enabled.
-- The last updated time follows the system 12-hour or 24-hour clock setting.
-- Manual refresh uses the same refresh path as automatic refresh.
-- Deleting the key from the console returns the app to setup state.
-- The menu bar shows only the Primary Provider detail: DeepSeek shows compact balance such as `¥68.6`; Zhipu GLM Coding Plan shows usage such as `5h 17%`.
-- The expanded panel shows the Primary Provider in the top hero area and other providers as compact rows.
-- The expanded panel refresh action refreshes all added providers.
-- Zhipu GLM Coding Plan shows `Resets` in the expanded panel and `Plan Next Resets` in Console Home.
-- Console can add Zhipu GLM Coding Plan and set a provider as the Primary Provider shown in the menu bar.
-- Deleting one provider key from the console does not affect other provider keys or snapshots.
+- 首次启动且没有 key 时显示 setup 状态。
+- 没有配置 key 时，菜单栏面板会引导打开本地控制台。
+- 从控制台保存 key 后清空输入框，并将 key 存入 Keychain。
+- key 已配置后，控制台只显示 `Configured`，不会展示已保存 key。
+- 菜单栏使用动态 DeepSeek template 标签加紧凑余额格式，例如 `¥68.6`。
+- 菜单栏图标大于金额文字，贴近常见 macOS 状态栏项目比例；金额使用 regular 字重，让标签保持轻盈。
+- 展开面板 logo 会自动适配浅色和深色外观。
+- 面板使用完整余额格式，例如 `¥68.65 CNY`，顶部 logo 进一步缩小，数字部分使用 medium 字重占据视觉主导，货币符号和货币代码以更小的 regular 字重显示。
+- 安装后的 app 使用来自 `AppIcon.icns` 的自定义苹果风格图标。
+- 详情面板右上角以一致的图标按钮展示 `Console` 和刷新。
+- 底部显示两个等宽操作模块：`AutoStart` 和 `Quit`。
+- 控制台 Home 页面展示供应商 API Key 状态、生效状态和余额。
+- 控制台 API 页面管理已配置供应商的 API Key。
+- Console 中的供应商名称会打开对应 API 页面；DeepSeek 打开 `https://platform.deepseek.com/usage`。
+- `AutoStart` 操作用于切换开机自启，启用后模块颜色会变化。
+- 最近更新时间会跟随系统的 12 小时制或 24 小时制设置。
+- 手动刷新与自动刷新使用同一条刷新路径。
+- 从控制台删除 key 后回到 setup 状态。
+- 菜单栏只显示 Primary Provider 详情：DeepSeek 显示紧凑余额，例如 `¥68.6`；智谱 GLM Coding Plan 显示用量，例如 `5h 17%`。
+- 展开面板顶部突出展示 Primary Provider，其余供应商以紧凑行展示。
+- 展开面板中的刷新按钮会刷新所有已添加供应商。
+- 智谱 GLM Coding Plan 会在展开面板显示 `Resets`，并在 Console Home 显示 `Plan Next Resets`。
+- Console 可添加智谱 GLM Coding Plan，并将某个供应商设为菜单栏 Primary Provider。
+- 从控制台删除某个供应商 key 不影响其他供应商 key 和快照。
 
-## Scope
+## 范围
 
-Included in this release:
+本版本包含：
 
-- DeepSeek balance API integration
-- Zhipu GLM Coding Plan usage integration
-- Built-in multi-provider catalog
-- Secure per-provider Keychain storage
-- 5-minute automatic refresh and manual refresh
-- Minimal native `MenuBarExtra` status UI for the Primary Provider
-- Local API Inquiry console window
-- Local API provider console with Home and API pages
-- Provider status summary with API key, validation, balance, and plan usage state
-- Plan reset time display for coding-plan providers
-- Local `.app` bundle generation
-- Custom macOS app icon generation and bundling
-- Launch at login control from the details panel
-- Free GitHub DMG packaging without Apple notarization
+- DeepSeek 余额 API 集成
+- 智谱 GLM Coding Plan 用量集成
+- 内置多供应商目录
+- 每供应商独立的安全 Keychain 存储
+- 每 5 分钟自动刷新和手动刷新
+- 面向 Primary Provider 的极简原生 `MenuBarExtra` 状态 UI
+- 本地 API Inquiry 控制台窗口
+- 本地 API 供应商控制台，包含 Home 和 API 页面
+- 供应商状态总览，包括 API Key、生效状态、余额和 plan 用量状态
+- 面向 coding-plan 供应商的 plan 重置时间展示
+- 本地 `.app` bundle 生成
+- 自定义 macOS 应用图标生成与打包
+- 详情面板中的开机自启控制
+- 不使用 Apple 公证的免费 GitHub DMG 打包
 
-Deferred:
+延后处理：
 
-- Historical usage import and charts
-- Arbitrary custom providers
-- Developer ID signing and notarization
+- 历史用量导入和图表
+- 任意自定义供应商
+- Developer ID 签名和 Apple notarization 公证
