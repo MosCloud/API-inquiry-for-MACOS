@@ -16,7 +16,7 @@ enum BalanceRefreshControllerTests {
 
     @MainActor
     private static func testMissingCredentialSetsNotConfigured(using harness: TestHarness) async {
-        let provider = MockBalanceProvider(results: [.success(makeSnapshot(total: "68.65"))])
+        let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: "68.65")))])
         let controller = BalanceRefreshController(
             provider: provider,
             credentialStore: InMemoryCredentialStore()
@@ -30,13 +30,13 @@ enum BalanceRefreshControllerTests {
 
     @MainActor
     private static func testSuccessfulRefreshLoadsSnapshot(using harness: TestHarness) async {
-        let provider = MockBalanceProvider(results: [.success(makeSnapshot(total: "68.65"))])
+        let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: "68.65")))])
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
         let controller = BalanceRefreshController(provider: provider, credentialStore: store)
 
         await controller.refresh()
 
-        harness.expectEqual(controller.state, .loaded(makeSnapshot(total: "68.65")), "successful refresh state")
+        harness.expectEqual(controller.state, .loaded(.balance(makeSnapshot(total: "68.65"))), "successful refresh state")
         harness.expectEqual(provider.lastAPIKey, "test-key", "successful refresh api key")
     }
 
@@ -44,7 +44,7 @@ enum BalanceRefreshControllerTests {
     private static func testFailurePreservesLastSnapshot(using harness: TestHarness) async {
         let snapshot = makeSnapshot(total: "68.65")
         let provider = MockBalanceProvider(results: [
-            .success(snapshot),
+            .success(.balance(snapshot)),
             .failure(BalanceProviderError.rateLimited)
         ])
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
@@ -53,13 +53,13 @@ enum BalanceRefreshControllerTests {
         await controller.refresh()
         await controller.refresh()
 
-        harness.expectEqual(controller.state.lastSnapshot, snapshot, "failed refresh last snapshot")
+        harness.expectEqual(controller.state.lastSnapshot, .balance(snapshot), "failed refresh last snapshot")
         harness.expectEqual(
             controller.state,
-            .failed(
+            BalanceState.failed(
                 message: "Balance API rate limit reached. Try again shortly.",
                 kind: .rateLimited,
-                last: snapshot
+                last: .balance(snapshot)
             ),
             "failed refresh state"
         )
@@ -104,14 +104,14 @@ enum BalanceRefreshControllerTests {
         await firstRefresh.value
         await secondRefresh.value
 
-        harness.expectEqual(controller.state, .loaded(snapshot), "overlapping refresh final state")
+        harness.expectEqual(controller.state, .loaded(.balance(snapshot)), "overlapping refresh final state")
     }
 
     @MainActor
     private static func testCancellationRestoresPreviousState(using harness: TestHarness) async {
         let snapshot = makeSnapshot(total: "68.65")
         let provider = MockBalanceProvider(results: [
-            .success(snapshot),
+            .success(.balance(snapshot)),
             .failure(CancellationError())
         ])
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
@@ -120,14 +120,14 @@ enum BalanceRefreshControllerTests {
         await controller.refresh()
         await controller.refresh()
 
-        harness.expectEqual(controller.state, .loaded(snapshot), "cancellation restores previous state")
+        harness.expectEqual(controller.state, .loaded(.balance(snapshot)), "cancellation restores previous state")
     }
 
     @MainActor
     private static func testCancelledURLErrorRestoresPreviousState(using harness: TestHarness) async {
         let snapshot = makeSnapshot(total: "68.65")
         let provider = MockBalanceProvider(results: [
-            .success(snapshot),
+            .success(.balance(snapshot)),
             .failure(URLError(.cancelled))
         ])
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
@@ -136,7 +136,7 @@ enum BalanceRefreshControllerTests {
         await controller.refresh()
         await controller.refresh()
 
-        harness.expectEqual(controller.state, .loaded(snapshot), "cancelled URL error restores previous state")
+        harness.expectEqual(controller.state, .loaded(.balance(snapshot)), "cancelled URL error restores previous state")
     }
 
     @MainActor
@@ -161,8 +161,8 @@ private final class SuspendedBalanceProvider: BalanceProvider {
         self.probe = probe
     }
 
-    func fetchBalance(apiKey: String) async throws -> BalanceSnapshot {
-        try await probe.suspendAndRecordFetch()
+    func fetchSnapshot(apiKey: String) async throws -> ProviderSnapshot {
+        .balance(try await probe.suspendAndRecordFetch())
     }
 }
 
@@ -203,15 +203,15 @@ final class MockBalanceProvider: BalanceProvider {
     let credentialAccount = "deepseek-api-key"
     let homepageURL = URL(string: "https://platform.deepseek.com/usage")!
 
-    private var results: [Result<BalanceSnapshot, Error>]
+    private var results: [Result<ProviderSnapshot, Error>]
     private(set) var fetchCount = 0
     private(set) var lastAPIKey: String?
 
-    init(results: [Result<BalanceSnapshot, Error>]) {
+    init(results: [Result<ProviderSnapshot, Error>]) {
         self.results = results
     }
 
-    func fetchBalance(apiKey: String) async throws -> BalanceSnapshot {
+    func fetchSnapshot(apiKey: String) async throws -> ProviderSnapshot {
         fetchCount += 1
         lastAPIKey = apiKey
 

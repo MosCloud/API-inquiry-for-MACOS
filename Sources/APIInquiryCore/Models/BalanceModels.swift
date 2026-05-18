@@ -79,6 +79,8 @@ public enum BalanceFailureKind: Equatable {
     case serverError
     case decodingFailed
     case invalidResponse
+    case usageLimitReached
+    case planExpired
     case unknown
 }
 
@@ -119,11 +121,11 @@ public struct BalanceSnapshot: Equatable {
 
 public enum BalanceState: Equatable {
     case notConfigured
-    case loading(last: BalanceSnapshot?)
-    case loaded(BalanceSnapshot)
-    case failed(message: String, kind: BalanceFailureKind, last: BalanceSnapshot?)
+    case loading(last: ProviderSnapshot?)
+    case loaded(ProviderSnapshot)
+    case failed(message: String, kind: BalanceFailureKind, last: ProviderSnapshot?)
 
-    public var lastSnapshot: BalanceSnapshot? {
+    public var lastSnapshot: ProviderSnapshot? {
         switch self {
         case .notConfigured:
             return nil
@@ -134,5 +136,19 @@ public enum BalanceState: Equatable {
         case .failed(_, _, let last):
             return last
         }
+    }
+
+    public var lastBalanceSnapshot: BalanceSnapshot? {
+        guard case .balance(let snapshot) = lastSnapshot else {
+            return nil
+        }
+        return snapshot
+    }
+
+    public var lastPlanUsageSnapshot: PlanUsageSnapshot? {
+        guard case .planUsage(let snapshot) = lastSnapshot else {
+            return nil
+        }
+        return snapshot
     }
 }

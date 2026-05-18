@@ -31,7 +31,7 @@ enum UsageConsoleViewModelTests {
     @MainActor
     private static func testProviderSummariesExposeConfiguredActiveProvider(using harness: TestHarness) async {
         let snapshot = makeSnapshot(total: "68.65")
-        let provider = MockBalanceProvider(results: [.success(snapshot)])
+        let provider = MockBalanceProvider(results: [.success(.balance(snapshot))])
         let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
         let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(
@@ -67,7 +67,7 @@ enum UsageConsoleViewModelTests {
     @MainActor
     private static func testSavingAPIKeyRefreshesBalance(using harness: TestHarness) async {
         let snapshot = makeSnapshot(total: "68.65")
-        let provider = MockBalanceProvider(results: [.success(snapshot)])
+        let provider = MockBalanceProvider(results: [.success(.balance(snapshot))])
         let credentialStore = InMemoryCredentialStore()
         let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(
@@ -111,7 +111,7 @@ enum UsageConsoleViewModelTests {
     @MainActor
     private static func testConfirmingAPIKeyDeletionReturnsBalanceToSetup(using harness: TestHarness) async {
         let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-        let provider = MockBalanceProvider(results: [.success(makeSnapshot(total: "68.65"))])
+        let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: "68.65")))])
         let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(
             provider: provider,

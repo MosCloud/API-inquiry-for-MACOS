@@ -20,14 +20,14 @@ enum MenuBarBalanceViewModelTests {
 
     @MainActor
     private static func testLoadedMenuTitleFormatting(using harness: TestHarness) {
-        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")))
+        let viewModel = makeViewModel(state: .loaded(.balance(makeSnapshot(total: "68.65"))))
 
         harness.expectEqual(viewModel.menuBarTitle, "DS ¥68.6", "loaded menu title")
     }
 
     @MainActor
     private static func testLoadedMenuBarValueFormatting(using harness: TestHarness) {
-        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")))
+        let viewModel = makeViewModel(state: .loaded(.balance(makeSnapshot(total: "68.65"))))
 
         harness.expectEqual(viewModel.menuBarValueText, "¥68.6", "loaded menu bar value")
     }
@@ -35,7 +35,7 @@ enum MenuBarBalanceViewModelTests {
     @MainActor
     private static func testFailedStatePreservesMenuTitle(using harness: TestHarness) {
         let viewModel = makeViewModel(
-            state: .failed(message: "Refresh failed.", kind: .unknown, last: makeSnapshot(total: "68.65"))
+            state: .failed(message: "Refresh failed.", kind: .unknown, last: .balance(makeSnapshot(total: "68.65")))
         )
 
         harness.expectEqual(viewModel.menuBarTitle, "DS ¥68.6", "failed menu title keeps last balance")
@@ -43,14 +43,14 @@ enum MenuBarBalanceViewModelTests {
 
     @MainActor
     private static func testPanelBalanceTextFormatting(using harness: TestHarness) {
-        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")))
+        let viewModel = makeViewModel(state: .loaded(.balance(makeSnapshot(total: "68.65"))))
 
         harness.expectEqual(viewModel.panelBalanceText, "¥68.65 CNY", "panel balance text")
     }
 
     @MainActor
     private static func testPanelBalanceDisplayParts(using harness: TestHarness) {
-        let viewModel = makeViewModel(state: .loaded(makeSnapshot(total: "68.65")))
+        let viewModel = makeViewModel(state: .loaded(.balance(makeSnapshot(total: "68.65"))))
 
         harness.expectEqual(viewModel.panelBalanceDisplayParts.leadingText, "¥", "panel balance leading text")
         harness.expectEqual(viewModel.panelBalanceDisplayParts.amountText, "68.65", "panel balance amount text")
@@ -61,7 +61,7 @@ enum MenuBarBalanceViewModelTests {
     private static func testStatusText(using harness: TestHarness) {
         harness.expectEqual(makeViewModel(state: .notConfigured).statusText, "Not configured", "not configured status")
         harness.expectEqual(makeViewModel(state: .loading(last: nil)).statusText, "Refreshing", "refreshing status")
-        harness.expectEqual(makeViewModel(state: .loaded(makeSnapshot(total: "0.00", isAvailable: false))).statusText, "Balance insufficient", "insufficient status")
+        harness.expectEqual(makeViewModel(state: .loaded(.balance(makeSnapshot(total: "0.00", isAvailable: false)))).statusText, "Balance insufficient", "insufficient status")
         harness.expectEqual(makeViewModel(state: .failed(message: "Refresh failed.", kind: .unknown, last: nil)).statusText, "Refresh failed", "failed status")
     }
 
@@ -116,7 +116,7 @@ enum MenuBarBalanceViewModelTests {
             state: .failed(
                 message: "Balance API rate limit reached. Try again shortly.",
                 kind: .rateLimited,
-                last: makeSnapshot(total: "68.65")
+                last: .balance(makeSnapshot(total: "68.65"))
             )
         )
 
@@ -125,7 +125,7 @@ enum MenuBarBalanceViewModelTests {
 
     @MainActor
     private static func testRefreshingDisablesRefresh(using harness: TestHarness) {
-        let viewModel = makeViewModel(state: .loading(last: makeSnapshot(total: "68.65")))
+        let viewModel = makeViewModel(state: .loading(last: .balance(makeSnapshot(total: "68.65"))))
 
         harness.expectTrue(viewModel.isRefreshDisabled, "refresh disabled while loading")
     }

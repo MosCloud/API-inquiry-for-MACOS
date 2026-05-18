@@ -7,7 +7,17 @@ public protocol BalanceProvider {
     var credentialAccount: String { get }
     var homepageURL: URL { get }
 
-    func fetchBalance(apiKey: String) async throws -> BalanceSnapshot
+    func fetchSnapshot(apiKey: String) async throws -> ProviderSnapshot
+}
+
+public extension BalanceProvider {
+    func fetchBalance(apiKey: String) async throws -> BalanceSnapshot {
+        let snapshot = try await fetchSnapshot(apiKey: apiKey)
+        guard case .balance(let balanceSnapshot) = snapshot else {
+            throw BalanceProviderError.invalidResponseKind
+        }
+        return balanceSnapshot
+    }
 }
 
 public enum BalanceProviderError: Error, Equatable, LocalizedError {
@@ -17,6 +27,9 @@ public enum BalanceProviderError: Error, Equatable, LocalizedError {
     case serverError(statusCode: Int)
     case missingBalanceInfo
     case invalidBalanceAmount(String)
+    case invalidResponseKind
+    case usageLimitReached
+    case planExpired
     case decodingFailed
 
     public var errorDescription: String? {
@@ -33,6 +46,12 @@ public enum BalanceProviderError: Error, Equatable, LocalizedError {
             return "Balance API did not return balance information."
         case .invalidBalanceAmount:
             return "Balance API returned an invalid balance amount."
+        case .invalidResponseKind:
+            return "Provider returned an unsupported response kind."
+        case .usageLimitReached:
+            return "Plan usage limit reached. Wait for the next reset."
+        case .planExpired:
+            return "Plan has expired. Renew it in the provider console."
         case .decodingFailed:
             return "Balance API response could not be decoded."
         }
@@ -50,7 +69,11 @@ public extension BalanceProviderError {
             return .serverError
         case .decodingFailed:
             return .decodingFailed
-        case .missingBalanceInfo, .invalidBalanceAmount:
+        case .usageLimitReached:
+            return .usageLimitReached
+        case .planExpired:
+            return .planExpired
+        case .missingBalanceInfo, .invalidBalanceAmount, .invalidResponseKind:
             return .invalidResponse
         case .invalidURL:
             return .unknown

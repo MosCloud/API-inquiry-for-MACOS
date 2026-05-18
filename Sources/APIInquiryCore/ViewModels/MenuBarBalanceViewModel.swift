@@ -72,7 +72,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             return isCredentialConfigured ? "\(provider.menuPrefix) --" : "\(provider.menuPrefix) Setup"
         }
 
-        guard let snapshot = state.lastSnapshot else {
+        guard let snapshot = state.lastBalanceSnapshot else {
             return "\(provider.menuPrefix) --"
         }
 
@@ -84,7 +84,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             return isCredentialConfigured ? "--" : "Setup"
         }
 
-        guard let snapshot = state.lastSnapshot else {
+        guard let snapshot = state.lastBalanceSnapshot else {
             return "--"
         }
 
@@ -92,7 +92,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var panelBalanceText: String {
-        guard let snapshot = state.lastSnapshot else {
+        guard let snapshot = state.lastBalanceSnapshot else {
             return "--"
         }
 
@@ -100,7 +100,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var panelBalanceDisplayParts: BalanceDisplayParts {
-        guard let snapshot = state.lastSnapshot else {
+        guard let snapshot = state.lastBalanceSnapshot else {
             return BalanceDisplayParts(leadingText: "", amountText: "--", trailingText: "")
         }
 
@@ -168,6 +168,8 @@ public final class MenuBarBalanceViewModel: ObservableObject {
 
         switch kind {
         case .authenticationFailed:
+            return [.openConsole]
+        case .usageLimitReached, .planExpired:
             return [.openConsole]
         case .rateLimited, .networkUnavailable, .serverError, .decodingFailed, .invalidResponse, .unknown:
             return [.retry]

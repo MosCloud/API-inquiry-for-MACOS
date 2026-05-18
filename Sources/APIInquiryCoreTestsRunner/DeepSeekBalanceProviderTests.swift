@@ -4,12 +4,35 @@ import Foundation
 enum DeepSeekBalanceProviderTests {
     static func run(using harness: TestHarness) async {
         await testFetchBalancePrefersCNY(using: harness)
+        await testFetchSnapshotWrapsBalance(using: harness)
         await testFetchBalanceFallsBackToFirstCurrencyWhenCNYIsMissing(using: harness)
         await testAuthenticationFailureMapsToProviderError(using: harness)
         await testRateLimitMapsToProviderError(using: harness)
         await testInvalidAmountMapsToProviderError(using: harness)
         await testInvalidAmountRejectsTrailingCharacters(using: harness)
         await testInvalidAmountRejectsGroupingSeparators(using: harness)
+    }
+
+    private static func testFetchSnapshotWrapsBalance(using harness: TestHarness) async {
+        let httpClient = MockHTTPClient(response: HTTPResponse(
+            data: responseData(totalBalance: "68.65"),
+            statusCode: 200
+        ))
+        let provider = DeepSeekBalanceProvider(httpClient: httpClient)
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-key")
+
+            switch snapshot {
+            case .balance(let balance):
+                harness.expectEqual(balance.providerID, .deepseek, "deepseek snapshot provider id")
+                harness.expectEqual(balance.totalBalance, decimal("68.65"), "deepseek snapshot balance")
+            case .planUsage:
+                harness.expectTrue(false, "deepseek snapshot should be a balance")
+            }
+        } catch {
+            harness.expectTrue(false, "deepseek snapshot should not throw: \(error)")
+        }
     }
 
     private static func testFetchBalancePrefersCNY(using harness: TestHarness) async {

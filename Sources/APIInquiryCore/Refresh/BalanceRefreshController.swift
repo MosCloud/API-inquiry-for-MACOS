@@ -45,7 +45,7 @@ public final class BalanceRefreshController: ObservableObject {
             }
 
             state = .loading(last: state.lastSnapshot)
-            let snapshot = try await provider.fetchBalance(apiKey: apiKey)
+            let snapshot = try await provider.fetchSnapshot(apiKey: apiKey)
             try Task.checkCancellation()
             state = .loaded(snapshot)
         } catch is CancellationError {

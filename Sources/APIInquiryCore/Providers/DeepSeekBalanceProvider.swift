@@ -22,7 +22,7 @@ public final class DeepSeekBalanceProvider: BalanceProvider {
         self.now = now
     }
 
-    public func fetchBalance(apiKey: String) async throws -> BalanceSnapshot {
+    public func fetchSnapshot(apiKey: String) async throws -> ProviderSnapshot {
         let url = baseURL.appending(path: "user/balance")
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -31,7 +31,7 @@ public final class DeepSeekBalanceProvider: BalanceProvider {
         let response = try await httpClient.data(for: request)
         switch response.statusCode {
         case 200:
-            return try decodeBalance(from: response.data)
+            return .balance(try decodeBalance(from: response.data))
         case 401:
             throw BalanceProviderError.authenticationFailed
         case 429:

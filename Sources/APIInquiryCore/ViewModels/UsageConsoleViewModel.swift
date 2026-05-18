@@ -179,7 +179,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     private var balanceText: String {
-        guard let snapshot = state.lastSnapshot else {
+        guard let snapshot = state.lastBalanceSnapshot else {
             return "--"
         }
 
