@@ -8,12 +8,36 @@ enum DeepSeekImages {
         return image
     }()
 
+    static let zhipuHeaderLogoTemplate: NSImage = {
+        let image = loadPNG(named: "zhipu-logo-header") ?? textTemplateImage("Zhipu BigModel", fontSize: 24, height: 30)
+        image.isTemplate = true
+        return image
+    }()
+
+    static func headerLogoTemplate(for providerID: ProviderID) -> NSImage? {
+        switch providerID {
+        case .deepseek:
+            return headerLogoTemplate
+        case .zhipuCodingPlan:
+            return zhipuHeaderLogoTemplate
+        }
+    }
+
+    static func headerLogoSize(for providerID: ProviderID) -> NSSize {
+        switch providerID {
+        case .deepseek:
+            return NSSize(width: 96, height: 21)
+        case .zhipuCodingPlan:
+            return NSSize(width: 174, height: 21)
+        }
+    }
+
     static func menuBarLabelImage(
         text: String,
         providerID: ProviderID = .deepseek,
         providerPrefix: String = "DS"
     ) -> NSImage {
-        let icon = providerID == .deepseek ? loadPNG(named: "deepseek-menu-icon-template") : nil
+        let icon = menuIconTemplate(for: providerID)
         let font = NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .regular)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
@@ -47,6 +71,15 @@ enum DeepSeekImages {
 
         image.isTemplate = true
         return image
+    }
+
+    private static func menuIconTemplate(for providerID: ProviderID) -> NSImage? {
+        switch providerID {
+        case .deepseek:
+            return loadPNG(named: "deepseek-menu-icon-template")
+        case .zhipuCodingPlan:
+            return loadPNG(named: "zhipu-menu-icon-template")
+        }
     }
 
     private static func loadPNG(named name: String) -> NSImage? {

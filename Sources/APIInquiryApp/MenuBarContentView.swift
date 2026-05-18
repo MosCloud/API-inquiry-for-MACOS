@@ -84,13 +84,15 @@ struct MenuBarContentView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            if viewModel.primaryDisplayParts.providerID == .deepseek {
-                Image(nsImage: DeepSeekImages.headerLogoTemplate)
+            let providerID = viewModel.primaryDisplayParts.providerID
+            if let headerLogo = DeepSeekImages.headerLogoTemplate(for: providerID) {
+                let logoSize = DeepSeekImages.headerLogoSize(for: providerID)
+                Image(nsImage: headerLogo)
                     .resizable()
                     .renderingMode(.template)
                     .scaledToFit()
                     .foregroundStyle(.primary)
-                    .frame(width: 96, height: 21, alignment: .leading)
+                    .frame(width: logoSize.width, height: logoSize.height, alignment: .leading)
                     .accessibilityLabel(viewModel.providerDisplayName)
             } else {
                 Text(viewModel.providerDisplayName)
