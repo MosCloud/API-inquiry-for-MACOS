@@ -118,11 +118,12 @@ struct UsageConsoleView: View {
     }
 
     private func providerStatusRow(_ summary: APIProviderSummary) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             providerHeader(summary, showsMenuBarControl: true)
             providerMetrics(summary)
         }
-        .padding(14)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(Color.secondary.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
@@ -276,7 +277,6 @@ struct UsageConsoleView: View {
                 }
             }
         }
-        .padding(.top, 2)
     }
 
     private func providerMetricItems(for summary: APIProviderSummary) -> [ProviderMetricItem] {
@@ -363,12 +363,12 @@ struct UsageConsoleView: View {
     private var metricSeparator: some View {
         Rectangle()
             .fill(Color.white.opacity(0.10))
-            .frame(width: 1, height: 44)
-            .padding(.horizontal, 10)
+            .frame(width: 1, height: 36)
+            .padding(.horizontal, 8)
     }
 
     private func metricBox(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -378,9 +378,9 @@ struct UsageConsoleView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
-        .padding(.vertical, 11)
+        .padding(.vertical, 7)
         .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
     }
 
     private func statusBadge(_ text: String, tone: ProviderStatusTone) -> some View {
