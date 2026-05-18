@@ -18,6 +18,7 @@ enum MenuBarBalanceViewModelTests {
         testRefreshingDisablesRefresh(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
         await testSecondaryProviderRowsExposeOtherProviders(using: harness)
+        await testRefreshUpdatesAllAddedProviders(using: harness)
     }
 
     @MainActor
@@ -49,6 +50,50 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.secondaryProviderRows.first?.providerID, .deepseek, "secondary provider row id")
         harness.expectEqual(viewModel.secondaryProviderRows.first?.detailText, "¥68.65 CNY", "secondary provider detail")
         harness.expectEqual(viewModel.secondaryProviderRows.first?.statusText, "Available", "secondary provider status")
+    }
+
+    @MainActor
+    private static func testRefreshUpdatesAllAddedProviders(using harness: TestHarness) async {
+        let deepSeek = MockBalanceProvider(
+            id: .deepseek,
+            displayName: "DeepSeek",
+            menuPrefix: "DS",
+            credentialAccount: "deepseek-api-key",
+            homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
+            results: [.success(.balance(makeSnapshot(providerID: .deepseek, total: "68.65")))]
+        )
+        let zhipu = MockBalanceProvider(
+            id: .zhipuCodingPlan,
+            displayName: "Zhipu GLM Coding Plan",
+            menuPrefix: "GLM",
+            credentialAccount: "zhipu-coding-plan-api-key",
+            homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
+            results: [.success(.planUsage(PlanUsageSnapshot(
+                providerID: .zhipuCodingPlan,
+                windowLabel: "5h",
+                usagePercentage: Decimal(17),
+                resetAt: sampleResetDate,
+                isAvailable: true,
+                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+            )))]
+        )
+        let coordinator = MultiProviderBalanceCoordinator(
+            providers: [deepSeek, zhipu],
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [
+                "deepseek-api-key": "deepseek-key",
+                "zhipu-coding-plan-api-key": "zhipu-key"
+            ]),
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.deepseek, .zhipuCodingPlan],
+                primaryProviderID: .zhipuCodingPlan
+            )
+        )
+        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator)
+
+        await viewModel.refresh()
+
+        harness.expectEqual(deepSeek.fetchCount, 1, "menu detail refresh updates secondary deepseek")
+        harness.expectEqual(zhipu.fetchCount, 1, "menu detail refresh updates primary zhipu")
     }
 
     @MainActor

@@ -211,7 +211,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
 
     public func refresh() async {
         if let coordinator {
-            await coordinator.refresh(coordinator.primaryProviderID)
+            await coordinator.refreshAddedProviders()
             return
         }
 
