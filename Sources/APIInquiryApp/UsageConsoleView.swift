@@ -295,6 +295,15 @@ struct UsageConsoleView: View {
             )
         }
 
+        if let planNameText = summary.planNameText {
+            metrics.append(
+                ProviderMetricItem(
+                    title: "Plan",
+                    value: planNameText
+                )
+            )
+        }
+
         metrics.append(
             ProviderMetricItem(
                 title: "Updated",

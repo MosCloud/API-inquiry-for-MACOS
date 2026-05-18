@@ -20,6 +20,9 @@ struct MenuBarContentView: View {
         VStack(alignment: .leading, spacing: 14) {
             header
             balance
+            if !viewModel.primaryQuotaWindowRows.isEmpty {
+                quotaWindowRows
+            }
             status
             if let errorText = viewModel.errorText {
                 VStack(alignment: .leading, spacing: 8) {
@@ -202,6 +205,33 @@ struct MenuBarContentView: View {
                 .multilineTextAlignment(.trailing)
                 .lineLimit(1)
                 .frame(minWidth: 108, alignment: .trailing)
+        }
+    }
+
+    private var quotaWindowRows: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            ForEach(viewModel.primaryQuotaWindowRows, id: \.label) { row in
+                HStack(spacing: 8) {
+                    Text(row.label)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 42, alignment: .leading)
+
+                    Text(row.detailText)
+                        .font(.caption.weight(.semibold))
+                        .monospacedDigit()
+
+                    Spacer()
+
+                    if let resetText = row.resetText {
+                        Text(resetText)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                }
+            }
         }
     }
 

@@ -12,9 +12,10 @@ struct APIInquiryApp: App {
     init() {
         let providers: [BalanceProvider] = [
             DeepSeekBalanceProvider(),
-            ZhipuCodingPlanProvider()
+            ZhipuCodingPlanProvider(),
+            CodexQuotaProvider()
         ]
-        let credentialStore = KeychainCredentialStore()
+        let credentialStore = CodexCredentialStore(delegate: KeychainCredentialStore())
         let coordinator = MultiProviderBalanceCoordinator(
             providers: providers,
             credentialStore: credentialStore,
@@ -44,7 +45,9 @@ struct APIInquiryApp: App {
             Image(nsImage: DeepSeekImages.menuBarLabelImage(
                 text: viewModel.menuBarValueText,
                 providerID: viewModel.primaryDisplayParts.providerID,
-                providerPrefix: viewModel.menuBarTitle.components(separatedBy: " ").first ?? "API"
+                providerPrefix: viewModel.primaryDisplayParts.providerID == .codex
+                    ? "GPT"
+                    : viewModel.menuBarTitle.components(separatedBy: " ").first ?? "API"
             ))
                 .renderingMode(.template)
                 .accessibilityLabel("\(viewModel.providerDisplayName) \(viewModel.menuBarValueText)")
