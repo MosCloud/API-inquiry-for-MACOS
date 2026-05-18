@@ -26,7 +26,7 @@ swift run APIInquiryCoreTestsRunner
 Expected result:
 
 ```text
-PASS: 154 expectations
+PASS: 188 expectations
 ```
 
 ## Build
@@ -178,6 +178,8 @@ Manual checks:
 - Deleting the key from the console returns the app to setup state.
 - The menu bar shows only the Primary Provider detail: DeepSeek shows compact balance such as `¥68.6`; Zhipu GLM Coding Plan shows usage such as `5h 17%`.
 - The expanded panel shows the Primary Provider in the top hero area and other providers as compact rows.
+- The expanded panel refresh action refreshes all added providers.
+- Zhipu GLM Coding Plan shows `Resets` in the expanded panel and `Plan Next Resets` in Console Home.
 - Console can add Zhipu GLM Coding Plan and set a provider as the Primary Provider shown in the menu bar.
 - Deleting one provider key from the console does not affect other provider keys or snapshots.
 
@@ -194,6 +196,7 @@ Included in this release:
 - Local API Inquiry console window
 - Local API provider console with Home and API pages
 - Provider status summary with API key, validation, balance, and plan usage state
+- Plan reset time display for coding-plan providers
 - Local `.app` bundle generation
 - Custom macOS app icon generation and bundling
 - Launch at login control from the details panel

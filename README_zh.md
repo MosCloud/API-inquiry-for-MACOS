@@ -26,7 +26,7 @@ swift run APIInquiryCoreTestsRunner
 预期结果：
 
 ```text
-PASS: 154 expectations
+PASS: 188 expectations
 ```
 
 ## 构建
@@ -178,6 +178,8 @@ Scripts/restart-installed-app.sh
 - 从控制台删除 key 后回到 setup 状态。
 - 菜单栏只显示 Primary Provider 详情：DeepSeek 显示紧凑余额，例如 `¥68.6`；智谱 GLM Coding Plan 显示用量，例如 `5h 17%`。
 - 展开面板顶部突出展示 Primary Provider，其余供应商以紧凑行展示。
+- 展开面板中的刷新按钮会刷新所有已添加供应商。
+- 智谱 GLM Coding Plan 会在展开面板显示 `Resets`，并在 Console Home 显示 `Plan Next Resets`。
 - Console 可添加智谱 GLM Coding Plan，并将某个供应商设为菜单栏 Primary Provider。
 - 从控制台删除某个供应商 key 不影响其他供应商 key 和快照。
 
@@ -194,6 +196,7 @@ Scripts/restart-installed-app.sh
 - 本地 API Inquiry 控制台窗口
 - 本地 API 供应商控制台，包含 Home 和 API 页面
 - 供应商状态总览，包括 API Key、生效状态、余额和 plan 用量状态
+- 面向 coding-plan 供应商的 plan 重置时间展示
 - 本地 `.app` bundle 生成
 - 自定义 macOS 应用图标生成与打包
 - 详情面板中的开机自启控制
