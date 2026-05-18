@@ -40,6 +40,11 @@ struct MenuBarContentView: View {
 
             Divider()
 
+            if !viewModel.secondaryProviderRows.isEmpty {
+                secondaryProviders
+                Divider()
+            }
+
             if viewModel.shouldShowSetupGuidance {
                 consolePrompt
                 Divider()
@@ -79,13 +84,20 @@ struct MenuBarContentView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Image(nsImage: DeepSeekImages.headerLogoTemplate)
-                .resizable()
-                .renderingMode(.template)
-                .scaledToFit()
-                .foregroundStyle(.primary)
-                .frame(width: 96, height: 21, alignment: .leading)
-                .accessibilityLabel(viewModel.providerDisplayName)
+            if viewModel.primaryDisplayParts.providerID == .deepseek {
+                Image(nsImage: DeepSeekImages.headerLogoTemplate)
+                    .resizable()
+                    .renderingMode(.template)
+                    .scaledToFit()
+                    .foregroundStyle(.primary)
+                    .frame(width: 96, height: 21, alignment: .leading)
+                    .accessibilityLabel(viewModel.providerDisplayName)
+            } else {
+                Text(viewModel.providerDisplayName)
+                    .font(.system(.headline, design: .rounded).weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
 
             Spacer()
 
@@ -106,28 +118,36 @@ struct MenuBarContentView: View {
     }
 
     private var balance: some View {
-        let parts = viewModel.panelBalanceDisplayParts
+        let parts = viewModel.primaryDisplayParts
         let amountSize: CGFloat = parts.amountText == "--" ? 30 : 52
 
-        return HStack(alignment: .firstTextBaseline, spacing: 4) {
-            if !parts.leadingText.isEmpty {
-                Text(parts.leadingText)
-                    .font(.system(size: 24, weight: .regular, design: .rounded))
+        return VStack(alignment: .leading, spacing: 2) {
+            if !parts.captionText.isEmpty {
+                Text(parts.captionText)
+                    .font(.system(size: 20, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
             }
 
-            Text(parts.amountText)
-                .font(.system(size: amountSize, weight: .medium, design: .rounded))
-                .monospacedDigit()
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                if !parts.leadingText.isEmpty {
+                    Text(parts.leadingText)
+                        .font(.system(size: 24, weight: .regular, design: .rounded))
+                }
 
-            if !parts.trailingText.isEmpty {
-                Text(parts.trailingText)
-                    .font(.system(size: 24, weight: .regular, design: .rounded))
-                    .padding(.leading, 2)
+                Text(parts.amountText)
+                    .font(.system(size: amountSize, weight: .medium, design: .rounded))
+                    .monospacedDigit()
+
+                if !parts.trailingText.isEmpty {
+                    Text(parts.trailingText)
+                        .font(.system(size: 24, weight: .regular, design: .rounded))
+                        .padding(.leading, 2)
+                }
             }
-        }
             .lineLimit(1)
             .minimumScaleFactor(0.75)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var status: some View {
@@ -160,6 +180,35 @@ struct MenuBarContentView: View {
         case .replaceKey, .deleteKey, .openConsole:
             Button("Open Console") {
                 openConsoleAndCloseMenu(.api)
+            }
+        }
+    }
+
+    private var secondaryProviders: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(viewModel.secondaryProviderRows, id: \.providerID) { row in
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(row.displayName)
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                        Text(row.lastRefreshText)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text(row.detailText)
+                            .font(.caption.weight(.semibold))
+                            .monospacedDigit()
+                            .lineLimit(1)
+                        Text(row.statusText)
+                            .font(.caption2)
+                            .foregroundStyle(statusColor(for: row.statusText))
+                    }
+                }
             }
         }
     }
@@ -229,12 +278,16 @@ struct MenuBarContentView: View {
     }
 
     private var statusColor: Color {
-        switch viewModel.statusText {
-        case "Available":
+        statusColor(for: viewModel.statusText)
+    }
+
+    private func statusColor(for statusText: String) -> Color {
+        switch statusText {
+        case "Available", "Plan available":
             return .green
         case "Refreshing":
             return .blue
-        case "Balance insufficient", "Refresh failed":
+        case "Balance insufficient", "Refresh failed", "Limit reached", "Plan expired", "Invalid":
             return .orange
         default:
             return .secondary

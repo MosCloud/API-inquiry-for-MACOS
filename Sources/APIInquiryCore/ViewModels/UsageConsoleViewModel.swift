@@ -116,6 +116,12 @@ public final class UsageConsoleViewModel: ObservableObject {
         coordinator?.availableProviderIDsToAdd ?? []
     }
 
+    public func displayName(for id: ProviderID) -> String {
+        coordinator?.provider(for: id)?.displayName
+            ?? singleProvider?.displayName
+            ?? id.rawValue
+    }
+
     public var providerSummaries: [APIProviderSummary] {
         guard let coordinator else {
             guard let provider = singleProvider else {

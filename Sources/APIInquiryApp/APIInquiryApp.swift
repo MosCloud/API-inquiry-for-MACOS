@@ -10,19 +10,18 @@ struct APIInquiryApp: App {
     @StateObject private var consoleWindowController: UsageConsoleWindowController
 
     init() {
-        let provider = DeepSeekBalanceProvider()
+        let providers: [BalanceProvider] = [
+            DeepSeekBalanceProvider(),
+            ZhipuCodingPlanProvider()
+        ]
         let credentialStore = KeychainCredentialStore()
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
-        let viewModel = MenuBarBalanceViewModel(
-            provider: provider,
+        let coordinator = MultiProviderBalanceCoordinator(
+            providers: providers,
             credentialStore: credentialStore,
-            controller: controller
+            preferences: UserDefaultsProviderPreferencesStore()
         )
-        let consoleViewModel = UsageConsoleViewModel(
-            provider: provider,
-            credentialStore: credentialStore,
-            controller: controller
-        )
+        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator)
+        let consoleViewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
 
         _viewModel = StateObject(wrappedValue: viewModel)
         _consoleViewModel = StateObject(wrappedValue: consoleViewModel)
@@ -31,7 +30,7 @@ struct APIInquiryApp: App {
         )
 
         Task { @MainActor in
-            await viewModel.refresh()
+            await coordinator.refreshAddedProviders()
             viewModel.startAutoRefresh()
         }
     }
@@ -42,7 +41,11 @@ struct APIInquiryApp: App {
                 consoleWindowController.open(defaultSection: section)
             }
         } label: {
-            Image(nsImage: DeepSeekImages.menuBarLabelImage(text: viewModel.menuBarValueText))
+            Image(nsImage: DeepSeekImages.menuBarLabelImage(
+                text: viewModel.menuBarValueText,
+                providerID: viewModel.primaryDisplayParts.providerID,
+                providerPrefix: viewModel.menuBarTitle.components(separatedBy: " ").first ?? "API"
+            ))
                 .renderingMode(.template)
                 .accessibilityLabel("\(viewModel.providerDisplayName) \(viewModel.menuBarValueText)")
         }

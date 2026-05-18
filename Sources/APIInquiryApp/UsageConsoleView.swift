@@ -21,7 +21,7 @@ enum UsageConsoleSection: String, CaseIterable, Identifiable {
 struct UsageConsoleView: View {
     @ObservedObject var viewModel: UsageConsoleViewModel
     @State private var selectedSection: UsageConsoleSection
-    @State private var isReplacingKey = false
+    @State private var replacingProviderIDs: Set<ProviderID> = []
 
     init(viewModel: UsageConsoleViewModel, initialSection: UsageConsoleSection = .home) {
         self.viewModel = viewModel
@@ -90,14 +90,20 @@ struct UsageConsoleView: View {
 
                 Spacer()
 
-                Button {
-                    selectedSection = .api
+                Menu {
+                    ForEach(viewModel.availableProviderIDsToAdd, id: \.self) { id in
+                        Button(viewModel.displayName(for: id)) {
+                            viewModel.addProvider(id)
+                            selectedSection = .api
+                        }
+                    }
                 } label: {
                     Label("Add Provider", systemImage: "plus")
                 }
+                .disabled(viewModel.availableProviderIDsToAdd.isEmpty)
             }
 
-            ForEach(viewModel.providerSummaries, id: \.displayName) { summary in
+            ForEach(viewModel.providerSummaries, id: \.id) { summary in
                 providerStatusRow(summary)
             }
         }
@@ -116,7 +122,7 @@ struct UsageConsoleView: View {
             HStack(spacing: 12) {
                 metricBox(title: "API Key", value: summary.apiKeyStatusText)
                 metricBox(title: "Status", value: summary.validationStatusText)
-                metricBox(title: "Balance", value: summary.balanceText)
+                metricBox(title: "Detail", value: summary.balanceText)
             }
         }
         .padding(14)
@@ -129,7 +135,7 @@ struct UsageConsoleView: View {
             Text("API Providers")
                 .font(.headline)
 
-            ForEach(viewModel.providerSummaries, id: \.displayName) { summary in
+            ForEach(viewModel.providerSummaries, id: \.id) { summary in
                 apiProviderPanel(summary)
             }
         }
@@ -147,47 +153,66 @@ struct UsageConsoleView: View {
 
                 Spacer()
 
-                Text(summary.apiKeyStatusText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    if summary.isPrimary {
+                        Text("Menu Bar")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.green)
+                    } else {
+                        Button("Show in Menu Bar") {
+                            viewModel.setPrimaryProvider(summary.id)
+                        }
+                    }
+
+                    Text(summary.apiKeyStatusText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            if !viewModel.isAPIKeyConfigured || isReplacingKey {
-                SecureField(viewModel.isAPIKeyConfigured ? "New API key" : "API key", text: $viewModel.apiKeyInput)
+            if !viewModel.isAPIKeyConfigured(for: summary.id) || replacingProviderIDs.contains(summary.id) {
+                SecureField(viewModel.isAPIKeyConfigured(for: summary.id) ? "New API key" : "API key", text: apiKeyBinding(for: summary.id))
                     .textFieldStyle(.roundedBorder)
 
                 HStack(spacing: 8) {
-                    Button(viewModel.isAPIKeyConfigured ? "Save Replacement" : "Save") {
+                    Button(viewModel.isAPIKeyConfigured(for: summary.id) ? "Save Replacement" : "Save") {
                         Task {
-                            await viewModel.saveAPIKey()
-                            if viewModel.isAPIKeyConfigured {
-                                isReplacingKey = false
+                            await viewModel.saveAPIKey(for: summary.id)
+                            if viewModel.isAPIKeyConfigured(for: summary.id) {
+                                replacingProviderIDs.remove(summary.id)
                             }
                         }
                     }
-                    .disabled(viewModel.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(viewModel.apiKeyInput(for: summary.id).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                    if isReplacingKey {
+                    if replacingProviderIDs.contains(summary.id) {
                         Button("Cancel") {
-                            isReplacingKey = false
-                            viewModel.apiKeyInput = ""
+                            replacingProviderIDs.remove(summary.id)
+                            viewModel.setAPIKeyInput("", for: summary.id)
                         }
                     }
                 }
             } else {
                 HStack(spacing: 8) {
                     Button("Replace Key") {
-                        isReplacingKey = true
-                        viewModel.beginReplacingAPIKey()
+                        replacingProviderIDs.insert(summary.id)
+                        viewModel.setAPIKeyInput("", for: summary.id)
                     }
 
                     Button("Delete Key", role: .destructive) {
-                        viewModel.requestAPIKeyDeletion()
+                        viewModel.requestAPIKeyDeletion(for: summary.id)
+                    }
+
+                    if summary.id != .deepseek {
+                        Button("Remove Provider", role: .destructive) {
+                            viewModel.removeProvider(summary.id)
+                            replacingProviderIDs.remove(summary.id)
+                        }
                     }
                 }
             }
 
-            if viewModel.isAPIKeyDeleteConfirmationPresented {
+            if viewModel.apiKeyDeleteConfirmationProviderID == summary.id {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Remove the saved API key from Keychain?")
                         .font(.caption)
@@ -200,7 +225,7 @@ struct UsageConsoleView: View {
                         Button("Delete", role: .destructive) {
                             Task {
                                 await viewModel.confirmAPIKeyDeletion()
-                                isReplacingKey = false
+                                replacingProviderIDs.remove(summary.id)
                             }
                         }
                     }
@@ -208,7 +233,7 @@ struct UsageConsoleView: View {
                 .padding(.top, 2)
             }
 
-            feedbackText(viewModel.settingsFeedback)
+            feedbackText(viewModel.settingsFeedback(for: summary.id))
         }
         .padding(14)
         .background(Color.secondary.opacity(0.10))
@@ -236,6 +261,14 @@ struct UsageConsoleView: View {
         .background(Color.secondary.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .help("Open \(summary.displayName) API page")
+    }
+
+    private func apiKeyBinding(for id: ProviderID) -> Binding<String> {
+        Binding {
+            viewModel.apiKeyInput(for: id)
+        } set: { value in
+            viewModel.setAPIKeyInput(value, for: id)
+        }
     }
 
     private func metricBox(title: String, value: String) -> some View {
@@ -274,11 +307,11 @@ struct UsageConsoleView: View {
 
     private func statusColor(for text: String) -> Color {
         switch text {
-        case "Active":
+        case "Active", "Plan available":
             return .green
         case "Checking":
             return .blue
-        case "Invalid", "Unavailable", "Insufficient balance":
+        case "Invalid", "Unavailable", "Insufficient balance", "Limit reached", "Plan expired":
             return .orange
         default:
             return .secondary

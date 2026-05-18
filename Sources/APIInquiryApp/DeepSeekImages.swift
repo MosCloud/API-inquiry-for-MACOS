@@ -1,3 +1,4 @@
+import APIInquiryCore
 import AppKit
 
 enum DeepSeekImages {
@@ -7,8 +8,12 @@ enum DeepSeekImages {
         return image
     }()
 
-    static func menuBarLabelImage(text: String) -> NSImage {
-        let icon = loadPNG(named: "deepseek-menu-icon-template")
+    static func menuBarLabelImage(
+        text: String,
+        providerID: ProviderID = .deepseek,
+        providerPrefix: String = "DS"
+    ) -> NSImage {
+        let icon = providerID == .deepseek ? loadPNG(named: "deepseek-menu-icon-template") : nil
         let font = NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .regular)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
@@ -28,7 +33,7 @@ enum DeepSeekImages {
             let iconRect = NSRect(x: 0, y: (height - iconSize) / 2, width: iconSize, height: iconSize)
             icon.draw(in: iconRect, from: .zero, operation: .sourceOver, fraction: 1)
         } else {
-            drawText("DS", in: NSRect(x: 0, y: 0, width: iconSize, height: height), fontSize: 10, weight: .bold)
+            drawText(providerPrefix, in: NSRect(x: 0, y: 0, width: iconSize, height: height), fontSize: providerPrefix.count > 2 ? 8 : 10, weight: .bold)
         }
 
         let textRect = NSRect(
