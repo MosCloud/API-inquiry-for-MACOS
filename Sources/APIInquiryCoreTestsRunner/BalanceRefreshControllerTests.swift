@@ -197,17 +197,29 @@ private func waitForFetchCount(_ expected: Int, probe: SuspendedRefreshProbe) as
 }
 
 final class MockBalanceProvider: BalanceProvider {
-    let id: ProviderID = .deepseek
-    let displayName = "DeepSeek"
-    let menuPrefix = "DS"
-    let credentialAccount = "deepseek-api-key"
-    let homepageURL = URL(string: "https://platform.deepseek.com/usage")!
+    let id: ProviderID
+    let displayName: String
+    let menuPrefix: String
+    let credentialAccount: String
+    let homepageURL: URL
 
     private var results: [Result<ProviderSnapshot, Error>]
     private(set) var fetchCount = 0
     private(set) var lastAPIKey: String?
 
-    init(results: [Result<ProviderSnapshot, Error>]) {
+    init(
+        id: ProviderID = .deepseek,
+        displayName: String = "DeepSeek",
+        menuPrefix: String = "DS",
+        credentialAccount: String = "deepseek-api-key",
+        homepageURL: URL = URL(string: "https://platform.deepseek.com/usage")!,
+        results: [Result<ProviderSnapshot, Error>]
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.menuPrefix = menuPrefix
+        self.credentialAccount = credentialAccount
+        self.homepageURL = homepageURL
         self.results = results
     }
 
