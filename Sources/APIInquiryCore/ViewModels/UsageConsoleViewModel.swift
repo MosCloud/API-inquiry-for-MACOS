@@ -2,24 +2,33 @@ import Combine
 import Foundation
 
 public struct APIProviderSummary: Equatable {
+    public let id: ProviderID
     public let displayName: String
     public let homepageURL: URL
     public let apiKeyStatusText: String
     public let validationStatusText: String
     public let balanceText: String
+    public let lastRefreshText: String
+    public let isPrimary: Bool
 
     public init(
+        id: ProviderID = .deepseek,
         displayName: String,
         homepageURL: URL,
         apiKeyStatusText: String,
         validationStatusText: String,
-        balanceText: String
+        balanceText: String,
+        lastRefreshText: String = "Last updated: --",
+        isPrimary: Bool = false
     ) {
+        self.id = id
         self.displayName = displayName
         self.homepageURL = homepageURL
         self.apiKeyStatusText = apiKeyStatusText
         self.validationStatusText = validationStatusText
         self.balanceText = balanceText
+        self.lastRefreshText = lastRefreshText
+        self.isPrimary = isPrimary
     }
 }
 
@@ -28,25 +37,31 @@ public final class UsageConsoleViewModel: ObservableObject {
     @Published public var apiKeyInput = ""
     @Published public private(set) var isAPIKeyDeleteConfirmationPresented = false
     @Published public private(set) var settingsFeedback: SettingsFeedback?
-    @Published private var isCredentialConfigured: Bool
+    @Published public private(set) var apiKeyInputsByProviderID: [ProviderID: String] = [:]
+    @Published public private(set) var settingsFeedbacksByProviderID: [ProviderID: SettingsFeedback] = [:]
+    @Published public private(set) var apiKeyDeleteConfirmationProviderID: ProviderID?
 
-    public let providerDisplayName: String
+    private var singleIsCredentialConfigured: Bool
 
-    private let provider: BalanceProvider
+    private let singleProvider: BalanceProvider?
+    private let singleController: BalanceRefreshController?
+    private let coordinator: MultiProviderBalanceCoordinator?
     private let credentialStore: CredentialStore
-    private let controller: BalanceRefreshController
+    private let lastRefreshTimeFormatter: LastRefreshTimeFormatter
     private var cancellables: Set<AnyCancellable> = []
 
     public init(
         provider: BalanceProvider,
         credentialStore: CredentialStore,
-        controller: BalanceRefreshController
+        controller: BalanceRefreshController,
+        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter()
     ) {
-        self.provider = provider
+        self.singleProvider = provider
+        self.singleController = controller
+        self.coordinator = nil
         self.credentialStore = credentialStore
-        self.controller = controller
-        self.providerDisplayName = provider.displayName
-        self.isCredentialConfigured = Self.hasConfiguredCredential(
+        self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
+        self.singleIsCredentialConfigured = Self.hasConfiguredCredential(
             in: credentialStore,
             account: provider.credentialAccount
         )
@@ -58,32 +73,125 @@ public final class UsageConsoleViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
+    public init(
+        coordinator: MultiProviderBalanceCoordinator,
+        credentialStore: CredentialStore,
+        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter()
+    ) {
+        self.singleProvider = nil
+        self.singleController = nil
+        self.coordinator = coordinator
+        self.credentialStore = credentialStore
+        self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
+        self.singleIsCredentialConfigured = false
+
+        coordinator.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+    }
+
+    public var providerDisplayName: String {
+        singleProvider?.displayName ?? coordinator?.provider(for: coordinator?.primaryProviderID ?? .deepseek)?.displayName ?? "Provider"
+    }
+
     public var state: BalanceState {
-        controller.state
+        singleController?.state ?? .notConfigured
     }
 
     public var credentialStatusText: String {
-        isCredentialConfigured ? "Configured" : "Not configured"
+        isAPIKeyConfigured ? "Configured" : "Not configured"
     }
 
     public var isAPIKeyConfigured: Bool {
-        isCredentialConfigured
+        if let coordinator {
+            return coordinator.isCredentialConfigured(for: coordinator.primaryProviderID)
+        }
+
+        return singleIsCredentialConfigured
+    }
+
+    public var availableProviderIDsToAdd: [ProviderID] {
+        coordinator?.availableProviderIDsToAdd ?? []
     }
 
     public var providerSummaries: [APIProviderSummary] {
-        [
-            APIProviderSummary(
-                displayName: providerDisplayName,
+        guard let coordinator else {
+            guard let provider = singleProvider else {
+                return []
+            }
+            return [
+                APIProviderSummary(
+                    id: provider.id,
+                    displayName: providerDisplayName,
+                    homepageURL: provider.homepageURL,
+                    apiKeyStatusText: credentialStatusText,
+                    validationStatusText: validationStatusText(for: state),
+                    balanceText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot),
+                    lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
+                    isPrimary: true
+                )
+            ]
+        }
+
+        return coordinator.addedProviderIDs.compactMap { id in
+            guard let provider = coordinator.provider(for: id) else {
+                return nil
+            }
+            let state = coordinator.state(for: id)
+            return APIProviderSummary(
+                id: id,
+                displayName: provider.displayName,
                 homepageURL: provider.homepageURL,
-                apiKeyStatusText: credentialStatusText,
-                validationStatusText: validationStatusText,
-                balanceText: balanceText
+                apiKeyStatusText: coordinator.isCredentialConfigured(for: id) ? "Configured" : "Not configured",
+                validationStatusText: validationStatusText(for: state),
+                balanceText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot),
+                lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
+                isPrimary: id == coordinator.primaryProviderID
             )
-        ]
+        }
     }
 
     public func refresh() async {
-        await controller.refresh()
+        if let coordinator {
+            await coordinator.refreshAddedProviders()
+            return
+        }
+
+        await singleController?.refresh()
+    }
+
+    public func addProvider(_ id: ProviderID) {
+        coordinator?.addProvider(id)
+    }
+
+    public func removeProvider(_ id: ProviderID, deletingCredential: Bool = true) {
+        coordinator?.removeProvider(id, deletingCredential: deletingCredential)
+    }
+
+    public func setPrimaryProvider(_ id: ProviderID) {
+        coordinator?.setPrimaryProvider(id)
+    }
+
+    public func apiKeyInput(for id: ProviderID) -> String {
+        apiKeyInputsByProviderID[id] ?? ""
+    }
+
+    public func setAPIKeyInput(_ value: String, for id: ProviderID) {
+        apiKeyInputsByProviderID[id] = value
+    }
+
+    public func settingsFeedback(for id: ProviderID) -> SettingsFeedback? {
+        settingsFeedbacksByProviderID[id]
+    }
+
+    public func isAPIKeyConfigured(for id: ProviderID) -> Bool {
+        if let coordinator {
+            return coordinator.isCredentialConfigured(for: id)
+        }
+
+        return singleProvider?.id == id && singleIsCredentialConfigured
     }
 
     public func beginReplacingAPIKey() {
@@ -93,18 +201,33 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func requestAPIKeyDeletion() {
-        guard isCredentialConfigured else {
+        guard singleIsCredentialConfigured else {
             return
         }
 
         isAPIKeyDeleteConfirmationPresented = true
     }
 
+    public func requestAPIKeyDeletion(for id: ProviderID) {
+        guard isAPIKeyConfigured(for: id) else {
+            return
+        }
+
+        apiKeyDeleteConfirmationProviderID = id
+    }
+
     public func cancelAPIKeyDeletion() {
         isAPIKeyDeleteConfirmationPresented = false
+        apiKeyDeleteConfirmationProviderID = nil
     }
 
     public func confirmAPIKeyDeletion() async {
+        if let id = apiKeyDeleteConfirmationProviderID {
+            apiKeyDeleteConfirmationProviderID = nil
+            await deleteAPIKey(for: id)
+            return
+        }
+
         guard isAPIKeyDeleteConfirmationPresented else {
             return
         }
@@ -114,47 +237,53 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func saveAPIKey() async {
-        let apiKey = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !apiKey.isEmpty else {
-            settingsFeedback = SettingsFeedback(kind: .error, message: "API key is required.")
+        guard let provider = singleProvider,
+              let controller = singleController else {
             return
         }
 
-        do {
-            try credentialStore.saveCredential(apiKey, forAccount: provider.credentialAccount)
-            isAPIKeyDeleteConfirmationPresented = false
-            isCredentialConfigured = true
-            await controller.refresh()
+        let apiKey = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        await saveAPIKey(
+            apiKey,
+            for: provider,
+            refresh: { await controller.refresh() },
+            state: { controller.state },
+            clearInput: { self.apiKeyInput = "" },
+            setFeedback: { self.settingsFeedback = $0 },
+            setConfigured: { self.singleIsCredentialConfigured = $0 }
+        )
+    }
 
-            switch state {
-            case .loaded:
-                apiKeyInput = ""
-                settingsFeedback = SettingsFeedback(kind: .success, message: "Saved securely.")
-                isCredentialConfigured = true
-            case .failed:
-                settingsFeedback = SettingsFeedback(
-                    kind: .warning,
-                    message: "API key saved, but balance refresh failed. API key may be invalid. Replace or delete it in the console."
-                )
-                isCredentialConfigured = true
-            case .notConfigured, .loading:
-                settingsFeedback = nil
-            }
-        } catch {
-            settingsFeedback = SettingsFeedback(
-                kind: .error,
-                message: Self.settingsMessage(for: error, fallback: "API key could not be saved.")
-            )
+    public func saveAPIKey(for id: ProviderID) async {
+        guard let coordinator,
+              let provider = coordinator.provider(for: id) else {
+            return
         }
+
+        let apiKey = apiKeyInput(for: id).trimmingCharacters(in: .whitespacesAndNewlines)
+        await saveAPIKey(
+            apiKey,
+            for: provider,
+            refresh: { await coordinator.refresh(id) },
+            state: { coordinator.state(for: id) },
+            clearInput: { self.apiKeyInputsByProviderID[id] = "" },
+            setFeedback: { self.settingsFeedbacksByProviderID[id] = $0 },
+            setConfigured: { _ in }
+        )
     }
 
     public func deleteAPIKey() async {
+        guard let provider = singleProvider,
+              let controller = singleController else {
+            return
+        }
+
         do {
             try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
             apiKeyInput = ""
             isAPIKeyDeleteConfirmationPresented = false
             settingsFeedback = SettingsFeedback(kind: .success, message: "API key deleted.")
-            isCredentialConfigured = false
+            singleIsCredentialConfigured = false
             controller.markNotConfigured()
         } catch {
             isAPIKeyDeleteConfirmationPresented = false
@@ -165,25 +294,91 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
     }
 
-    private var validationStatusText: String {
+    public func deleteAPIKey(for id: ProviderID) async {
+        guard let coordinator,
+              let provider = coordinator.provider(for: id) else {
+            return
+        }
+
+        do {
+            try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
+            apiKeyInputsByProviderID[id] = ""
+            settingsFeedbacksByProviderID[id] = SettingsFeedback(kind: .success, message: "API key deleted.")
+            coordinator.controller(for: id)?.markNotConfigured()
+        } catch {
+            settingsFeedbacksByProviderID[id] = SettingsFeedback(
+                kind: .error,
+                message: Self.settingsMessage(for: error, fallback: "API key could not be deleted.")
+            )
+        }
+    }
+
+    private func saveAPIKey(
+        _ apiKey: String,
+        for provider: BalanceProvider,
+        refresh: () async -> Void,
+        state: () -> BalanceState,
+        clearInput: () -> Void,
+        setFeedback: (SettingsFeedback?) -> Void,
+        setConfigured: (Bool) -> Void
+    ) async {
+        guard !apiKey.isEmpty else {
+            setFeedback(SettingsFeedback(kind: .error, message: "API key is required."))
+            return
+        }
+
+        do {
+            try credentialStore.saveCredential(apiKey, forAccount: provider.credentialAccount)
+            setConfigured(true)
+            await refresh()
+
+            switch state() {
+            case .loaded:
+                clearInput()
+                setFeedback(SettingsFeedback(kind: .success, message: "Saved securely."))
+                setConfigured(true)
+            case .failed:
+                setFeedback(SettingsFeedback(
+                    kind: .warning,
+                    message: "API key saved, but refresh failed. API key may be invalid. Replace or delete it in the console."
+                ))
+                setConfigured(true)
+            case .notConfigured, .loading:
+                setFeedback(nil)
+            }
+        } catch {
+            setFeedback(SettingsFeedback(
+                kind: .error,
+                message: Self.settingsMessage(for: error, fallback: "API key could not be saved.")
+            ))
+        }
+    }
+
+    private func validationStatusText(for state: BalanceState) -> String {
         switch state {
         case .notConfigured:
             return "Not configured"
         case .loading:
             return "Checking"
         case .loaded(let snapshot):
-            return snapshot.isAvailable ? "Active" : "Insufficient balance"
+            switch snapshot {
+            case .balance(let balance):
+                return balance.isAvailable ? "Active" : "Insufficient balance"
+            case .planUsage(let usage):
+                return usage.isAvailable ? "Plan available" : "Limit reached"
+            }
         case .failed(_, let kind, _):
-            return kind == .authenticationFailed ? "Invalid" : "Unavailable"
+            switch kind {
+            case .authenticationFailed:
+                return "Invalid"
+            case .usageLimitReached:
+                return "Limit reached"
+            case .planExpired:
+                return "Plan expired"
+            default:
+                return "Unavailable"
+            }
         }
-    }
-
-    private var balanceText: String {
-        guard let snapshot = state.lastBalanceSnapshot else {
-            return "--"
-        }
-
-        return Self.formatAmount(snapshot.totalBalance, currency: snapshot.currency)
     }
 
     private static func hasConfiguredCredential(in store: CredentialStore, account: String) -> Bool {
@@ -201,21 +396,5 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
 
         return fallback
-    }
-
-    private static func formatAmount(_ amount: Decimal, currency: String) -> String {
-        let currencyCode = currency.uppercased()
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        let amountText = formatter.string(from: NSDecimalNumber(decimal: amount)) ?? "--"
-
-        if currencyCode == "CNY" {
-            return "¥\(amountText) \(currencyCode)"
-        }
-
-        return "\(amountText) \(currencyCode)"
     }
 }

@@ -10,6 +10,88 @@ enum UsageConsoleViewModelTests {
         await testSavingAPIKeyRefreshesBalance(using: harness)
         await testSaveFailureKeepsInputAndDoesNotExposeKey(using: harness)
         await testConfirmingAPIKeyDeletionReturnsBalanceToSetup(using: harness)
+        await testMultiProviderSummariesExposePrimaryAndPlanUsage(using: harness)
+        testAddingProviderUpdatesAvailableProviderOptions(using: harness)
+        await testSavingProviderScopedAPIKeyRefreshesOnlyThatProvider(using: harness)
+    }
+
+    @MainActor
+    private static func testMultiProviderSummariesExposePrimaryAndPlanUsage(using harness: TestHarness) async {
+        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan)
+        await coordinator.refreshAddedProviders()
+        let viewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [
+                "deepseek-api-key": "deepseek-key",
+                "zhipu-coding-plan-api-key": "zhipu-key"
+            ])
+        )
+
+        harness.expectEqual(viewModel.providerSummaries.count, 2, "multi console provider summary count")
+        harness.expectEqual(viewModel.providerSummaries.first?.id, .deepseek, "multi console first provider id")
+        harness.expectEqual(viewModel.providerSummaries.last?.id, .zhipuCodingPlan, "multi console zhipu provider id")
+        harness.expectEqual(viewModel.providerSummaries.last?.balanceText, "5h 17%", "multi console zhipu usage text")
+        harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Plan available", "multi console zhipu status")
+        harness.expectTrue(viewModel.providerSummaries.last?.isPrimary == true, "multi console zhipu primary")
+    }
+
+    @MainActor
+    private static func testAddingProviderUpdatesAvailableProviderOptions(using harness: TestHarness) {
+        let coordinator = makeMultiProviderCoordinator(
+            addedProviderIDs: [.deepseek],
+            primaryProviderID: .deepseek
+        )
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: InMemoryCredentialStore())
+
+        harness.expectEqual(viewModel.availableProviderIDsToAdd, [.zhipuCodingPlan], "console available provider before add")
+
+        viewModel.addProvider(.zhipuCodingPlan)
+
+        harness.expectEqual(viewModel.availableProviderIDsToAdd, [], "console available provider after add")
+        harness.expectEqual(viewModel.providerSummaries.map(\.id), [.deepseek, .zhipuCodingPlan], "console summaries after add")
+    }
+
+    @MainActor
+    private static func testSavingProviderScopedAPIKeyRefreshesOnlyThatProvider(using harness: TestHarness) async {
+        let deepSeek = MockBalanceProvider(
+            id: .deepseek,
+            displayName: "DeepSeek",
+            menuPrefix: "DS",
+            credentialAccount: "deepseek-api-key",
+            homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
+            results: [.success(.balance(makeSnapshot(providerID: .deepseek, total: "68.65")))]
+        )
+        let zhipu = MockBalanceProvider(
+            id: .zhipuCodingPlan,
+            displayName: "Zhipu GLM Coding Plan",
+            menuPrefix: "GLM",
+            credentialAccount: "zhipu-coding-plan-api-key",
+            homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
+            results: [.success(.planUsage(PlanUsageSnapshot(
+                providerID: .zhipuCodingPlan,
+                windowLabel: "5h",
+                usagePercentage: Decimal(17),
+                resetAt: nil,
+                isAvailable: true,
+                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+            )))]
+        )
+        let store = InMemoryCredentialStore()
+        let coordinator = MultiProviderBalanceCoordinator(
+            providers: [deepSeek, zhipu],
+            credentialStore: store,
+            preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek, .zhipuCodingPlan])
+        )
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: store)
+        viewModel.setAPIKeyInput("zhipu-key", for: .zhipuCodingPlan)
+
+        await viewModel.saveAPIKey(for: .zhipuCodingPlan)
+
+        harness.expectEqual(try? store.credential(forAccount: "zhipu-coding-plan-api-key"), "zhipu-key", "console provider-scoped key saved")
+        harness.expectEqual(zhipu.lastAPIKey, "zhipu-key", "console provider-scoped save refreshes zhipu")
+        harness.expectEqual(deepSeek.fetchCount, 0, "console provider-scoped save does not refresh deepseek")
+        harness.expectEqual(viewModel.apiKeyInput(for: .zhipuCodingPlan), "", "console provider-scoped input clears")
+        harness.expectEqual(viewModel.settingsFeedback(for: .zhipuCodingPlan), SettingsFeedback(kind: .success, message: "Saved securely."), "console provider-scoped save feedback")
     }
 
     @MainActor
@@ -138,6 +220,50 @@ enum UsageConsoleViewModelTests {
             provider: provider,
             credentialStore: credentialStore,
             controller: controller
+        )
+    }
+
+    @MainActor
+    private static func makeMultiProviderCoordinator(
+        addedProviderIDs: [ProviderID] = [.deepseek, .zhipuCodingPlan],
+        primaryProviderID: ProviderID
+    ) -> MultiProviderBalanceCoordinator {
+        let deepSeekSnapshot = makeSnapshot(providerID: .deepseek, total: "68.65")
+        let zhipuSnapshot = PlanUsageSnapshot(
+            providerID: .zhipuCodingPlan,
+            windowLabel: "5h",
+            usagePercentage: Decimal(17),
+            resetAt: nil,
+            isAvailable: true,
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        return MultiProviderBalanceCoordinator(
+            providers: [
+                MockBalanceProvider(
+                    id: .deepseek,
+                    displayName: "DeepSeek",
+                    menuPrefix: "DS",
+                    credentialAccount: "deepseek-api-key",
+                    homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
+                    results: [.success(.balance(deepSeekSnapshot))]
+                ),
+                MockBalanceProvider(
+                    id: .zhipuCodingPlan,
+                    displayName: "Zhipu GLM Coding Plan",
+                    menuPrefix: "GLM",
+                    credentialAccount: "zhipu-coding-plan-api-key",
+                    homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
+                    results: [.success(.planUsage(zhipuSnapshot))]
+                )
+            ],
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [
+                "deepseek-api-key": "deepseek-key",
+                "zhipu-coding-plan-api-key": "zhipu-key"
+            ]),
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: addedProviderIDs,
+                primaryProviderID: primaryProviderID
+            )
         )
     }
 }
