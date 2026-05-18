@@ -115,15 +115,20 @@ struct UsageConsoleView: View {
             HStack {
                 providerHomepageButton(summary, font: .title3.weight(.semibold))
 
+                if summary.isPrimary {
+                    statusBadge("Menu Bar", tone: .success)
+                }
+
                 Spacer()
 
-                statusBadge(summary.validationStatusText)
+                statusBadge(summary.validationStatusText, tone: summary.statusTone)
             }
 
             HStack(spacing: 12) {
                 metricBox(title: "API Key", value: summary.apiKeyStatusText)
                 metricBox(title: "Status", value: summary.validationStatusText)
                 metricBox(title: "Detail", value: summary.balanceText)
+                metricBox(title: "Updated", value: summary.lastRefreshText.replacingOccurrences(of: "Last updated: ", with: ""))
             }
         }
         .padding(14)
@@ -192,6 +197,8 @@ struct UsageConsoleView: View {
                             viewModel.setAPIKeyInput("", for: summary.id)
                         }
                     }
+
+                    removeProviderButtonIfNeeded(summary)
                 }
             } else {
                 HStack(spacing: 8) {
@@ -203,12 +210,7 @@ struct UsageConsoleView: View {
                     Button("Delete Key", role: .destructive) {
                         viewModel.requestAPIKeyDeletion(for: summary.id)
                     }
-
-                    if summary.id != .deepseek {
-                        Button("Remove Provider", role: .destructive) {
-                            providerRemovalConfirmationID = summary.id
-                        }
-                    }
+                    removeProviderButtonIfNeeded(summary)
                 }
             }
 
@@ -260,6 +262,15 @@ struct UsageConsoleView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
+    @ViewBuilder
+    private func removeProviderButtonIfNeeded(_ summary: APIProviderSummary) -> some View {
+        if summary.id != .deepseek {
+            Button("Remove Provider", role: .destructive) {
+                providerRemovalConfirmationID = summary.id
+            }
+        }
+    }
+
     private func providerHomepageButton(_ summary: APIProviderSummary, font: Font) -> some View {
         Button {
             NSWorkspace.shared.open(summary.homepageURL)
@@ -305,13 +316,13 @@ struct UsageConsoleView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func statusBadge(_ text: String) -> some View {
+    private func statusBadge(_ text: String, tone: ProviderStatusTone) -> some View {
         Text(text)
             .font(.caption.weight(.semibold))
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
-            .foregroundStyle(statusColor(for: text))
-            .background(statusColor(for: text).opacity(0.14))
+            .foregroundStyle(statusColor(for: tone))
+            .background(statusColor(for: tone).opacity(0.14))
             .clipShape(Capsule())
     }
 
@@ -325,15 +336,15 @@ struct UsageConsoleView: View {
         }
     }
 
-    private func statusColor(for text: String) -> Color {
-        switch text {
-        case "Active", "Plan available":
+    private func statusColor(for tone: ProviderStatusTone) -> Color {
+        switch tone {
+        case .success:
             return .green
-        case "Checking":
+        case .refreshing:
             return .blue
-        case "Invalid", "Unavailable", "Insufficient balance", "Limit reached", "Plan expired":
+        case .warning:
             return .orange
-        default:
+        case .neutral:
             return .secondary
         }
     }

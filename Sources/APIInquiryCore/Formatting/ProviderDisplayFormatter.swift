@@ -15,8 +15,16 @@ public struct ProviderDetailRow: Equatable {
     public let displayName: String
     public let detailText: String
     public let statusText: String
+    public let statusTone: ProviderStatusTone
     public let lastRefreshText: String
     public let resetText: String?
+}
+
+public enum ProviderStatusTone: Equatable {
+    case neutral
+    case success
+    case refreshing
+    case warning
 }
 
 public enum ProviderDisplayFormatter {
@@ -114,8 +122,26 @@ public enum ProviderDisplayFormatter {
             case .planExpired:
                 return "Plan expired"
             default:
-                return "Refresh failed"
+                return "Unavailable"
             }
+        }
+    }
+
+    public static func statusTone(for state: BalanceState) -> ProviderStatusTone {
+        switch state {
+        case .notConfigured:
+            return .neutral
+        case .loading:
+            return .refreshing
+        case .loaded(let snapshot):
+            switch snapshot {
+            case .balance(let balance):
+                return balance.isAvailable ? .success : .warning
+            case .planUsage(let usage):
+                return usage.isAvailable ? .success : .warning
+            }
+        case .failed:
+            return .warning
         }
     }
 

@@ -28,6 +28,11 @@ public final class ZhipuCodingPlanProvider: BalanceProvider {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let response = try await httpClient.data(for: request)
+        if response.statusCode != 200,
+           let businessError = decodeBusinessError(from: response.data) {
+            throw businessError
+        }
+
         switch response.statusCode {
         case 200:
             return .planUsage(try decodeUsage(from: response.data))
@@ -48,7 +53,7 @@ public final class ZhipuCodingPlanProvider: BalanceProvider {
             throw BalanceProviderError.decodingFailed
         }
 
-        if response.success == false {
+        if response.success == false || response.code != 200 {
             throw providerError(forBusinessCode: response.code)
         }
 
@@ -64,6 +69,15 @@ public final class ZhipuCodingPlanProvider: BalanceProvider {
             isAvailable: tokenLimit.percentage < 100,
             fetchedAt: now()
         )
+    }
+
+    private func decodeBusinessError(from data: Data) -> BalanceProviderError? {
+        guard let response = try? JSONDecoder().decode(ZhipuQuotaResponse.self, from: data),
+              response.success == false || response.code != 200 else {
+            return nil
+        }
+
+        return providerError(forBusinessCode: response.code)
     }
 
     private func providerError(forBusinessCode code: Int) -> BalanceProviderError {

@@ -6,11 +6,15 @@ public final class BalanceRefreshController: ObservableObject {
     @Published public private(set) var state: BalanceState
 
     public let refreshInterval: TimeInterval
+    public var isAutoRefreshActive: Bool {
+        autoRefreshTask != nil
+    }
 
     private let provider: BalanceProvider
     private let credentialStore: CredentialStore
     private var autoRefreshTask: Task<Void, Never>?
     private var isRefreshing = false
+    private var stateRevision = 0
 
     public init(
         provider: BalanceProvider,
@@ -36,6 +40,7 @@ public final class BalanceRefreshController: ObservableObject {
         defer { isRefreshing = false }
 
         let previousState = state
+        let refreshRevision = stateRevision
 
         do {
             guard let apiKey = try credentialStore.credential(forAccount: provider.credentialAccount),
@@ -47,12 +52,22 @@ public final class BalanceRefreshController: ObservableObject {
             state = .loading(last: state.lastSnapshot)
             let snapshot = try await provider.fetchSnapshot(apiKey: apiKey)
             try Task.checkCancellation()
+            guard refreshRevision == stateRevision else {
+                return
+            }
             state = .loaded(snapshot)
         } catch is CancellationError {
-            state = previousState
+            if refreshRevision == stateRevision {
+                state = previousState
+            }
         } catch let error as URLError where error.code == .cancelled {
-            state = previousState
+            if refreshRevision == stateRevision {
+                state = previousState
+            }
         } catch {
+            guard refreshRevision == stateRevision else {
+                return
+            }
             state = .failed(
                 message: Self.userMessage(for: error),
                 kind: Self.failureKind(for: error),
@@ -62,6 +77,7 @@ public final class BalanceRefreshController: ObservableObject {
     }
 
     public func markNotConfigured() {
+        stateRevision += 1
         state = .notConfigured
     }
 

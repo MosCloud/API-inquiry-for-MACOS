@@ -12,6 +12,8 @@ enum UsageConsoleViewModelTests {
         await testConfirmingAPIKeyDeletionReturnsBalanceToSetup(using: harness)
         await testMultiProviderSummariesExposePrimaryAndPlanUsage(using: harness)
         testAddingProviderUpdatesAvailableProviderOptions(using: harness)
+        testRemovingProviderShowsFeedbackWhenCredentialDeletionFails(using: harness)
+        testRemovingProviderClearsProviderScopedAPIKeyInput(using: harness)
         await testSavingProviderScopedAPIKeyRefreshesOnlyThatProvider(using: harness)
     }
 
@@ -49,6 +51,41 @@ enum UsageConsoleViewModelTests {
 
         harness.expectEqual(viewModel.availableProviderIDsToAdd, [], "console available provider after add")
         harness.expectEqual(viewModel.providerSummaries.map(\.id), [.deepseek, .zhipuCodingPlan], "console summaries after add")
+    }
+
+    @MainActor
+    private static func testRemovingProviderShowsFeedbackWhenCredentialDeletionFails(using harness: TestHarness) {
+        let store = FailingDeleteCredentialStore(credentialsByAccount: ["zhipu-coding-plan-api-key": "test-key"])
+        let coordinator = makeMultiProviderCoordinator(
+            addedProviderIDs: [.deepseek, .zhipuCodingPlan],
+            primaryProviderID: .deepseek,
+            credentialStore: store
+        )
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: store)
+
+        viewModel.removeProvider(.zhipuCodingPlan)
+
+        harness.expectEqual(coordinator.addedProviderIDs, [.deepseek, .zhipuCodingPlan], "console keeps provider when remove key delete fails")
+        harness.expectEqual(viewModel.settingsFeedback(for: .zhipuCodingPlan)?.kind, .error, "console remove failure feedback kind")
+        harness.expectTrue(
+            viewModel.settingsFeedback(for: .zhipuCodingPlan)?.message.isEmpty == false,
+            "console remove failure feedback message"
+        )
+    }
+
+    @MainActor
+    private static func testRemovingProviderClearsProviderScopedAPIKeyInput(using harness: TestHarness) {
+        let coordinator = makeMultiProviderCoordinator(
+            addedProviderIDs: [.deepseek, .zhipuCodingPlan],
+            primaryProviderID: .deepseek
+        )
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: InMemoryCredentialStore())
+        viewModel.setAPIKeyInput("typed-zhipu-key", for: .zhipuCodingPlan)
+
+        viewModel.removeProvider(.zhipuCodingPlan)
+        viewModel.addProvider(.zhipuCodingPlan)
+
+        harness.expectEqual(viewModel.apiKeyInput(for: .zhipuCodingPlan), "", "console remove clears provider-scoped api key input")
     }
 
     @MainActor
@@ -107,6 +144,7 @@ enum UsageConsoleViewModelTests {
         )
         harness.expectEqual(viewModel.providerSummaries.first?.apiKeyStatusText, "Not configured", "console provider key status")
         harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "Not configured", "console provider validation status")
+        harness.expectEqual(viewModel.providerSummaries.first?.statusTone, .neutral, "console unconfigured provider status tone")
         harness.expectEqual(viewModel.providerSummaries.first?.balanceText, "--", "console provider balance placeholder")
     }
 
@@ -126,6 +164,7 @@ enum UsageConsoleViewModelTests {
 
         harness.expectEqual(viewModel.providerSummaries.first?.apiKeyStatusText, "Configured", "console configured provider key status")
         harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "Active", "console active provider validation status")
+        harness.expectEqual(viewModel.providerSummaries.first?.statusTone, .success, "console active provider status tone")
         harness.expectEqual(viewModel.providerSummaries.first?.balanceText, "¥68.65 CNY", "console provider balance")
     }
 
@@ -144,6 +183,7 @@ enum UsageConsoleViewModelTests {
 
         harness.expectEqual(viewModel.providerSummaries.first?.apiKeyStatusText, "Configured", "console invalid provider key status")
         harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "Invalid", "console invalid provider validation status")
+        harness.expectEqual(viewModel.providerSummaries.first?.statusTone, .warning, "console invalid provider status tone")
     }
 
     @MainActor
@@ -226,7 +266,11 @@ enum UsageConsoleViewModelTests {
     @MainActor
     private static func makeMultiProviderCoordinator(
         addedProviderIDs: [ProviderID] = [.deepseek, .zhipuCodingPlan],
-        primaryProviderID: ProviderID
+        primaryProviderID: ProviderID,
+        credentialStore: CredentialStore = InMemoryCredentialStore(credentialsByAccount: [
+            "deepseek-api-key": "deepseek-key",
+            "zhipu-coding-plan-api-key": "zhipu-key"
+        ])
     ) -> MultiProviderBalanceCoordinator {
         let deepSeekSnapshot = makeSnapshot(providerID: .deepseek, total: "68.65")
         let zhipuSnapshot = PlanUsageSnapshot(
@@ -256,14 +300,31 @@ enum UsageConsoleViewModelTests {
                     results: [.success(.planUsage(zhipuSnapshot))]
                 )
             ],
-            credentialStore: InMemoryCredentialStore(credentialsByAccount: [
-                "deepseek-api-key": "deepseek-key",
-                "zhipu-coding-plan-api-key": "zhipu-key"
-            ]),
+            credentialStore: credentialStore,
             preferences: InMemoryProviderPreferencesStore(
                 addedProviderIDs: addedProviderIDs,
                 primaryProviderID: primaryProviderID
             )
         )
+    }
+}
+
+private final class FailingDeleteCredentialStore: CredentialStore {
+    private var credentialsByAccount: [String: String]
+
+    init(credentialsByAccount: [String: String]) {
+        self.credentialsByAccount = credentialsByAccount
+    }
+
+    func credential(forAccount account: String) throws -> String? {
+        credentialsByAccount[account]
+    }
+
+    func saveCredential(_ credential: String, forAccount account: String) throws {
+        credentialsByAccount[account] = credential
+    }
+
+    func deleteCredential(forAccount account: String) throws {
+        throw CredentialStoreError.unexpectedStatus(-1)
     }
 }

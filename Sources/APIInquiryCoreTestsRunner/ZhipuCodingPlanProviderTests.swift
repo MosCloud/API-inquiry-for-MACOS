@@ -9,8 +9,49 @@ enum ZhipuCodingPlanProviderTests {
         await testUsageLimitBusinessCodeMapsToProviderError(using: harness)
         await testPlanExpiredBusinessCodeMapsToProviderError(using: harness)
         await testStringBusinessCodeMapsToProviderError(using: harness)
+        await testNon200BusinessCodeMapsToProviderError(using: harness)
+        await testRateLimitedBusinessCodeMapsToUsageLimit(using: harness)
+        await testBusinessCodeWithoutSuccessFlagMapsToProviderError(using: harness)
         await testMalformedJSONMapsToDecodingFailure(using: harness)
         await testMissingTokenLimitMapsToMissingBalanceInfo(using: harness)
+    }
+
+    private static func testNon200BusinessCodeMapsToProviderError(using harness: TestHarness) async {
+        let provider = ZhipuCodingPlanProvider(httpClient: ZhipuMockHTTPClient(response: HTTPResponse(
+            data: errorResponseData(code: "1309", message: "plan expired"),
+            statusCode: 403
+        )))
+
+        await harness.expectThrowsBalanceProviderError(.planExpired, {
+            _ = try await provider.fetchSnapshot(apiKey: "test-key")
+        }, "zhipu non-200 business code maps to planExpired")
+    }
+
+    private static func testRateLimitedBusinessCodeMapsToUsageLimit(using harness: TestHarness) async {
+        let provider = ZhipuCodingPlanProvider(httpClient: ZhipuMockHTTPClient(response: HTTPResponse(
+            data: errorResponseData(code: "1310", message: "limit reached"),
+            statusCode: 429
+        )))
+
+        await harness.expectThrowsBalanceProviderError(.usageLimitReached, {
+            _ = try await provider.fetchSnapshot(apiKey: "test-key")
+        }, "zhipu 429 business code maps to usageLimitReached")
+    }
+
+    private static func testBusinessCodeWithoutSuccessFlagMapsToProviderError(using harness: TestHarness) async {
+        let provider = ZhipuCodingPlanProvider(httpClient: ZhipuMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "code": "1310",
+              "msg": "limit reached"
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        )))
+
+        await harness.expectThrowsBalanceProviderError(.usageLimitReached, {
+            _ = try await provider.fetchSnapshot(apiKey: "test-key")
+        }, "zhipu business code without success maps to usageLimitReached")
     }
 
     private static func testStringBusinessCodeMapsToProviderError(using harness: TestHarness) async {

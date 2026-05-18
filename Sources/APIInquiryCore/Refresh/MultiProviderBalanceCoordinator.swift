@@ -14,6 +14,7 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
     private let runtimesByProviderID: [ProviderID: ProviderRuntime]
     private let defaultProviderID: ProviderID
     private var cancellables: Set<AnyCancellable> = []
+    private var isAutoRefreshStarted = false
 
     public init(
         providers: [BalanceProvider],
@@ -90,18 +91,25 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
         if preferences.primaryProviderID == nil {
             preferences.primaryProviderID = id
         }
+        if isAutoRefreshStarted {
+            runtimesByProviderID[id]?.controller.startAutoRefresh()
+        }
         objectWillChange.send()
     }
 
-    public func removeProvider(_ id: ProviderID, deletingCredential: Bool) {
-        guard id != defaultProviderID else {
+    public func removeProvider(_ id: ProviderID, deletingCredential: Bool) throws {
+        guard id != defaultProviderID,
+              addedProviderIDs.contains(id) else {
             return
         }
 
-        preferences.addedProviderIDs.removeAll { $0 == id }
         if deletingCredential, let provider = provider(for: id) {
-            try? credentialStore.deleteCredential(forAccount: provider.credentialAccount)
+            try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
         }
+
+        runtimesByProviderID[id]?.controller.stopAutoRefresh()
+        runtimesByProviderID[id]?.controller.markNotConfigured()
+        preferences.addedProviderIDs.removeAll { $0 == id }
         if preferences.primaryProviderID == id {
             preferences.primaryProviderID = fallbackPrimaryProviderID()
         }
@@ -127,12 +135,14 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
     }
 
     public func startAutoRefresh() {
+        isAutoRefreshStarted = true
         for id in addedProviderIDs {
             runtimesByProviderID[id]?.controller.startAutoRefresh()
         }
     }
 
     public func stopAutoRefresh() {
+        isAutoRefreshStarted = false
         for runtime in runtimesByProviderID.values {
             runtime.controller.stopAutoRefresh()
         }

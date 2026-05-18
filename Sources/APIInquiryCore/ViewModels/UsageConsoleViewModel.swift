@@ -7,6 +7,7 @@ public struct APIProviderSummary: Equatable {
     public let homepageURL: URL
     public let apiKeyStatusText: String
     public let validationStatusText: String
+    public let statusTone: ProviderStatusTone
     public let balanceText: String
     public let lastRefreshText: String
     public let isPrimary: Bool
@@ -17,6 +18,7 @@ public struct APIProviderSummary: Equatable {
         homepageURL: URL,
         apiKeyStatusText: String,
         validationStatusText: String,
+        statusTone: ProviderStatusTone = .neutral,
         balanceText: String,
         lastRefreshText: String = "Last updated: --",
         isPrimary: Bool = false
@@ -26,6 +28,7 @@ public struct APIProviderSummary: Equatable {
         self.homepageURL = homepageURL
         self.apiKeyStatusText = apiKeyStatusText
         self.validationStatusText = validationStatusText
+        self.statusTone = statusTone
         self.balanceText = balanceText
         self.lastRefreshText = lastRefreshText
         self.isPrimary = isPrimary
@@ -134,6 +137,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                     homepageURL: provider.homepageURL,
                     apiKeyStatusText: credentialStatusText,
                     validationStatusText: validationStatusText(for: state),
+                    statusTone: ProviderDisplayFormatter.statusTone(for: state),
                     balanceText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot),
                     lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
                     isPrimary: true
@@ -152,6 +156,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                 homepageURL: provider.homepageURL,
                 apiKeyStatusText: coordinator.isCredentialConfigured(for: id) ? "Configured" : "Not configured",
                 validationStatusText: validationStatusText(for: state),
+                statusTone: ProviderDisplayFormatter.statusTone(for: state),
                 balanceText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot),
                 lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
                 isPrimary: id == coordinator.primaryProviderID
@@ -173,7 +178,16 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func removeProvider(_ id: ProviderID, deletingCredential: Bool = true) {
-        coordinator?.removeProvider(id, deletingCredential: deletingCredential)
+        do {
+            try coordinator?.removeProvider(id, deletingCredential: deletingCredential)
+            apiKeyInputsByProviderID[id] = nil
+            settingsFeedbacksByProviderID[id] = nil
+        } catch {
+            settingsFeedbacksByProviderID[id] = SettingsFeedback(
+                kind: .error,
+                message: Self.settingsMessage(for: error, fallback: "Provider could not be removed.")
+            )
+        }
     }
 
     public func setPrimaryProvider(_ id: ProviderID) {

@@ -195,6 +195,11 @@ struct MenuBarContentView: View {
                         Text(row.lastRefreshText)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                        if let resetText = row.resetText {
+                            Text(resetText)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     Spacer()
@@ -206,7 +211,7 @@ struct MenuBarContentView: View {
                             .lineLimit(1)
                         Text(row.statusText)
                             .font(.caption2)
-                            .foregroundStyle(statusColor(for: row.statusText))
+                            .foregroundStyle(statusColor(for: row.statusTone))
                     }
                 }
             }
@@ -278,18 +283,18 @@ struct MenuBarContentView: View {
     }
 
     private var statusColor: Color {
-        statusColor(for: viewModel.statusText)
+        statusColor(for: viewModel.statusTone)
     }
 
-    private func statusColor(for statusText: String) -> Color {
-        switch statusText {
-        case "Available", "Plan available":
+    private func statusColor(for statusTone: ProviderStatusTone) -> Color {
+        switch statusTone {
+        case .success:
             return .green
-        case "Refreshing":
+        case .refreshing:
             return .blue
-        case "Balance insufficient", "Refresh failed", "Limit reached", "Plan expired", "Invalid":
+        case .warning:
             return .orange
-        default:
+        case .neutral:
             return .secondary
         }
     }

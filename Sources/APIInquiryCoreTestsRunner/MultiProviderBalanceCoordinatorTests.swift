@@ -7,6 +7,9 @@ enum MultiProviderBalanceCoordinatorTests {
         testDefaultsToDeepSeekProvider(using: harness)
         testAddSetPrimaryAndRemoveProvider(using: harness)
         testRemovingProviderCanDeleteCredential(using: harness)
+        testRemovingProviderDoesNotRemoveWhenCredentialDeletionFails(using: harness)
+        await testRemovingProviderStopsRefreshAndClearsState(using: harness)
+        testAutoRefreshLifecycleFollowsProviderAddAndRemove(using: harness)
         await testRefreshAddedProvidersKeepsStatesIsolated(using: harness)
     }
 
@@ -32,7 +35,7 @@ enum MultiProviderBalanceCoordinatorTests {
         harness.expectEqual(preferences.addedProviderIDs, [.deepseek, .zhipuCodingPlan], "coordinator persists added providers")
         harness.expectEqual(preferences.primaryProviderID, .zhipuCodingPlan, "coordinator persists primary")
 
-        coordinator.removeProvider(.zhipuCodingPlan, deletingCredential: false)
+        try? coordinator.removeProvider(.zhipuCodingPlan, deletingCredential: false)
 
         harness.expectEqual(coordinator.addedProviderIDs, [.deepseek], "coordinator removes zhipu")
         harness.expectEqual(coordinator.primaryProviderID, .deepseek, "coordinator primary falls back to deepseek")
@@ -44,9 +47,75 @@ enum MultiProviderBalanceCoordinatorTests {
         let coordinator = makeCoordinator(credentialStore: store)
 
         coordinator.addProvider(.zhipuCodingPlan)
-        coordinator.removeProvider(.zhipuCodingPlan, deletingCredential: true)
+        try? coordinator.removeProvider(.zhipuCodingPlan, deletingCredential: true)
 
         harness.expectEqual(try? store.credential(forAccount: "zhipu-coding-plan-api-key"), nil, "coordinator removes provider credential")
+    }
+
+    @MainActor
+    private static func testRemovingProviderDoesNotRemoveWhenCredentialDeletionFails(using harness: TestHarness) {
+        let store = FailingDeleteCredentialStore(credentialsByAccount: ["zhipu-coding-plan-api-key": "test-key"])
+        let coordinator = makeCoordinator(credentialStore: store)
+
+        coordinator.addProvider(.zhipuCodingPlan)
+
+        do {
+            try coordinator.removeProvider(.zhipuCodingPlan, deletingCredential: true)
+            harness.expectTrue(false, "coordinator remove should throw when credential deletion fails")
+        } catch {
+            harness.expectEqual(coordinator.addedProviderIDs, [.deepseek, .zhipuCodingPlan], "coordinator keeps provider when credential deletion fails")
+            harness.expectEqual(try? store.credential(forAccount: "zhipu-coding-plan-api-key"), "test-key", "coordinator keeps credential when deletion fails")
+        }
+    }
+
+    @MainActor
+    private static func testRemovingProviderStopsRefreshAndClearsState(using harness: TestHarness) async {
+        let zhipuSnapshot = PlanUsageSnapshot(
+            providerID: .zhipuCodingPlan,
+            windowLabel: "5h",
+            usagePercentage: Decimal(17),
+            resetAt: nil,
+            isAvailable: true,
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        let zhipu = MockBalanceProvider(
+            id: .zhipuCodingPlan,
+            displayName: "Zhipu GLM Coding Plan",
+            menuPrefix: "GLM",
+            credentialAccount: "zhipu-coding-plan-api-key",
+            homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
+            results: [.success(.planUsage(zhipuSnapshot))]
+        )
+        let coordinator = MultiProviderBalanceCoordinator(
+            providers: [
+                MockBalanceProvider(results: []),
+                zhipu
+            ],
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["zhipu-coding-plan-api-key": "zhipu-key"]),
+            preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek, .zhipuCodingPlan])
+        )
+
+        await coordinator.refresh(.zhipuCodingPlan)
+        harness.expectEqual(coordinator.state(for: .zhipuCodingPlan), .loaded(.planUsage(zhipuSnapshot)), "coordinator loads provider state before remove")
+
+        try? coordinator.removeProvider(.zhipuCodingPlan, deletingCredential: true)
+
+        harness.expectEqual(coordinator.state(for: .zhipuCodingPlan), .notConfigured, "coordinator remove clears provider state")
+        harness.expectEqual(coordinator.addedProviderIDs, [.deepseek], "coordinator remove keeps zhipu removed")
+    }
+
+    @MainActor
+    private static func testAutoRefreshLifecycleFollowsProviderAddAndRemove(using harness: TestHarness) {
+        let coordinator = makeCoordinator()
+
+        coordinator.startAutoRefresh()
+        coordinator.addProvider(.zhipuCodingPlan)
+
+        harness.expectTrue(coordinator.controller(for: .zhipuCodingPlan)?.isAutoRefreshActive == true, "coordinator starts auto refresh for provider added while active")
+
+        try? coordinator.removeProvider(.zhipuCodingPlan, deletingCredential: false)
+
+        harness.expectTrue(coordinator.controller(for: .zhipuCodingPlan)?.isAutoRefreshActive == false, "coordinator stops auto refresh for removed provider")
     }
 
     @MainActor
@@ -121,5 +190,25 @@ enum MultiProviderBalanceCoordinatorTests {
             credentialStore: credentialStore,
             preferences: preferences
         )
+    }
+}
+
+private final class FailingDeleteCredentialStore: CredentialStore {
+    private var credentialsByAccount: [String: String]
+
+    init(credentialsByAccount: [String: String]) {
+        self.credentialsByAccount = credentialsByAccount
+    }
+
+    func credential(forAccount account: String) throws -> String? {
+        credentialsByAccount[account]
+    }
+
+    func saveCredential(_ credential: String, forAccount account: String) throws {
+        credentialsByAccount[account] = credential
+    }
+
+    func deleteCredential(forAccount account: String) throws {
+        throw CredentialStoreError.unexpectedStatus(-1)
     }
 }

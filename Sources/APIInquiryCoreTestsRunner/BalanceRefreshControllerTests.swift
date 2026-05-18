@@ -9,6 +9,7 @@ enum BalanceRefreshControllerTests {
         await testFailurePreservesLastSnapshot(using: harness)
         await testAuthenticationFailureUsesTypedFailureKind(using: harness)
         await testOverlappingRefreshDoesNotStartSecondProviderCall(using: harness)
+        await testMarkNotConfiguredInvalidatesInFlightRefresh(using: harness)
         await testCancellationRestoresPreviousState(using: harness)
         await testCancelledURLErrorRestoresPreviousState(using: harness)
         testDefaultRefreshIntervalIsFiveMinutes(using: harness)
@@ -105,6 +106,24 @@ enum BalanceRefreshControllerTests {
         await secondRefresh.value
 
         harness.expectEqual(controller.state, .loaded(.balance(snapshot)), "overlapping refresh final state")
+    }
+
+    @MainActor
+    private static func testMarkNotConfiguredInvalidatesInFlightRefresh(using harness: TestHarness) async {
+        let snapshot = makeSnapshot(total: "68.65")
+        let probe = SuspendedRefreshProbe()
+        let provider = SuspendedBalanceProvider(probe: probe)
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+
+        let refresh = Task { await controller.refresh() }
+        await waitForFetchCount(1, probe: probe)
+
+        controller.markNotConfigured()
+        await probe.complete(with: snapshot)
+        await refresh.value
+
+        harness.expectEqual(controller.state, .notConfigured, "mark not configured invalidates in-flight refresh")
     }
 
     @MainActor
