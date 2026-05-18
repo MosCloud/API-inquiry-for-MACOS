@@ -2,20 +2,22 @@
 
 [中文](README.md)
 
-API Inquiry is a native macOS menu bar app for checking API provider status and managing provider API keys. It supports DeepSeek balance checks and Zhipu GLM Coding Plan usage, stores provider API keys in macOS Keychain, refreshes configured providers every 5 minutes, shows the Primary Provider in the menu bar, and provides a lightweight local console for provider management.
+API Inquiry is a native macOS menu bar app for checking API provider status and managing provider API keys. It supports DeepSeek balance checks, Zhipu GLM Coding Plan usage, and Codex/ChatGPT session quota checks, stores provider API keys in macOS Keychain, refreshes configured providers every 5 minutes, shows the Primary Provider in the menu bar, and provides a lightweight local console for provider management.
 
 ## Requirements
 
 - macOS 13 or later
 - Swift 5.9+ / Xcode Command Line Tools
 - A DeepSeek API key for real balance checks, or a Zhipu GLM Coding Plan API key for plan usage checks
+- For Codex quota checks, this Mac needs an existing Codex login with `$CODEX_HOME/auth.json` or `~/.codex/auth.json`
 
 ## Security
 
 - API keys are stored only in macOS Keychain through `KeychainCredentialStore`.
+- The Codex provider first reads the local Codex auth file as read-only state. It does not modify, delete, or copy that file into UserDefaults; Keychain is only a manual fallback.
 - Saved keys are never shown in plain text after saving. API key setup, replacement, and deletion happen in the local console.
-- Tests use fake keys only and do not require real DeepSeek or Zhipu accounts.
-- Do not put real API keys in source files, docs, logs, screenshots, or shell history.
+- Tests use fake keys only and do not require real DeepSeek, Zhipu, or Codex accounts.
+- Do not put real API keys, Codex access tokens, session tokens, or account ids in source files, docs, logs, screenshots, or shell history.
 
 ## Test
 
@@ -28,7 +30,7 @@ swift run APIInquiryCoreTestsRunner
 Expected result:
 
 ```text
-PASS: 188 expectations
+PASS: 250 expectations
 ```
 
 ## Build
@@ -89,8 +91,8 @@ Scripts/package-dmg.sh
 The script creates:
 
 ```text
-dist/API-Inquiry-v0.3.0.dmg
-dist/API-Inquiry-v0.3.0.dmg.sha256
+dist/API-Inquiry-v0.3.1.dmg
+dist/API-Inquiry-v0.3.1.dmg.sha256
 ```
 
 After release validation and upload, remove local development app bundles so Launchpad only indexes the installed app:
@@ -103,11 +105,11 @@ Scripts/clean-development-apps.sh
 
 This project uses a free GitHub Releases distribution strategy. The DMG is ad-hoc signed but not Apple notarized.
 
-1. Download `API-Inquiry-v0.3.0.dmg` and `API-Inquiry-v0.3.0.dmg.sha256` from GitHub Releases.
+1. Download `API-Inquiry-v0.3.1.dmg` and `API-Inquiry-v0.3.1.dmg.sha256` from GitHub Releases.
 2. Verify the download:
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.3.0.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.3.1.dmg.sha256
    ```
 
 3. Open the DMG.
@@ -179,10 +181,13 @@ Manual checks:
 - Manual refresh uses the same refresh path as automatic refresh.
 - Deleting the key from the console returns the app to setup state.
 - The menu bar shows only the Primary Provider detail: DeepSeek shows compact balance such as `¥68.6`; Zhipu GLM Coding Plan shows usage such as `5h 17%`.
+- When Codex is the Primary Provider, the menu bar shows the ChatGPT/GPT mark plus `5h xx%` remaining quota.
+- The Codex detail panel shows both 5h and Week remaining quota windows, and Console Home shows the current plan.
+- Codex first auto-reads local Codex login state; you do not need to enter an OpenAI Platform API key in the Console.
 - The expanded panel shows the Primary Provider in the top hero area and other providers as compact rows.
 - The expanded panel refresh action refreshes all added providers.
 - Zhipu GLM Coding Plan shows `Resets` in the expanded panel and `Plan Next Resets` in Console Home.
-- Console can add Zhipu GLM Coding Plan and set a provider as the Primary Provider shown in the menu bar.
+- Console can add Zhipu GLM Coding Plan and Codex, and set a provider as the Primary Provider shown in the menu bar.
 - Deleting one provider key from the console does not affect other provider keys or snapshots.
 
 ## Scope
@@ -191,6 +196,8 @@ Included in this release:
 
 - DeepSeek balance API integration
 - Zhipu GLM Coding Plan usage integration
+- Codex/ChatGPT session quota checks with 5h and Week remaining quota
+- Codex current plan display
 - Built-in multi-provider catalog
 - Secure per-provider Keychain storage
 - 5-minute automatic refresh and manual refresh

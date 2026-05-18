@@ -2,20 +2,22 @@
 
 [English](README_en.md)
 
-API Inquiry 是一个原生 macOS 菜单栏应用，用于查看 API 供应商状态并管理供应商 API Key。它支持 DeepSeek 余额查询和智谱 GLM Coding Plan 用量查询，会将供应商 API Key 保存到 macOS Keychain，每 5 分钟刷新已配置供应商，在菜单栏显示 Primary Provider，并提供一个轻量本地控制台用于供应商管理。
+API Inquiry 是一个原生 macOS 菜单栏应用，用于查看 API 供应商状态并管理供应商 API Key。它支持 DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询和 Codex/ChatGPT 会话额度查询，会将供应商 API Key 保存到 macOS Keychain，每 5 分钟刷新已配置供应商，在菜单栏显示 Primary Provider，并提供一个轻量本地控制台用于供应商管理。
 
 ## 运行要求
 
 - macOS 13 或更高版本
 - Swift 5.9+ / Xcode Command Line Tools
 - 用于真实余额查询的 DeepSeek API Key，或用于 plan 用量查询的智谱 GLM Coding Plan API Key
+- 如需查询 Codex 额度，本机需要已通过 Codex 登录，生成 `$CODEX_HOME/auth.json` 或 `~/.codex/auth.json`
 
 ## 安全说明
 
 - API Key 只通过 `KeychainCredentialStore` 存储在 macOS Keychain 中。
+- Codex provider 优先只读本机 Codex auth 文件，不修改、不删除，也不会复制到 UserDefaults；Keychain 仅作为手工 fallback。
 - 保存后不会再明文展示已保存的 key。API Key 的配置、更换和删除都在本地控制台中完成。
-- 测试只使用假 key，不需要真实 DeepSeek 或智谱账号。
-- 不要把真实 API Key 写进源码、文档、日志、截图或 shell history。
+- 测试只使用假 key，不需要真实 DeepSeek、智谱或 Codex 账号。
+- 不要把真实 API Key、Codex access token、session token 或 account id 写进源码、文档、日志、截图或 shell history。
 
 ## 测试
 
@@ -28,7 +30,7 @@ swift run APIInquiryCoreTestsRunner
 预期结果：
 
 ```text
-PASS: 188 expectations
+PASS: 250 expectations
 ```
 
 ## 构建
@@ -89,8 +91,8 @@ Scripts/package-dmg.sh
 脚本会生成：
 
 ```text
-dist/API-Inquiry-v0.3.0.dmg
-dist/API-Inquiry-v0.3.0.dmg.sha256
+dist/API-Inquiry-v0.3.1.dmg
+dist/API-Inquiry-v0.3.1.dmg.sha256
 ```
 
 完成发布验证和上传后，删除本机开发态 app bundle，避免 Launchpad 将非正式副本索引成重复图标：
@@ -103,11 +105,11 @@ Scripts/clean-development-apps.sh
 
 本项目采用免费的 GitHub Releases 发布策略。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。
 
-1. 从 GitHub Releases 下载 `API-Inquiry-v0.3.0.dmg` 和 `API-Inquiry-v0.3.0.dmg.sha256`。
+1. 从 GitHub Releases 下载 `API-Inquiry-v0.3.1.dmg` 和 `API-Inquiry-v0.3.1.dmg.sha256`。
 2. 校验下载文件：
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.3.0.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.3.1.dmg.sha256
    ```
 
 3. 打开 DMG。
@@ -179,10 +181,13 @@ Scripts/restart-installed-app.sh
 - 手动刷新与自动刷新使用同一条刷新路径。
 - 从控制台删除 key 后回到 setup 状态。
 - 菜单栏只显示 Primary Provider 详情：DeepSeek 显示紧凑余额，例如 `¥68.6`；智谱 GLM Coding Plan 显示用量，例如 `5h 17%`。
+- Codex 作为 Primary Provider 时，菜单栏显示 ChatGPT/GPT 标识加 `5h xx%` 剩余额度。
+- Codex 详情页展示 5h 和 Week 两个剩余额度窗口，并在 Console Home 展示当前 plan。
+- Codex 优先自动读取本机 Codex 登录态；无需在 Console 手工输入 OpenAI Platform API key。
 - 展开面板顶部突出展示 Primary Provider，其余供应商以紧凑行展示。
 - 展开面板中的刷新按钮会刷新所有已添加供应商。
 - 智谱 GLM Coding Plan 会在展开面板显示 `Resets`，并在 Console Home 显示 `Plan Next Resets`。
-- Console 可添加智谱 GLM Coding Plan，并将某个供应商设为菜单栏 Primary Provider。
+- Console 可添加智谱 GLM Coding Plan 和 Codex，并将某个供应商设为菜单栏 Primary Provider。
 - 从控制台删除某个供应商 key 不影响其他供应商 key 和快照。
 
 ## 范围
@@ -191,6 +196,8 @@ Scripts/restart-installed-app.sh
 
 - DeepSeek 余额 API 集成
 - 智谱 GLM Coding Plan 用量集成
+- Codex/ChatGPT 会话额度查询，包含 5h 和 Week 剩余额度
+- Codex 当前 plan 展示
 - 内置多供应商目录
 - 每供应商独立的安全 Keychain 存储
 - 每 5 分钟自动刷新和手动刷新
