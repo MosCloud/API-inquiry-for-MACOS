@@ -22,6 +22,7 @@ struct UsageConsoleView: View {
     @ObservedObject var viewModel: UsageConsoleViewModel
     @State private var selectedSection: UsageConsoleSection
     @State private var replacingProviderIDs: Set<ProviderID> = []
+    @State private var providerRemovalConfirmationID: ProviderID?
 
     init(viewModel: UsageConsoleViewModel, initialSection: UsageConsoleSection = .home) {
         self.viewModel = viewModel
@@ -205,11 +206,30 @@ struct UsageConsoleView: View {
 
                     if summary.id != .deepseek {
                         Button("Remove Provider", role: .destructive) {
-                            viewModel.removeProvider(summary.id)
-                            replacingProviderIDs.remove(summary.id)
+                            providerRemovalConfirmationID = summary.id
                         }
                     }
                 }
+            }
+
+            if providerRemovalConfirmationID == summary.id {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(viewModel.isAPIKeyConfigured(for: summary.id) ? "Remove this provider and delete its saved API key?" : "Remove this provider?")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 8) {
+                        Button("Cancel") {
+                            providerRemovalConfirmationID = nil
+                        }
+                        Button("Remove", role: .destructive) {
+                            viewModel.removeProvider(summary.id)
+                            replacingProviderIDs.remove(summary.id)
+                            providerRemovalConfirmationID = nil
+                        }
+                    }
+                }
+                .padding(.top, 2)
             }
 
             if viewModel.apiKeyDeleteConfirmationProviderID == summary.id {

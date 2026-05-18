@@ -87,6 +87,33 @@ private struct ZhipuQuotaResponse: Decodable {
     let msg: String?
     let success: Bool?
     let data: ZhipuQuotaData?
+
+    enum CodingKeys: String, CodingKey {
+        case code
+        case msg
+        case success
+        case data
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let intCode = try? container.decode(Int.self, forKey: .code) {
+            code = intCode
+        } else {
+            let stringCode = try container.decode(String.self, forKey: .code)
+            guard let intCode = Int(stringCode) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .code,
+                    in: container,
+                    debugDescription: "Code must be an integer or integer string."
+                )
+            }
+            code = intCode
+        }
+        msg = try container.decodeIfPresent(String.self, forKey: .msg)
+        success = try container.decodeIfPresent(Bool.self, forKey: .success)
+        data = try container.decodeIfPresent(ZhipuQuotaData.self, forKey: .data)
+    }
 }
 
 private struct ZhipuQuotaData: Decodable {
