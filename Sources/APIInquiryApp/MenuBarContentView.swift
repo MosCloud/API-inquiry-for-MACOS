@@ -242,12 +242,6 @@ struct MenuBarContentView: View {
                             .multilineTextAlignment(.trailing)
                             .lineLimit(1)
                             .frame(minWidth: 108, alignment: .trailing)
-                        Text(row.lastRefreshText)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.trailing)
-                            .lineLimit(1)
-                            .frame(minWidth: 108, alignment: .trailing)
                         if let resetText = row.resetText {
                             Text(resetText)
                                 .font(.caption2)
@@ -256,6 +250,12 @@ struct MenuBarContentView: View {
                                 .lineLimit(1)
                                 .frame(minWidth: 108, alignment: .trailing)
                         }
+                        Text(row.lastRefreshText)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.trailing)
+                            .lineLimit(1)
+                            .frame(minWidth: 108, alignment: .trailing)
                     }
                 }
             }
