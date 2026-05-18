@@ -145,7 +145,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                     statusText: ProviderDisplayFormatter.statusText(for: state),
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
                     lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
-                    resetText: ProviderDisplayFormatter.resetText(for: state.lastSnapshot)
+                    resetText: lastRefreshTimeFormatter.resetText(for: state.lastPlanUsageSnapshot?.resetAt)
                 )
             }
     }
@@ -167,6 +167,10 @@ public final class MenuBarBalanceViewModel: ObservableObject {
 
     public var lastRefreshText: String {
         lastRefreshTimeFormatter.lastRefreshText(for: activeState.lastSnapshot?.fetchedAt)
+    }
+
+    public var resetText: String? {
+        lastRefreshTimeFormatter.resetText(for: activeState.lastPlanUsageSnapshot?.resetAt)
     }
 
     public var credentialStatusText: String {

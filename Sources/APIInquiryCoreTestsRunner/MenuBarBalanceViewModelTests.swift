@@ -22,9 +22,12 @@ enum MenuBarBalanceViewModelTests {
 
     @MainActor
     private static func testZhipuPrimaryProviderFormatsPlanUsage(using harness: TestHarness) async {
-        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan)
+        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan, resetAt: sampleResetDate)
         await coordinator.refresh(.zhipuCodingPlan)
-        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
 
         harness.expectEqual(viewModel.menuBarValueText, "5h 17%", "zhipu menu bar value")
         harness.expectEqual(viewModel.menuBarTitle, "GLM 5h 17%", "zhipu menu bar title")
@@ -32,6 +35,7 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5h", "zhipu primary display caption")
         harness.expectEqual(viewModel.primaryDisplayParts.amountText, "17", "zhipu primary display amount")
         harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% used", "zhipu primary display trailing")
+        harness.expectEqual(viewModel.resetText, "Resets: 23:05", "zhipu reset text")
         harness.expectEqual(viewModel.statusText, "Plan available", "zhipu primary status")
     }
 
@@ -177,13 +181,16 @@ enum MenuBarBalanceViewModelTests {
     }
 
     @MainActor
-    private static func makeMultiProviderCoordinator(primaryProviderID: ProviderID) -> MultiProviderBalanceCoordinator {
+    private static func makeMultiProviderCoordinator(
+        primaryProviderID: ProviderID,
+        resetAt: Date? = nil
+    ) -> MultiProviderBalanceCoordinator {
         let deepSeekSnapshot = makeSnapshot(providerID: .deepseek, total: "68.65")
         let zhipuSnapshot = PlanUsageSnapshot(
             providerID: .zhipuCodingPlan,
             windowLabel: "5h",
             usagePercentage: Decimal(17),
-            resetAt: nil,
+            resetAt: resetAt,
             isAvailable: true,
             fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
         )
@@ -215,5 +222,24 @@ enum MenuBarBalanceViewModelTests {
                 primaryProviderID: primaryProviderID
             )
         )
+    }
+
+    private static var fixedTimeFormatter: LastRefreshTimeFormatter {
+        LastRefreshTimeFormatter(
+            locale: Locale(identifier: "en_GB"),
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+    }
+
+    private static var sampleResetDate: Date {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = TimeZone(secondsFromGMT: 0)
+        components.year = 2026
+        components.month = 5
+        components.day = 15
+        components.hour = 23
+        components.minute = 5
+        return components.date!
     }
 }

@@ -134,6 +134,15 @@ struct MenuBarContentView: View {
                     }
 
                     balanceAmountLine(parts: parts, amountSize: amountSize)
+
+                    if let resetText = viewModel.resetText {
+                        Text(resetText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                            .padding(.leading, 3)
+                    }
                 }
             } else {
                 VStack(alignment: .leading, spacing: 2) {

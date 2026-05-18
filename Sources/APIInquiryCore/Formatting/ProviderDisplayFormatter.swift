@@ -151,11 +151,7 @@ public enum ProviderDisplayFormatter {
             return nil
         }
 
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        return "Resets: \(formatter.string(from: resetAt))"
+        return LastRefreshTimeFormatter().resetText(for: resetAt)
     }
 
     private static func formatAmount(

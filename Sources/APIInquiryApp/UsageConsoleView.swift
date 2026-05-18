@@ -262,6 +262,12 @@ struct UsageConsoleView: View {
             metricBox(title: "API Key", value: summary.apiKeyStatusText)
             metricBox(title: "Status", value: summary.validationStatusText)
             metricBox(title: "Detail", value: summary.balanceText)
+            if let planNextResetText = summary.planNextResetText {
+                metricBox(
+                    title: "Plan Next Resets",
+                    value: planNextResetText.replacingOccurrences(of: "Plan Next Resets: ", with: "")
+                )
+            }
             metricBox(title: "Updated", value: summary.lastRefreshText.replacingOccurrences(of: "Last updated: ", with: ""))
         }
     }

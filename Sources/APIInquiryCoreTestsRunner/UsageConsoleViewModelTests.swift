@@ -19,20 +19,23 @@ enum UsageConsoleViewModelTests {
 
     @MainActor
     private static func testMultiProviderSummariesExposePrimaryAndPlanUsage(using harness: TestHarness) async {
-        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan)
+        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan, resetAt: sampleResetDate)
         await coordinator.refreshAddedProviders()
         let viewModel = UsageConsoleViewModel(
             coordinator: coordinator,
             credentialStore: InMemoryCredentialStore(credentialsByAccount: [
                 "deepseek-api-key": "deepseek-key",
                 "zhipu-coding-plan-api-key": "zhipu-key"
-            ])
+            ]),
+            lastRefreshTimeFormatter: fixedTimeFormatter
         )
 
         harness.expectEqual(viewModel.providerSummaries.count, 2, "multi console provider summary count")
         harness.expectEqual(viewModel.providerSummaries.first?.id, .deepseek, "multi console first provider id")
+        harness.expectEqual(viewModel.providerSummaries.first?.planNextResetText, nil, "multi console deepseek plan next reset hidden")
         harness.expectEqual(viewModel.providerSummaries.last?.id, .zhipuCodingPlan, "multi console zhipu provider id")
         harness.expectEqual(viewModel.providerSummaries.last?.balanceText, "5h 17%", "multi console zhipu usage text")
+        harness.expectEqual(viewModel.providerSummaries.last?.planNextResetText, "Plan Next Resets: 23:05", "multi console zhipu plan next reset")
         harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Plan available", "multi console zhipu status")
         harness.expectTrue(viewModel.providerSummaries.last?.isPrimary == true, "multi console zhipu primary")
     }
@@ -267,6 +270,7 @@ enum UsageConsoleViewModelTests {
     private static func makeMultiProviderCoordinator(
         addedProviderIDs: [ProviderID] = [.deepseek, .zhipuCodingPlan],
         primaryProviderID: ProviderID,
+        resetAt: Date? = nil,
         credentialStore: CredentialStore = InMemoryCredentialStore(credentialsByAccount: [
             "deepseek-api-key": "deepseek-key",
             "zhipu-coding-plan-api-key": "zhipu-key"
@@ -277,7 +281,7 @@ enum UsageConsoleViewModelTests {
             providerID: .zhipuCodingPlan,
             windowLabel: "5h",
             usagePercentage: Decimal(17),
-            resetAt: nil,
+            resetAt: resetAt,
             isAvailable: true,
             fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
         )
@@ -306,6 +310,25 @@ enum UsageConsoleViewModelTests {
                 primaryProviderID: primaryProviderID
             )
         )
+    }
+
+    private static var fixedTimeFormatter: LastRefreshTimeFormatter {
+        LastRefreshTimeFormatter(
+            locale: Locale(identifier: "en_GB"),
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+    }
+
+    private static var sampleResetDate: Date {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = TimeZone(secondsFromGMT: 0)
+        components.year = 2026
+        components.month = 5
+        components.day = 15
+        components.hour = 23
+        components.minute = 5
+        return components.date!
     }
 }
 

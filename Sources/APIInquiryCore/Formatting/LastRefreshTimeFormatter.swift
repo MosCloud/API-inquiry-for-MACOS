@@ -17,12 +17,32 @@ public struct LastRefreshTimeFormatter {
             return "Last updated: --"
         }
 
+        return "Last updated: \(timeText(for: date))"
+    }
+
+    public func resetText(for date: Date?) -> String? {
+        guard let date else {
+            return nil
+        }
+
+        return "Resets: \(timeText(for: date))"
+    }
+
+    public func planNextResetText(for date: Date?) -> String? {
+        guard let date else {
+            return nil
+        }
+
+        return "Plan Next Resets: \(timeText(for: date))"
+    }
+
+    private func timeText(for date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = locale
         formatter.timeZone = timeZone
         formatter.dateStyle = .none
         formatter.timeStyle = .short
 
-        return "Last updated: \(formatter.string(from: date))"
+        return formatter.string(from: date)
     }
 }
