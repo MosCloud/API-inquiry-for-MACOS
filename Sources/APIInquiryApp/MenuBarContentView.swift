@@ -136,12 +136,14 @@ struct MenuBarContentView: View {
                     balanceAmountLine(parts: parts, amountSize: amountSize)
 
                     if let resetText = viewModel.resetText {
+                        Spacer(minLength: 8)
                         Text(resetText)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.trailing)
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
-                            .padding(.leading, 3)
+                            .frame(minWidth: 86, alignment: .trailing)
                     }
                 }
             } else {
@@ -197,7 +199,9 @@ struct MenuBarContentView: View {
             Text(viewModel.lastRefreshText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
                 .lineLimit(1)
+                .frame(minWidth: 108, alignment: .trailing)
         }
     }
 
@@ -235,14 +239,22 @@ struct MenuBarContentView: View {
                         Text(row.detailText)
                             .font(.caption.weight(.semibold))
                             .monospacedDigit()
+                            .multilineTextAlignment(.trailing)
                             .lineLimit(1)
+                            .frame(minWidth: 108, alignment: .trailing)
                         Text(row.lastRefreshText)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.trailing)
+                            .lineLimit(1)
+                            .frame(minWidth: 108, alignment: .trailing)
                         if let resetText = row.resetText {
                             Text(resetText)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.trailing)
+                                .lineLimit(1)
+                                .frame(minWidth: 108, alignment: .trailing)
                         }
                     }
                 }
