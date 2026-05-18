@@ -23,6 +23,8 @@ private struct ProviderMetricItem {
     let value: String
 }
 
+private let providerHomepageButtonHeight: CGFloat = 40
+
 struct UsageConsoleView: View {
     @ObservedObject var viewModel: UsageConsoleViewModel
     @State private var selectedSection: UsageConsoleSection
@@ -322,6 +324,7 @@ struct UsageConsoleView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
+            .frame(height: providerHomepageButtonHeight)
             .foregroundStyle(Color.primary)
             .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
