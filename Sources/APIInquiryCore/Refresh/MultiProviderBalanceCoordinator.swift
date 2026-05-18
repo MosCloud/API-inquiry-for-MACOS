@@ -72,6 +72,14 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
         runtimesByProviderID[id]?.controller
     }
 
+    public func isCredentialConfigured(for id: ProviderID) -> Bool {
+        guard let provider = provider(for: id),
+              let credential = try? credentialStore.credential(forAccount: provider.credentialAccount) else {
+            return false
+        }
+        return !credential.isEmpty
+    }
+
     public func addProvider(_ id: ProviderID) {
         guard runtimesByProviderID[id] != nil,
               !preferences.addedProviderIDs.contains(id) else {

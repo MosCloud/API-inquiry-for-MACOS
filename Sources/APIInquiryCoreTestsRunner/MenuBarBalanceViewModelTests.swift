@@ -16,6 +16,35 @@ enum MenuBarBalanceViewModelTests {
         testAuthenticationFailureExposesKeyRecoveryActions(using: harness)
         testRateLimitExposesRetryAction(using: harness)
         testRefreshingDisablesRefresh(using: harness)
+        await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
+        await testSecondaryProviderRowsExposeOtherProviders(using: harness)
+    }
+
+    @MainActor
+    private static func testZhipuPrimaryProviderFormatsPlanUsage(using harness: TestHarness) async {
+        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan)
+        await coordinator.refresh(.zhipuCodingPlan)
+        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator)
+
+        harness.expectEqual(viewModel.menuBarValueText, "5h 17%", "zhipu menu bar value")
+        harness.expectEqual(viewModel.menuBarTitle, "GLM 5h 17%", "zhipu menu bar title")
+        harness.expectEqual(viewModel.primaryDisplayParts.providerID, .zhipuCodingPlan, "zhipu primary display id")
+        harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5h", "zhipu primary display caption")
+        harness.expectEqual(viewModel.primaryDisplayParts.amountText, "17", "zhipu primary display amount")
+        harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% used", "zhipu primary display trailing")
+        harness.expectEqual(viewModel.statusText, "Plan available", "zhipu primary status")
+    }
+
+    @MainActor
+    private static func testSecondaryProviderRowsExposeOtherProviders(using harness: TestHarness) async {
+        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan)
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator)
+
+        harness.expectEqual(viewModel.secondaryProviderRows.count, 1, "secondary provider row count")
+        harness.expectEqual(viewModel.secondaryProviderRows.first?.providerID, .deepseek, "secondary provider row id")
+        harness.expectEqual(viewModel.secondaryProviderRows.first?.detailText, "¥68.65 CNY", "secondary provider detail")
+        harness.expectEqual(viewModel.secondaryProviderRows.first?.statusText, "Available", "secondary provider status")
     }
 
     @MainActor
@@ -142,5 +171,46 @@ enum MenuBarBalanceViewModelTests {
             initialState: state
         )
         return MenuBarBalanceViewModel(provider: provider, credentialStore: credentialStore, controller: controller)
+    }
+
+    @MainActor
+    private static func makeMultiProviderCoordinator(primaryProviderID: ProviderID) -> MultiProviderBalanceCoordinator {
+        let deepSeekSnapshot = makeSnapshot(providerID: .deepseek, total: "68.65")
+        let zhipuSnapshot = PlanUsageSnapshot(
+            providerID: .zhipuCodingPlan,
+            windowLabel: "5h",
+            usagePercentage: Decimal(17),
+            resetAt: nil,
+            isAvailable: true,
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        return MultiProviderBalanceCoordinator(
+            providers: [
+                MockBalanceProvider(
+                    id: .deepseek,
+                    displayName: "DeepSeek",
+                    menuPrefix: "DS",
+                    credentialAccount: "deepseek-api-key",
+                    homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
+                    results: [.success(.balance(deepSeekSnapshot))]
+                ),
+                MockBalanceProvider(
+                    id: .zhipuCodingPlan,
+                    displayName: "Zhipu GLM Coding Plan",
+                    menuPrefix: "GLM",
+                    credentialAccount: "zhipu-coding-plan-api-key",
+                    homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
+                    results: [.success(.planUsage(zhipuSnapshot))]
+                )
+            ],
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [
+                "deepseek-api-key": "deepseek-key",
+                "zhipu-coding-plan-api-key": "zhipu-key"
+            ]),
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.deepseek, .zhipuCodingPlan],
+                primaryProviderID: primaryProviderID
+            )
+        )
     }
 }

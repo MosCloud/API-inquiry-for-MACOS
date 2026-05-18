@@ -27,11 +27,10 @@ public struct SettingsFeedback: Equatable {
 public final class MenuBarBalanceViewModel: ObservableObject {
     @Published public var displayMode: MenuBarDisplayMode
 
-    public let providerDisplayName: String
-
-    private let provider: BalanceProvider
-    private let credentialStore: CredentialStore
-    private let controller: BalanceRefreshController
+    private let singleProvider: BalanceProvider?
+    private let singleCredentialStore: CredentialStore?
+    private let singleController: BalanceRefreshController?
+    private let coordinator: MultiProviderBalanceCoordinator?
     private let lastRefreshTimeFormatter: LastRefreshTimeFormatter
     private var cancellables: Set<AnyCancellable> = []
 
@@ -49,11 +48,11 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         displayMode: MenuBarDisplayMode = .text,
         lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter()
     ) {
-        self.provider = provider
-        self.credentialStore = credentialStore
-        self.controller = controller
+        self.singleProvider = provider
+        self.singleCredentialStore = credentialStore
+        self.singleController = controller
+        self.coordinator = nil
         self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
-        self.providerDisplayName = provider.displayName
         self.displayMode = displayMode
 
         controller.objectWillChange
@@ -63,79 +62,106 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
+    public init(
+        coordinator: MultiProviderBalanceCoordinator,
+        displayMode: MenuBarDisplayMode = .text,
+        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter()
+    ) {
+        self.singleProvider = nil
+        self.singleCredentialStore = nil
+        self.singleController = nil
+        self.coordinator = coordinator
+        self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
+        self.displayMode = displayMode
+
+        coordinator.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+    }
+
+    public var providerDisplayName: String {
+        activeProvider?.displayName ?? "Provider"
+    }
+
     public var state: BalanceState {
-        controller.state
+        activeState
     }
 
     public var menuBarTitle: String {
-        if case .notConfigured = state {
-            return isCredentialConfigured ? "\(provider.menuPrefix) --" : "\(provider.menuPrefix) Setup"
-        }
-
-        guard let snapshot = state.lastBalanceSnapshot else {
-            return "\(provider.menuPrefix) --"
-        }
-
-        return "\(provider.menuPrefix) \(Self.formatAmount(snapshot.totalBalance, currency: snapshot.currency, fractionDigits: 1, includeCurrencyCode: false))"
+        "\(activeProvider?.menuPrefix ?? "") \(menuBarValueText)".trimmingCharacters(in: .whitespaces)
     }
 
     public var menuBarValueText: String {
-        if case .notConfigured = state {
-            return isCredentialConfigured ? "--" : "Setup"
-        }
-
-        guard let snapshot = state.lastBalanceSnapshot else {
-            return "--"
-        }
-
-        return Self.formatAmount(snapshot.totalBalance, currency: snapshot.currency, fractionDigits: 1, includeCurrencyCode: false)
+        ProviderDisplayFormatter.menuValueText(for: activeState, isCredentialConfigured: isCredentialConfigured)
     }
 
     public var panelBalanceText: String {
-        guard let snapshot = state.lastBalanceSnapshot else {
-            return "--"
+        ProviderDisplayFormatter.detailText(for: activeState.lastSnapshot)
+    }
+
+    public var primaryDisplayParts: PrimaryProviderDisplayParts {
+        guard let provider = activeProvider else {
+            return PrimaryProviderDisplayParts(
+                providerID: .deepseek,
+                displayName: "Provider",
+                detailKind: .balance,
+                leadingText: "",
+                amountText: "--",
+                trailingText: "",
+                captionText: ""
+            )
         }
 
-        return Self.formatAmount(snapshot.totalBalance, currency: snapshot.currency, fractionDigits: 2, includeCurrencyCode: true)
+        return ProviderDisplayFormatter.primaryDisplayParts(provider: provider, state: activeState)
     }
 
     public var panelBalanceDisplayParts: BalanceDisplayParts {
-        guard let snapshot = state.lastBalanceSnapshot else {
-            return BalanceDisplayParts(leadingText: "", amountText: "--", trailingText: "")
+        let parts = primaryDisplayParts
+        return BalanceDisplayParts(
+            leadingText: parts.leadingText,
+            amountText: parts.amountText,
+            trailingText: parts.trailingText
+        )
+    }
+
+    public var secondaryProviderRows: [ProviderDetailRow] {
+        guard let coordinator else {
+            return []
         }
 
-        let currencyCode = snapshot.currency.uppercased()
-        let amountText = Self.formatNumber(Self.truncate(snapshot.totalBalance, scale: 2), fractionDigits: 2)
-
-        if currencyCode == "CNY" {
-            return BalanceDisplayParts(leadingText: "¥", amountText: amountText, trailingText: currencyCode)
-        }
-
-        return BalanceDisplayParts(leadingText: "", amountText: amountText, trailingText: currencyCode)
+        return coordinator.addedProviderIDs
+            .filter { $0 != coordinator.primaryProviderID }
+            .compactMap { id in
+                guard let provider = coordinator.provider(for: id) else {
+                    return nil
+                }
+                let state = coordinator.state(for: id)
+                return ProviderDetailRow(
+                    providerID: id,
+                    displayName: provider.displayName,
+                    detailText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot),
+                    statusText: ProviderDisplayFormatter.statusText(for: state),
+                    lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
+                    resetText: ProviderDisplayFormatter.resetText(for: state.lastSnapshot)
+                )
+            }
     }
 
     public var statusText: String {
-        switch state {
-        case .notConfigured:
-            return "Not configured"
-        case .loading:
-            return "Refreshing"
-        case .loaded(let snapshot):
-            return snapshot.isAvailable ? "Available" : "Balance insufficient"
-        case .failed:
-            return "Refresh failed"
-        }
+        ProviderDisplayFormatter.statusText(for: activeState)
     }
 
     public var errorText: String? {
-        if case .failed(let message, _, _) = state {
+        if case .failed(let message, _, _) = activeState {
             return message
         }
         return nil
     }
 
     public var lastRefreshText: String {
-        lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt)
+        lastRefreshTimeFormatter.lastRefreshText(for: activeState.lastSnapshot?.fetchedAt)
     }
 
     public var credentialStatusText: String {
@@ -151,84 +177,82 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var setupGuidanceText: String {
-        "Add a DeepSeek API key to start checking your balance."
+        "Add a \(providerDisplayName) API key to start checking your balance."
     }
 
     public var isRefreshDisabled: Bool {
-        if case .loading = state {
+        if case .loading = activeState {
             return true
         }
         return false
     }
 
     public var recoveryActions: [BalanceRecoveryAction] {
-        guard case .failed(_, let kind, _) = state else {
+        guard case .failed(_, let kind, _) = activeState else {
             return []
         }
 
         switch kind {
-        case .authenticationFailed:
-            return [.openConsole]
-        case .usageLimitReached, .planExpired:
+        case .authenticationFailed, .usageLimitReached, .planExpired:
             return [.openConsole]
         case .rateLimited, .networkUnavailable, .serverError, .decodingFailed, .invalidResponse, .unknown:
             return [.retry]
         }
     }
 
-    private var isCredentialConfigured: Bool {
-        Self.hasConfiguredCredential(in: credentialStore, account: provider.credentialAccount)
-    }
-
     public func refresh() async {
-        await controller.refresh()
+        if let coordinator {
+            await coordinator.refresh(coordinator.primaryProviderID)
+            return
+        }
+
+        await singleController?.refresh()
     }
 
     public func startAutoRefresh() {
-        controller.startAutoRefresh()
+        if let coordinator {
+            coordinator.startAutoRefresh()
+            return
+        }
+
+        singleController?.startAutoRefresh()
     }
 
     public func stopAutoRefresh() {
-        controller.stopAutoRefresh()
+        if let coordinator {
+            coordinator.stopAutoRefresh()
+            return
+        }
+
+        singleController?.stopAutoRefresh()
     }
 
-    private static func hasConfiguredCredential(in store: CredentialStore, account: String) -> Bool {
-        guard let credential = try? store.credential(forAccount: account) else {
+    private var activeProvider: BalanceProvider? {
+        if let coordinator {
+            return coordinator.provider(for: coordinator.primaryProviderID)
+        }
+
+        return singleProvider
+    }
+
+    private var activeState: BalanceState {
+        if let coordinator {
+            return coordinator.state(for: coordinator.primaryProviderID)
+        }
+
+        return singleController?.state ?? .notConfigured
+    }
+
+    private var isCredentialConfigured: Bool {
+        if let coordinator {
+            return coordinator.isCredentialConfigured(for: coordinator.primaryProviderID)
+        }
+
+        guard let store = singleCredentialStore,
+              let account = singleProvider?.credentialAccount,
+              let credential = try? store.credential(forAccount: account) else {
             return false
         }
         return !credential.isEmpty
-    }
-
-    private static func formatAmount(
-        _ amount: Decimal,
-        currency: String,
-        fractionDigits: Int,
-        includeCurrencyCode: Bool
-    ) -> String {
-        let currencyCode = currency.uppercased()
-        let number = formatNumber(truncate(amount, scale: fractionDigits), fractionDigits: fractionDigits)
-
-        if currencyCode == "CNY" {
-            return includeCurrencyCode ? "¥\(number) \(currencyCode)" : "¥\(number)"
-        }
-
-        return includeCurrencyCode ? "\(number) \(currencyCode)" : "\(currencyCode) \(number)"
-    }
-
-    private static func formatNumber(_ amount: Decimal, fractionDigits: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = fractionDigits
-        formatter.maximumFractionDigits = fractionDigits
-
-        return formatter.string(from: NSDecimalNumber(decimal: amount)) ?? "--"
-    }
-
-    private static func truncate(_ amount: Decimal, scale: Int) -> Decimal {
-        var input = amount
-        var output = Decimal()
-        NSDecimalRound(&output, &input, scale, .down)
-        return output
     }
 }
