@@ -112,29 +112,8 @@ struct UsageConsoleView: View {
 
     private func providerStatusRow(_ summary: APIProviderSummary) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                providerHomepageButton(summary, font: .title3.weight(.semibold))
-
-                if summary.isPrimary {
-                    statusBadge("Menu Bar", tone: .success)
-                } else {
-                    Button("Show in Menu Bar") {
-                        viewModel.setPrimaryProvider(summary.id)
-                    }
-                    .buttonStyle(.borderless)
-                }
-
-                Spacer()
-
-                statusBadge(summary.validationStatusText, tone: summary.statusTone)
-            }
-
-            HStack(spacing: 12) {
-                metricBox(title: "API Key", value: summary.apiKeyStatusText)
-                metricBox(title: "Status", value: summary.validationStatusText)
-                metricBox(title: "Detail", value: summary.balanceText)
-                metricBox(title: "Updated", value: summary.lastRefreshText.replacingOccurrences(of: "Last updated: ", with: ""))
-            }
+            providerHeader(summary, showsMenuBarControl: true)
+            providerMetrics(summary)
         }
         .padding(14)
         .background(Color.secondary.opacity(0.10))
@@ -153,21 +132,8 @@ struct UsageConsoleView: View {
     }
 
     private func apiProviderPanel(_ summary: APIProviderSummary) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    providerHomepageButton(summary, font: .headline)
-                    Text(summary.validationStatusText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Text(summary.apiKeyStatusText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+        VStack(alignment: .leading, spacing: 10) {
+            providerAPIHeader(summary)
 
             if !viewModel.isAPIKeyConfigured(for: summary.id) || replacingProviderIDs.contains(summary.id) {
                 SecureField(viewModel.isAPIKeyConfigured(for: summary.id) ? "New API key" : "API key", text: apiKeyBinding(for: summary.id))
@@ -250,32 +216,73 @@ struct UsageConsoleView: View {
 
             feedbackText(viewModel.settingsFeedback(for: summary.id))
         }
-        .padding(14)
+        .padding(12)
         .background(Color.secondary.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
-    @ViewBuilder
-    private func removeProviderButtonIfNeeded(_ summary: APIProviderSummary) -> some View {
-        if summary.id != .deepseek {
-            Button("Remove Provider", role: .destructive) {
-                providerRemovalConfirmationID = summary.id
+    private func providerHeader(_ summary: APIProviderSummary, showsMenuBarControl: Bool) -> some View {
+        HStack(spacing: 10) {
+            providerHomepageButton(summary)
+
+            if showsMenuBarControl {
+                if summary.isPrimary {
+                    statusBadge("Menu Bar", tone: .success)
+                } else {
+                    Button("Show in Menu Bar") {
+                        viewModel.setPrimaryProvider(summary.id)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
+
+            Spacer()
+
+            statusBadge(summary.validationStatusText, tone: summary.statusTone)
+        }
+        .frame(minHeight: 34)
+    }
+
+    private func providerAPIHeader(_ summary: APIProviderSummary) -> some View {
+        HStack(spacing: 10) {
+            providerHomepageButton(summary)
+
+            Spacer()
+
+            Text(summary.apiKeyStatusText)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(summary.apiKeyStatusText == "Configured" ? Color.green : Color.secondary)
+        }
+        .frame(minHeight: 32)
+    }
+
+    private func providerMetrics(_ summary: APIProviderSummary) -> some View {
+        HStack(spacing: 12) {
+            metricBox(title: "API Key", value: summary.apiKeyStatusText)
+            metricBox(title: "Status", value: summary.validationStatusText)
+            metricBox(title: "Detail", value: summary.balanceText)
+            metricBox(title: "Updated", value: summary.lastRefreshText.replacingOccurrences(of: "Last updated: ", with: ""))
         }
     }
 
-    private func providerHomepageButton(_ summary: APIProviderSummary, font: Font) -> some View {
+    @ViewBuilder
+    private func removeProviderButtonIfNeeded(_ summary: APIProviderSummary) -> some View {
+        Button("Remove Provider", role: .destructive) {
+            providerRemovalConfirmationID = summary.id
+        }
+        .disabled(viewModel.providerSummaries.count <= 1)
+    }
+
+    private func providerHomepageButton(_ summary: APIProviderSummary) -> some View {
         Button {
             NSWorkspace.shared.open(summary.homepageURL)
         } label: {
-            Label {
-                Text(summary.displayName)
-                    .font(font)
-            } icon: {
+            HStack(spacing: 7) {
+                providerLogo(summary)
                 Image(systemName: "arrow.up.right")
                     .font(.system(size: 11, weight: .semibold))
             }
-            .labelStyle(.titleAndIcon)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .foregroundStyle(Color.primary)
@@ -285,6 +292,24 @@ struct UsageConsoleView: View {
         .background(Color.secondary.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .help("Open \(summary.displayName) API page")
+    }
+
+    @ViewBuilder
+    private func providerLogo(_ summary: APIProviderSummary) -> some View {
+        if let image = DeepSeekImages.headerLogoTemplate(for: summary.id) {
+            let logoSize = DeepSeekImages.consoleLogoSize(for: summary.id)
+            Image(nsImage: image)
+                .resizable()
+                .renderingMode(.template)
+                .scaledToFit()
+                .frame(width: logoSize.width, height: logoSize.height, alignment: .leading)
+                .accessibilityLabel(summary.displayName)
+        } else {
+            Text(summary.displayName)
+                .font(.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
     }
 
     private func apiKeyBinding(for id: ProviderID) -> Binding<String> {
@@ -306,7 +331,7 @@ struct UsageConsoleView: View {
                 .minimumScaleFactor(0.75)
         }
         .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
     }
 
     private func statusBadge(_ text: String, tone: ProviderStatusTone) -> some View {

@@ -28,7 +28,25 @@ enum DeepSeekImages {
         case .deepseek:
             return NSSize(width: 96, height: 21)
         case .zhipuCodingPlan:
-            return NSSize(width: 174, height: 21)
+            return NSSize(width: 186, height: 23)
+        }
+    }
+
+    static func consoleLogoSize(for providerID: ProviderID) -> NSSize {
+        switch providerID {
+        case .deepseek:
+            return NSSize(width: 106, height: 23)
+        case .zhipuCodingPlan:
+            return NSSize(width: 194, height: 23)
+        }
+    }
+
+    static func menuIconSize(for providerID: ProviderID) -> NSSize {
+        switch providerID {
+        case .deepseek:
+            return NSSize(width: 20, height: 20)
+        case .zhipuCodingPlan:
+            return NSSize(width: 24, height: 20)
         }
     }
 
@@ -45,23 +63,23 @@ enum DeepSeekImages {
         ]
         let textSize = (text as NSString).size(withAttributes: attributes)
         let height: CGFloat = 22
-        let iconSize: CGFloat = 20
+        let iconSize = menuIconSize(for: providerID)
         let spacing: CGFloat = 4
-        let width = ceil(iconSize + spacing + textSize.width)
+        let width = ceil(iconSize.width + spacing + textSize.width)
         let image = NSImage(size: NSSize(width: width, height: height))
 
         image.lockFocus()
         NSGraphicsContext.current?.imageInterpolation = .high
 
         if let icon {
-            let iconRect = NSRect(x: 0, y: (height - iconSize) / 2, width: iconSize, height: iconSize)
+            let iconRect = NSRect(x: 0, y: (height - iconSize.height) / 2, width: iconSize.width, height: iconSize.height)
             icon.draw(in: iconRect, from: .zero, operation: .sourceOver, fraction: 1)
         } else {
-            drawText(providerPrefix, in: NSRect(x: 0, y: 0, width: iconSize, height: height), fontSize: providerPrefix.count > 2 ? 8 : 10, weight: .bold)
+            drawText(providerPrefix, in: NSRect(x: 0, y: 0, width: iconSize.width, height: height), fontSize: providerPrefix.count > 2 ? 8 : 10, weight: .bold)
         }
 
         let textRect = NSRect(
-            x: iconSize + spacing,
+            x: iconSize.width + spacing,
             y: floor((height - textSize.height) / 2),
             width: textSize.width,
             height: textSize.height

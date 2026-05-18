@@ -155,6 +155,7 @@ struct MenuBarContentView: View {
             if !parts.leadingText.isEmpty {
                 Text(parts.leadingText)
                     .font(.system(size: 24, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
             }
 
             Text(parts.amountText)
@@ -164,6 +165,7 @@ struct MenuBarContentView: View {
             if !parts.trailingText.isEmpty {
                 Text(parts.trailingText)
                     .font(.system(size: 24, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
                     .padding(.leading, 2)
             }
         }

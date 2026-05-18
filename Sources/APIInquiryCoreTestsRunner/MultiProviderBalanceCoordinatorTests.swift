@@ -8,6 +8,7 @@ enum MultiProviderBalanceCoordinatorTests {
         testAddSetPrimaryAndRemoveProvider(using: harness)
         testRemovingProviderCanDeleteCredential(using: harness)
         testRemovingProviderDoesNotRemoveWhenCredentialDeletionFails(using: harness)
+        testRemovingDefaultProviderFallsBackToRemainingProvider(using: harness)
         await testRemovingProviderStopsRefreshAndClearsState(using: harness)
         testAutoRefreshLifecycleFollowsProviderAddAndRemove(using: harness)
         await testRefreshAddedProvidersKeepsStatesIsolated(using: harness)
@@ -66,6 +67,21 @@ enum MultiProviderBalanceCoordinatorTests {
             harness.expectEqual(coordinator.addedProviderIDs, [.deepseek, .zhipuCodingPlan], "coordinator keeps provider when credential deletion fails")
             harness.expectEqual(try? store.credential(forAccount: "zhipu-coding-plan-api-key"), "test-key", "coordinator keeps credential when deletion fails")
         }
+    }
+
+    @MainActor
+    private static func testRemovingDefaultProviderFallsBackToRemainingProvider(using harness: TestHarness) {
+        let coordinator = makeCoordinator(
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.deepseek, .zhipuCodingPlan],
+                primaryProviderID: .deepseek
+            )
+        )
+
+        try? coordinator.removeProvider(.deepseek, deletingCredential: false)
+
+        harness.expectEqual(coordinator.addedProviderIDs, [.zhipuCodingPlan], "coordinator removes default provider when another provider remains")
+        harness.expectEqual(coordinator.primaryProviderID, .zhipuCodingPlan, "coordinator primary falls back after default removal")
     }
 
     @MainActor

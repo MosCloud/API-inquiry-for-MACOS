@@ -98,8 +98,8 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
     }
 
     public func removeProvider(_ id: ProviderID, deletingCredential: Bool) throws {
-        guard id != defaultProviderID,
-              addedProviderIDs.contains(id) else {
+        guard addedProviderIDs.contains(id),
+              addedProviderIDs.count > 1 else {
             return
         }
 
