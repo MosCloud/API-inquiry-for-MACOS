@@ -117,6 +117,11 @@ struct UsageConsoleView: View {
 
                 if summary.isPrimary {
                     statusBadge("Menu Bar", tone: .success)
+                } else {
+                    Button("Show in Menu Bar") {
+                        viewModel.setPrimaryProvider(summary.id)
+                    }
+                    .buttonStyle(.borderless)
                 }
 
                 Spacer()
@@ -159,21 +164,9 @@ struct UsageConsoleView: View {
 
                 Spacer()
 
-                HStack(spacing: 8) {
-                    if summary.isPrimary {
-                        Text("Menu Bar")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.green)
-                    } else {
-                        Button("Show in Menu Bar") {
-                            viewModel.setPrimaryProvider(summary.id)
-                        }
-                    }
-
-                    Text(summary.apiKeyStatusText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Text(summary.apiKeyStatusText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             if !viewModel.isAPIKeyConfigured(for: summary.id) || replacingProviderIDs.contains(summary.id) {

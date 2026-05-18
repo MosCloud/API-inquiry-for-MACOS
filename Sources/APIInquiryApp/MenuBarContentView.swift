@@ -117,37 +117,56 @@ struct MenuBarContentView: View {
         }
     }
 
+    @ViewBuilder
     private var balance: some View {
         let parts = viewModel.primaryDisplayParts
         let amountSize: CGFloat = parts.amountText == "--" ? 30 : 52
 
-        return VStack(alignment: .leading, spacing: 2) {
-            if !parts.captionText.isEmpty {
-                Text(parts.captionText)
-                    .font(.system(size: 20, weight: .regular, design: .rounded))
-                    .foregroundStyle(.secondary)
-            }
+        Group {
+            if parts.detailKind == .planUsage {
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    if !parts.captionText.isEmpty {
+                        Text(parts.captionText)
+                            .font(.system(size: 24, weight: .regular, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
 
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                if !parts.leadingText.isEmpty {
-                    Text(parts.leadingText)
-                        .font(.system(size: 24, weight: .regular, design: .rounded))
+                    balanceAmountLine(parts: parts, amountSize: amountSize)
                 }
+            } else {
+                VStack(alignment: .leading, spacing: 2) {
+                    if !parts.captionText.isEmpty {
+                        Text(parts.captionText)
+                            .font(.system(size: 20, weight: .regular, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
 
-                Text(parts.amountText)
-                    .font(.system(size: amountSize, weight: .medium, design: .rounded))
-                    .monospacedDigit()
-
-                if !parts.trailingText.isEmpty {
-                    Text(parts.trailingText)
-                        .font(.system(size: 24, weight: .regular, design: .rounded))
-                        .padding(.leading, 2)
+                    balanceAmountLine(parts: parts, amountSize: amountSize)
                 }
             }
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func balanceAmountLine(parts: PrimaryProviderDisplayParts, amountSize: CGFloat) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            if !parts.leadingText.isEmpty {
+                Text(parts.leadingText)
+                    .font(.system(size: 24, weight: .regular, design: .rounded))
+            }
+
+            Text(parts.amountText)
+                .font(.system(size: amountSize, weight: .medium, design: .rounded))
+                .monospacedDigit()
+
+            if !parts.trailingText.isEmpty {
+                Text(parts.trailingText)
+                    .font(.system(size: 24, weight: .regular, design: .rounded))
+                    .padding(.leading, 2)
+            }
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.75)
     }
 
     private var status: some View {
@@ -192,14 +211,9 @@ struct MenuBarContentView: View {
                         Text(row.displayName)
                             .font(.caption.weight(.semibold))
                             .lineLimit(1)
-                        Text(row.lastRefreshText)
+                        Text(row.statusText)
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        if let resetText = row.resetText {
-                            Text(resetText)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
+                            .foregroundStyle(statusColor(for: row.statusTone))
                     }
 
                     Spacer()
@@ -209,9 +223,14 @@ struct MenuBarContentView: View {
                             .font(.caption.weight(.semibold))
                             .monospacedDigit()
                             .lineLimit(1)
-                        Text(row.statusText)
+                        Text(row.lastRefreshText)
                             .font(.caption2)
-                            .foregroundStyle(statusColor(for: row.statusTone))
+                            .foregroundStyle(.secondary)
+                        if let resetText = row.resetText {
+                            Text(resetText)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
