@@ -18,6 +18,11 @@ enum UsageConsoleSection: String, CaseIterable, Identifiable {
     }
 }
 
+private struct ProviderMetricItem {
+    let title: String
+    let value: String
+}
+
 struct UsageConsoleView: View {
     @ObservedObject var viewModel: UsageConsoleViewModel
     @State private var selectedSection: UsageConsoleSection
@@ -258,18 +263,44 @@ struct UsageConsoleView: View {
     }
 
     private func providerMetrics(_ summary: APIProviderSummary) -> some View {
-        HStack(spacing: 12) {
-            metricBox(title: "API Key", value: summary.apiKeyStatusText)
-            metricBox(title: "Status", value: summary.validationStatusText)
-            metricBox(title: "Detail", value: summary.balanceText)
-            if let planNextResetText = summary.planNextResetText {
-                metricBox(
+        let metrics = providerMetricItems(for: summary)
+
+        return HStack(spacing: 0) {
+            ForEach(metrics.indices, id: \.self) { index in
+                metricBox(title: metrics[index].title, value: metrics[index].value)
+
+                if index < metrics.index(before: metrics.endIndex) {
+                    metricSeparator
+                }
+            }
+        }
+        .padding(.top, 2)
+    }
+
+    private func providerMetricItems(for summary: APIProviderSummary) -> [ProviderMetricItem] {
+        var metrics = [
+            ProviderMetricItem(title: "API Key", value: summary.apiKeyStatusText),
+            ProviderMetricItem(title: "Status", value: summary.validationStatusText),
+            ProviderMetricItem(title: "Detail", value: summary.balanceText)
+        ]
+
+        if let planNextResetText = summary.planNextResetText {
+            metrics.append(
+                ProviderMetricItem(
                     title: "Plan Next Resets",
                     value: planNextResetText.replacingOccurrences(of: "Plan Next Resets: ", with: "")
                 )
-            }
-            metricBox(title: "Updated", value: summary.lastRefreshText.replacingOccurrences(of: "Last updated: ", with: ""))
+            )
         }
+
+        metrics.append(
+            ProviderMetricItem(
+                title: "Updated",
+                value: summary.lastRefreshText.replacingOccurrences(of: "Last updated: ", with: "")
+            )
+        )
+
+        return metrics
     }
 
     @ViewBuilder
@@ -326,17 +357,26 @@ struct UsageConsoleView: View {
         }
     }
 
+    private var metricSeparator: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.10))
+            .frame(width: 1, height: 44)
+            .padding(.horizontal, 10)
+    }
+
     private func metricBox(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             Text(value)
                 .font(.system(.title3, design: .rounded).weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
-        .padding(12)
+        .padding(.vertical, 11)
+        .padding(.horizontal, 12)
         .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
     }
 
