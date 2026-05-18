@@ -28,6 +28,14 @@ public struct LastRefreshTimeFormatter {
         return "Resets: \(timeText(for: date))"
     }
 
+    public func resetDateText(for date: Date?) -> String? {
+        guard let date else {
+            return nil
+        }
+
+        return "Resets: \(dateText(for: date))"
+    }
+
     public func planNextResetText(for date: Date?) -> String? {
         guard let date else {
             return nil
@@ -42,6 +50,15 @@ public struct LastRefreshTimeFormatter {
         formatter.timeZone = timeZone
         formatter.dateStyle = .none
         formatter.timeStyle = .short
+
+        return formatter.string(from: date)
+    }
+
+    private func dateText(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "MM/dd"
 
         return formatter.string(from: date)
     }

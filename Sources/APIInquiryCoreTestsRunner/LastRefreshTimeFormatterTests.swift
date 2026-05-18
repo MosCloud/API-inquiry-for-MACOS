@@ -7,6 +7,7 @@ enum LastRefreshTimeFormatterTests {
         testUsesTwentyFourHourLocale(using: harness)
         testResetUsesTwelveHourLocale(using: harness)
         testResetUsesTwentyFourHourLocale(using: harness)
+        testResetDateUsesMonthDay(using: harness)
         testPlanNextResetUsesTwentyFourHourLocale(using: harness)
         testPlanNextResetHidesMissingDate(using: harness)
     }
@@ -51,6 +52,15 @@ enum LastRefreshTimeFormatterTests {
         )
 
         harness.expectEqual(formatter.resetText(for: sampleDate), "Resets: 23:05", "twenty four hour reset")
+    }
+
+    private static func testResetDateUsesMonthDay(using harness: TestHarness) {
+        let formatter = LastRefreshTimeFormatter(
+            locale: Locale(identifier: "en_GB"),
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+
+        harness.expectEqual(formatter.resetDateText(for: sampleDate), "Resets: 05/15", "reset date")
     }
 
     private static func testPlanNextResetUsesTwentyFourHourLocale(using harness: TestHarness) {

@@ -14,6 +14,7 @@ public struct ProviderDetailRow: Equatable {
     public let providerID: ProviderID
     public let displayName: String
     public let detailText: String
+    public let quotaWindowRows: [QuotaWindowDisplayRow]
     public let statusText: String
     public let statusTone: ProviderStatusTone
     public let lastRefreshText: String
@@ -22,6 +23,8 @@ public struct ProviderDetailRow: Equatable {
 
 public struct QuotaWindowDisplayRow: Equatable {
     public let label: String
+    public let amountText: String
+    public let suffixText: String
     public let detailText: String
     public let resetText: String?
     public let isAvailable: Bool
@@ -66,6 +69,34 @@ public enum ProviderDisplayFormatter {
             return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))%"
         case .quotaUsage(let usage):
             return quotaWindowText(for: primaryQuotaWindow(in: usage))
+        }
+    }
+
+    public static func secondaryDetailText(for snapshot: ProviderSnapshot?) -> String {
+        guard let snapshot else {
+            return "--"
+        }
+
+        switch snapshot {
+        case .planUsage(let usage):
+            return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))%"
+        default:
+            return detailText(for: snapshot)
+        }
+    }
+
+    public static func consoleDetailText(for snapshot: ProviderSnapshot?) -> String {
+        guard let snapshot else {
+            return "--"
+        }
+
+        switch snapshot {
+        case .planUsage(let usage):
+            return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))% used"
+        case .quotaUsage(let usage):
+            return "\(quotaWindowText(for: primaryQuotaWindow(in: usage))) remg"
+        default:
+            return detailText(for: snapshot)
         }
     }
 
@@ -182,6 +213,10 @@ public enum ProviderDisplayFormatter {
 
     public static func quotaWindowDetailText(for window: QuotaWindowSnapshot) -> String {
         "\(formatPercentage(window.remainingPercentage))%"
+    }
+
+    public static func quotaWindowAmountText(for window: QuotaWindowSnapshot) -> String {
+        formatPercentage(window.remainingPercentage)
     }
 
     private static func primaryQuotaWindow(in usage: QuotaUsageSnapshot) -> QuotaWindowSnapshot? {

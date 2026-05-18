@@ -20,6 +20,7 @@ enum MenuBarBalanceViewModelTests {
         await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
         await testCodexSecondaryProviderRowsExposeQuotaUsage(using: harness)
         await testSecondaryProviderRowsExposeOtherProviders(using: harness)
+        await testZhipuSecondaryProviderRowsOmitUsedSuffix(using: harness)
         await testRefreshUpdatesAllAddedProviders(using: harness)
     }
 
@@ -41,20 +42,36 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.statusText, "Quota available", "codex primary status")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.count, 2, "codex quota row count")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "5h", "codex primary quota row label")
-        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.detailText, "72%", "codex primary quota row detail")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.amountText, "72", "codex primary quota row amount")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.suffixText, "% remg", "codex primary quota row suffix")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.detailText, "72% remg", "codex primary quota row detail")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.resetText, "Resets: 23:05", "codex primary quota reset")
-        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.label, "Week", "codex weekly quota row label")
-        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.detailText, "48%", "codex weekly quota row detail")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.label, "7d", "codex weekly quota row label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.amountText, "48", "codex weekly quota row amount")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.suffixText, "% remg", "codex weekly quota row suffix")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.detailText, "48% remg", "codex weekly quota row detail")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.resetText, "Resets: 05/18", "codex weekly quota reset")
     }
 
     @MainActor
     private static func testCodexSecondaryProviderRowsExposeQuotaUsage(using harness: TestHarness) async {
         let coordinator = makeCodexCoordinator(primaryProviderID: .deepseek)
         await coordinator.refreshAddedProviders()
-        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
 
         let codexRow = viewModel.secondaryProviderRows.first { $0.providerID == .codex }
+        harness.expectEqual(codexRow?.displayName, "OpenAI", "codex secondary row display name")
         harness.expectEqual(codexRow?.detailText, "5h 72%", "codex secondary row detail")
+        harness.expectEqual(codexRow?.quotaWindowRows.count, 2, "codex secondary quota row count")
+        harness.expectEqual(codexRow?.quotaWindowRows.first?.label, "5h", "codex secondary first quota label")
+        harness.expectEqual(codexRow?.quotaWindowRows.first?.detailText, "72%", "codex secondary first quota detail")
+        harness.expectEqual(codexRow?.quotaWindowRows.first?.resetText, "Resets: 23:05", "codex secondary first quota reset")
+        harness.expectEqual(codexRow?.quotaWindowRows.last?.label, "7d", "codex secondary weekly quota label")
+        harness.expectEqual(codexRow?.quotaWindowRows.last?.detailText, "48%", "codex secondary weekly quota detail")
+        harness.expectEqual(codexRow?.quotaWindowRows.last?.resetText, "Resets: 05/18", "codex secondary weekly quota reset")
         harness.expectEqual(codexRow?.statusText, "Quota available", "codex secondary row status")
     }
 
@@ -87,6 +104,20 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.secondaryProviderRows.first?.providerID, .deepseek, "secondary provider row id")
         harness.expectEqual(viewModel.secondaryProviderRows.first?.detailText, "¥68.65 CNY", "secondary provider detail")
         harness.expectEqual(viewModel.secondaryProviderRows.first?.statusText, "Available", "secondary provider status")
+    }
+
+    @MainActor
+    private static func testZhipuSecondaryProviderRowsOmitUsedSuffix(using harness: TestHarness) async {
+        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .deepseek, resetAt: sampleResetDate)
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        let zhipuRow = viewModel.secondaryProviderRows.first { $0.providerID == .zhipuCodingPlan }
+        harness.expectEqual(zhipuRow?.detailText, "5h 17%", "zhipu secondary row detail omits used")
+        harness.expectEqual(zhipuRow?.resetText, "Resets: 23:05", "zhipu secondary row reset")
     }
 
     @MainActor
@@ -357,6 +388,18 @@ enum MenuBarBalanceViewModelTests {
         return components.date!
     }
 
+    private static var sampleWeeklyResetDate: Date {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = TimeZone(secondsFromGMT: 0)
+        components.year = 2026
+        components.month = 5
+        components.day = 18
+        components.hour = 19
+        components.minute = 7
+        return components.date!
+    }
+
     private static func makeCodexSnapshot() -> QuotaUsageSnapshot {
         QuotaUsageSnapshot(
             providerID: .codex,
@@ -371,7 +414,7 @@ enum MenuBarBalanceViewModelTests {
                 QuotaWindowSnapshot(
                     label: "Week",
                     remainingPercentage: Decimal(48),
-                    resetAt: nil,
+                    resetAt: sampleWeeklyResetDate,
                     isAvailable: true
                 )
             ],

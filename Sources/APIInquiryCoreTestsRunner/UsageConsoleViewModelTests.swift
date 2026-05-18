@@ -28,7 +28,7 @@ enum UsageConsoleViewModelTests {
         )
 
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
-        harness.expectEqual(codexSummary?.balanceText, "5h 72%", "codex console detail")
+        harness.expectEqual(codexSummary?.balanceText, "5h 72% remg", "codex console detail")
         harness.expectEqual(codexSummary?.planNameText, "Plus", "codex console plan")
         harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex console status")
     }
@@ -50,7 +50,7 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(viewModel.providerSummaries.first?.id, .deepseek, "multi console first provider id")
         harness.expectEqual(viewModel.providerSummaries.first?.planNextResetText, nil, "multi console deepseek plan next reset hidden")
         harness.expectEqual(viewModel.providerSummaries.last?.id, .zhipuCodingPlan, "multi console zhipu provider id")
-        harness.expectEqual(viewModel.providerSummaries.last?.balanceText, "5h 17%", "multi console zhipu usage text")
+        harness.expectEqual(viewModel.providerSummaries.last?.balanceText, "5h 17% used", "multi console zhipu usage text")
         harness.expectEqual(viewModel.providerSummaries.last?.planNextResetText, "Plan Next Resets: 23:05", "multi console zhipu plan next reset")
         harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Plan available", "multi console zhipu status")
         harness.expectTrue(viewModel.providerSummaries.last?.isPrimary == true, "multi console zhipu primary")

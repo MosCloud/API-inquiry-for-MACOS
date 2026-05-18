@@ -143,8 +143,9 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                 let state = coordinator.state(for: id)
                 return ProviderDetailRow(
                     providerID: id,
-                    displayName: provider.displayName,
-                    detailText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot),
+                    displayName: providerDisplayName(for: provider),
+                    detailText: ProviderDisplayFormatter.secondaryDetailText(for: state.lastSnapshot),
+                    quotaWindowRows: quotaWindowRows(for: state, suffixText: "%"),
                     statusText: ProviderDisplayFormatter.statusText(for: state),
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
                     lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
@@ -158,14 +159,45 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             return []
         }
 
-        return quota.windows.map { window in
-            QuotaWindowDisplayRow(
-                label: window.label,
-                detailText: ProviderDisplayFormatter.quotaWindowDetailText(for: window),
-                resetText: lastRefreshTimeFormatter.resetText(for: window.resetAt),
+        return quotaWindowRows(for: quota, suffixText: "% remg")
+    }
+
+    private func quotaWindowRows(for state: BalanceState, suffixText: String) -> [QuotaWindowDisplayRow] {
+        guard let quota = state.lastQuotaUsageSnapshot else {
+            return []
+        }
+        return quotaWindowRows(for: quota, suffixText: suffixText)
+    }
+
+    private func quotaWindowRows(for quota: QuotaUsageSnapshot, suffixText: String) -> [QuotaWindowDisplayRow] {
+        quota.windows.map { window in
+            let amountText = ProviderDisplayFormatter.quotaWindowAmountText(for: window)
+            return QuotaWindowDisplayRow(
+                label: quotaWindowDisplayLabel(for: window.label),
+                amountText: amountText,
+                suffixText: suffixText,
+                detailText: "\(amountText)\(suffixText)",
+                resetText: quotaWindowResetText(for: window),
                 isAvailable: window.isAvailable
             )
         }
+    }
+
+    private func quotaWindowResetText(for window: QuotaWindowSnapshot) -> String? {
+        window.label == "Week"
+            ? lastRefreshTimeFormatter.resetDateText(for: window.resetAt)
+            : lastRefreshTimeFormatter.resetText(for: window.resetAt)
+    }
+
+    private func quotaWindowDisplayLabel(for label: String) -> String {
+        guard label == "Week" else {
+            return label
+        }
+        return "7d"
+    }
+
+    private func providerDisplayName(for provider: BalanceProvider) -> String {
+        provider.id == .codex ? "OpenAI" : provider.displayName
     }
 
     public var statusText: String {

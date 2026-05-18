@@ -15,7 +15,7 @@ enum DeepSeekImages {
     }()
 
     static let chatGPTHeaderLogoTemplate: NSImage = {
-        let image = loadPNG(named: "chatgpt-logo-header") ?? textTemplateImage("ChatGPT", fontSize: 24, height: 30)
+        let image = loadPNG(named: "chatgpt-logo-header") ?? textTemplateImage("OpenAI", fontSize: 24, height: 30)
         image.isTemplate = true
         return image
     }()
@@ -38,7 +38,7 @@ enum DeepSeekImages {
         case .zhipuCodingPlan:
             return NSSize(width: 140, height: 29)
         case .codex:
-            return NSSize(width: 96, height: 26)
+            return NSSize(width: 116, height: 32)
         }
     }
 
@@ -49,7 +49,7 @@ enum DeepSeekImages {
         case .zhipuCodingPlan:
             return NSSize(width: 145, height: 30)
         case .codex:
-            return NSSize(width: 104, height: 28)
+            return NSSize(width: 120, height: 33)
         }
     }
 
@@ -60,7 +60,7 @@ enum DeepSeekImages {
         case .zhipuCodingPlan:
             return NSSize(width: 20, height: 18)
         case .codex:
-            return NSSize(width: 20, height: 20)
+            return NSSize(width: 16, height: 16)
         }
     }
 

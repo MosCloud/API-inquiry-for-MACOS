@@ -19,9 +19,11 @@ struct MenuBarContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
-            balance
-            if !viewModel.primaryQuotaWindowRows.isEmpty {
-                quotaWindowRows
+            if viewModel.primaryDisplayParts.detailKind == .quotaUsage,
+               !viewModel.primaryQuotaWindowRows.isEmpty {
+                quotaHeroRows
+            } else {
+                balance
             }
             status
             if let errorText = viewModel.errorText {
@@ -208,31 +210,45 @@ struct MenuBarContentView: View {
         }
     }
 
-    private var quotaWindowRows: some View {
-        VStack(alignment: .leading, spacing: 7) {
+    private var quotaHeroRows: some View {
+        VStack(alignment: .leading, spacing: 8) {
             ForEach(viewModel.primaryQuotaWindowRows, id: \.label) { row in
-                HStack(spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(row.label)
-                        .font(.caption.weight(.semibold))
+                        .font(.system(size: 20, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
-                        .frame(width: 42, alignment: .leading)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .frame(width: 32, alignment: .leading)
 
-                    Text(row.detailText)
-                        .font(.caption.weight(.semibold))
+                    Text(row.amountText)
+                        .font(.system(size: 36, weight: .medium, design: .rounded))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(minWidth: 42, alignment: .trailing)
 
-                    Spacer()
+                    Text(row.suffixText)
+                        .font(.system(size: 20, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+
+                    Spacer(minLength: 6)
 
                     if let resetText = row.resetText {
                         Text(resetText)
-                            .font(.caption2)
+                            .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.75)
+                            .minimumScaleFactor(0.85)
+                            .frame(minWidth: 82, alignment: .trailing)
                     }
                 }
+                .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
             }
         }
+        .padding(.top, 2)
     }
 
     @ViewBuilder
@@ -265,30 +281,59 @@ struct MenuBarContentView: View {
 
                     Spacer()
 
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text(row.detailText)
+                    secondaryProviderDetail(for: row)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func secondaryProviderDetail(for row: ProviderDetailRow) -> some View {
+        if !row.quotaWindowRows.isEmpty {
+            VStack(alignment: .trailing, spacing: 3) {
+                ForEach(row.quotaWindowRows, id: \.label) { quotaRow in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("\(quotaRow.label) \(quotaRow.amountText)\(quotaRow.suffixText)")
                             .font(.caption.weight(.semibold))
                             .monospacedDigit()
-                            .multilineTextAlignment(.trailing)
                             .lineLimit(1)
-                            .frame(minWidth: 108, alignment: .trailing)
-                        if let resetText = row.resetText {
+                            .fixedSize(horizontal: true, vertical: false)
+
+                        if let resetText = quotaRow.resetText {
                             Text(resetText)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.trailing)
                                 .lineLimit(1)
-                                .frame(minWidth: 108, alignment: .trailing)
+                                .fixedSize(horizontal: true, vertical: false)
                         }
-                        Text(row.lastRefreshText)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.trailing)
-                            .lineLimit(1)
-                            .frame(minWidth: 108, alignment: .trailing)
                     }
                 }
             }
+            .multilineTextAlignment(.trailing)
+            .frame(minWidth: 108, alignment: .trailing)
+        } else {
+            Group {
+                if let resetText = row.resetText {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(row.detailText)
+                            .font(.caption.weight(.semibold))
+                            .monospacedDigit()
+                            .lineLimit(1)
+
+                        Text(resetText)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                } else {
+                    Text(row.detailText)
+                        .font(.caption.weight(.semibold))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                }
+            }
+            .multilineTextAlignment(.trailing)
+            .frame(minWidth: 108, alignment: .trailing)
         }
     }
 
