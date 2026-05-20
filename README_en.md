@@ -216,3 +216,11 @@ Deferred:
 - Historical usage import and charts
 - Arbitrary custom providers
 - Developer ID signing and notarization
+
+## Roadmap
+
+- Latest released version: `v0.3.1`
+- Next planned version: `v0.3.2`, focused on Chinese localization, system language auto-detection, and manual `Auto / 中文 / English` language switching.
+- Later direction: historical usage trends, more providers, Developer ID signing/notarization, and automatic updates.
+
+See [docs/roadmap.md](docs/roadmap.md) for the detailed plan.

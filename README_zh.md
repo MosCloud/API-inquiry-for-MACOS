@@ -216,3 +216,11 @@ Scripts/restart-installed-app.sh
 - 历史用量导入和图表
 - 任意自定义供应商
 - Developer ID 签名和 Apple notarization 公证
+
+## 路线图
+
+- 最新已发布版本：`v0.3.1`
+- 下一计划版本：`v0.3.2`，提供中文本地化、系统语言自动适配，以及 `Auto / 中文 / English` 手动语言切换。
+- 后续方向：历史用量与趋势、更多供应商、正式签名公证和自动更新。
+
+详细计划见 [docs/roadmap.md](docs/roadmap.md)。
