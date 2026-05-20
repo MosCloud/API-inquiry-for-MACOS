@@ -38,9 +38,13 @@ public enum ProviderStatusTone: Equatable {
 }
 
 public enum ProviderDisplayFormatter {
-    public static func menuValueText(for state: BalanceState, isCredentialConfigured: Bool) -> String {
+    public static func menuValueText(
+        for state: BalanceState,
+        isCredentialConfigured: Bool,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
         if case .notConfigured = state {
-            return isCredentialConfigured ? "--" : "Setup"
+            return isCredentialConfigured ? "--" : strings.setup
         }
 
         guard let snapshot = state.lastSnapshot else {
@@ -51,13 +55,16 @@ public enum ProviderDisplayFormatter {
         case .balance(let balance):
             return formatAmount(balance.totalBalance, currency: balance.currency, fractionDigits: 1, includeCurrencyCode: false)
         case .planUsage(let usage):
-            return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))%"
+            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.usagePercentage))%"
         case .quotaUsage(let usage):
-            return quotaWindowText(for: primaryQuotaWindow(in: usage))
+            return quotaWindowText(for: primaryQuotaWindow(in: usage), strings: strings)
         }
     }
 
-    public static func detailText(for snapshot: ProviderSnapshot?) -> String {
+    public static func detailText(
+        for snapshot: ProviderSnapshot?,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
         guard let snapshot else {
             return "--"
         }
@@ -66,43 +73,50 @@ public enum ProviderDisplayFormatter {
         case .balance(let balance):
             return formatAmount(balance.totalBalance, currency: balance.currency, fractionDigits: 2, includeCurrencyCode: true)
         case .planUsage(let usage):
-            return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))%"
+            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.usagePercentage))%"
         case .quotaUsage(let usage):
-            return quotaWindowText(for: primaryQuotaWindow(in: usage))
+            return quotaWindowText(for: primaryQuotaWindow(in: usage), strings: strings)
         }
     }
 
-    public static func secondaryDetailText(for snapshot: ProviderSnapshot?) -> String {
+    public static func secondaryDetailText(
+        for snapshot: ProviderSnapshot?,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
         guard let snapshot else {
             return "--"
         }
 
         switch snapshot {
         case .planUsage(let usage):
-            return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))%"
+            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.usagePercentage))%"
         default:
-            return detailText(for: snapshot)
+            return detailText(for: snapshot, strings: strings)
         }
     }
 
-    public static func consoleDetailText(for snapshot: ProviderSnapshot?) -> String {
+    public static func consoleDetailText(
+        for snapshot: ProviderSnapshot?,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
         guard let snapshot else {
             return "--"
         }
 
         switch snapshot {
         case .planUsage(let usage):
-            return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))% used"
+            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.usagePercentage))% \(strings.usedSuffix)"
         case .quotaUsage(let usage):
-            return "\(quotaWindowText(for: primaryQuotaWindow(in: usage))) remg"
+            return "\(quotaWindowText(for: primaryQuotaWindow(in: usage), strings: strings)) \(strings.compactRemainingSuffix)"
         default:
-            return detailText(for: snapshot)
+            return detailText(for: snapshot, strings: strings)
         }
     }
 
     public static func primaryDisplayParts(
         provider: BalanceProvider,
-        state: BalanceState
+        state: BalanceState,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
     ) -> PrimaryProviderDisplayParts {
         guard let snapshot = state.lastSnapshot else {
             return PrimaryProviderDisplayParts(
@@ -136,8 +150,8 @@ public enum ProviderDisplayFormatter {
                 detailKind: .planUsage,
                 leadingText: "",
                 amountText: formatPercentage(usage.usagePercentage),
-                trailingText: "% used",
-                captionText: usage.windowLabel
+                trailingText: "% \(strings.usedSuffix)",
+                captionText: strings.quotaWindowLabel(usage.windowLabel)
             )
         case .quotaUsage(let usage):
             let window = primaryQuotaWindow(in: usage)
@@ -147,37 +161,40 @@ public enum ProviderDisplayFormatter {
                 detailKind: .quotaUsage,
                 leadingText: "",
                 amountText: formatPercentage(window?.remainingPercentage ?? 0),
-                trailingText: "% remaining",
-                captionText: window?.label ?? ""
+                trailingText: "% \(strings.remainingSuffix)",
+                captionText: window.map { strings.quotaWindowLabel($0.label) } ?? ""
             )
         }
     }
 
-    public static func statusText(for state: BalanceState) -> String {
+    public static func statusText(
+        for state: BalanceState,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
         switch state {
         case .notConfigured:
-            return "Not configured"
+            return strings.notConfigured
         case .loading:
-            return "Refreshing"
+            return strings.refreshing
         case .loaded(let snapshot):
             switch snapshot {
             case .balance(let balance):
-                return balance.isAvailable ? "Available" : "Balance insufficient"
+                return balance.isAvailable ? strings.available : strings.balanceInsufficient
             case .planUsage(let usage):
-                return usage.isAvailable ? "Plan available" : "Limit reached"
+                return usage.isAvailable ? strings.planAvailable : strings.limitReached
             case .quotaUsage(let usage):
-                return usage.isAvailable ? "Quota available" : "Quota exhausted"
+                return usage.isAvailable ? strings.quotaAvailable : strings.quotaExhausted
             }
         case .failed(_, let kind, _):
             switch kind {
             case .authenticationFailed:
-                return "Invalid"
+                return strings.invalid
             case .usageLimitReached:
-                return "Limit reached"
+                return strings.limitReached
             case .planExpired:
-                return "Plan expired"
+                return strings.planExpired
             default:
-                return "Unavailable"
+                return strings.unavailable
             }
         }
     }
@@ -223,11 +240,14 @@ public enum ProviderDisplayFormatter {
         usage.windows.first { $0.label == "5h" } ?? usage.windows.first
     }
 
-    private static func quotaWindowText(for window: QuotaWindowSnapshot?) -> String {
+    private static func quotaWindowText(
+        for window: QuotaWindowSnapshot?,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
         guard let window else {
             return "--"
         }
-        return "\(window.label) \(formatPercentage(window.remainingPercentage))%"
+        return "\(strings.quotaWindowLabel(window.label)) \(formatPercentage(window.remainingPercentage))%"
     }
 
     private static func formatAmount(

@@ -21,6 +21,17 @@ public enum CredentialStoreError: Error, Equatable, LocalizedError {
     }
 }
 
+public extension CredentialStoreError {
+    func localizedDescription(strings: LocalizedStrings) -> String {
+        switch self {
+        case .invalidCredentialData:
+            return strings.credentialDataCodingFailed
+        case .unexpectedStatus(let status):
+            return strings.keychainUnexpectedStatus(status)
+        }
+    }
+}
+
 public final class KeychainCredentialStore: CredentialStore {
     private let service: String
 

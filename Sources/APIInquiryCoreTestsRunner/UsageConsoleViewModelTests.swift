@@ -6,8 +6,10 @@ enum UsageConsoleViewModelTests {
     static func run(using harness: TestHarness) async {
         testProviderSummariesExposeUnconfiguredProvider(using: harness)
         await testProviderSummariesExposeConfiguredActiveProvider(using: harness)
+        await testProviderSummariesExposeChineseCopy(using: harness)
         await testProviderSummariesExposeInvalidProvider(using: harness)
         await testSavingAPIKeyRefreshesBalance(using: harness)
+        await testSavingAPIKeyUsesChineseFeedback(using: harness)
         await testSaveFailureKeepsInputAndDoesNotExposeKey(using: harness)
         await testConfirmingAPIKeyDeletionReturnsBalanceToSetup(using: harness)
         await testMultiProviderSummariesExposePrimaryAndPlanUsage(using: harness)
@@ -54,6 +56,26 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(viewModel.providerSummaries.last?.planNextResetText, "Plan Next Resets: 23:05", "multi console zhipu plan next reset")
         harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Plan available", "multi console zhipu status")
         harness.expectTrue(viewModel.providerSummaries.last?.isPrimary == true, "multi console zhipu primary")
+    }
+
+    @MainActor
+    private static func testProviderSummariesExposeChineseCopy(using harness: TestHarness) async {
+        let snapshot = makeSnapshot(total: "68.65")
+        let provider = MockBalanceProvider(results: [.success(.balance(snapshot))])
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let viewModel = UsageConsoleViewModel(
+            provider: provider,
+            credentialStore: credentialStore,
+            controller: controller,
+            languageStore: makeLanguageStore(selection: .zh)
+        )
+
+        await controller.refresh()
+
+        harness.expectEqual(viewModel.providerSummaries.first?.apiKeyStatusText, "已配置", "chinese console configured key status")
+        harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "正常", "chinese console active status")
+        harness.expectEqual(viewModel.providerSummaries.first?.lastRefreshText.hasPrefix("最近更新："), true, "chinese console last refresh prefix")
     }
 
     @MainActor
@@ -228,6 +250,26 @@ enum UsageConsoleViewModelTests {
     }
 
     @MainActor
+    private static func testSavingAPIKeyUsesChineseFeedback(using harness: TestHarness) async {
+        let snapshot = makeSnapshot(total: "68.65")
+        let provider = MockBalanceProvider(results: [.success(.balance(snapshot))])
+        let credentialStore = InMemoryCredentialStore()
+        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let viewModel = UsageConsoleViewModel(
+            provider: provider,
+            credentialStore: credentialStore,
+            controller: controller,
+            languageStore: makeLanguageStore(selection: .zh)
+        )
+        viewModel.apiKeyInput = "test-key"
+
+        await viewModel.saveAPIKey()
+
+        harness.expectEqual(viewModel.credentialStatusText, "已配置", "chinese console credential configured")
+        harness.expectEqual(viewModel.settingsFeedback, SettingsFeedback(kind: .success, message: "已安全保存。"), "chinese console save feedback")
+    }
+
+    @MainActor
     private static func testSaveFailureKeepsInputAndDoesNotExposeKey(using harness: TestHarness) async {
         let provider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
         let credentialStore = InMemoryCredentialStore()
@@ -271,15 +313,24 @@ enum UsageConsoleViewModelTests {
 
     @MainActor
     private static func makeViewModel(
-        credentialStore: CredentialStore = InMemoryCredentialStore()
+        credentialStore: CredentialStore = InMemoryCredentialStore(),
+        languageSelection: AppLanguage = .en
     ) -> UsageConsoleViewModel {
         let provider = MockBalanceProvider(results: [])
         let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
         return UsageConsoleViewModel(
             provider: provider,
             credentialStore: credentialStore,
-            controller: controller
+            controller: controller,
+            languageStore: makeLanguageStore(selection: languageSelection)
         )
+    }
+
+    private static func makeLanguageStore(selection: AppLanguage) -> AppLanguageStore {
+        let defaults = UserDefaults(suiteName: "APIInquiry.UsageConsoleViewModelTests.\(UUID().uuidString)")!
+        let store = AppLanguageStore(userDefaults: defaults, preferredLanguages: { ["en-US"] })
+        store.selection = selection
+        return store
     }
 
     @MainActor

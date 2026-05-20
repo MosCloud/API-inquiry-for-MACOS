@@ -12,6 +12,7 @@ public final class BalanceRefreshController: ObservableObject {
 
     private let provider: BalanceProvider
     private let credentialStore: CredentialStore
+    private let localizedStrings: () -> LocalizedStrings
     private var autoRefreshTask: Task<Void, Never>?
     private var isRefreshing = false
     private var stateRevision = 0
@@ -20,12 +21,14 @@ public final class BalanceRefreshController: ObservableObject {
         provider: BalanceProvider,
         credentialStore: CredentialStore,
         initialState: BalanceState = .notConfigured,
-        refreshInterval: TimeInterval = 300
+        refreshInterval: TimeInterval = 300,
+        localizedStrings: @escaping () -> LocalizedStrings = { LocalizedStrings(language: .en) }
     ) {
         self.provider = provider
         self.credentialStore = credentialStore
         self.state = initialState
         self.refreshInterval = refreshInterval
+        self.localizedStrings = localizedStrings
     }
 
     deinit {
@@ -69,7 +72,7 @@ public final class BalanceRefreshController: ObservableObject {
                 return
             }
             state = .failed(
-                message: Self.userMessage(for: error),
+                message: Self.userMessage(for: error, strings: localizedStrings()),
                 kind: Self.failureKind(for: error),
                 last: state.lastSnapshot
             )
@@ -103,14 +106,26 @@ public final class BalanceRefreshController: ObservableObject {
         autoRefreshTask = nil
     }
 
-    private static func userMessage(for error: Error) -> String {
+    private static func userMessage(for error: Error, strings: LocalizedStrings = LocalizedStrings(language: .en)) -> String {
+        if let providerError = error as? BalanceProviderError {
+            return providerError.localizedDescription(strings: strings)
+        }
+
+        if let credentialError = error as? CredentialStoreError {
+            return credentialError.localizedDescription(strings: strings)
+        }
+
+        if let httpError = error as? HTTPClientError {
+            return httpError.localizedDescription(strings: strings)
+        }
+
         if let localizedError = error as? LocalizedError,
            let description = localizedError.errorDescription,
            !description.isEmpty {
             return description
         }
 
-        return "Refresh failed. Try again shortly."
+        return strings.refreshFailed
     }
 
     private static func failureKind(for error: Error) -> BalanceFailureKind {

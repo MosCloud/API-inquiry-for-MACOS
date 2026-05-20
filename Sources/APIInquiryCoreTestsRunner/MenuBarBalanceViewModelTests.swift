@@ -10,14 +10,17 @@ enum MenuBarBalanceViewModelTests {
         testPanelBalanceTextFormatting(using: harness)
         testPanelBalanceDisplayParts(using: harness)
         testStatusText(using: harness)
+        testChineseStatusText(using: harness)
         testConfiguredKeyWithoutSnapshotShowsPlaceholderTitle(using: harness)
         testCredentialChangesFromConsoleAreReflected(using: harness)
         testSetupGuidanceShowsWhenKeyIsMissing(using: harness)
+        testChineseSetupGuidanceUsesAPIKeyTerminology(using: harness)
         testAuthenticationFailureExposesKeyRecoveryActions(using: harness)
         testRateLimitExposesRetryAction(using: harness)
         testRefreshingDisablesRefresh(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
         await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
+        await testCodexPrimaryProviderFormatsChineseQuotaLabels(using: harness)
         await testCodexSecondaryProviderRowsExposeQuotaUsage(using: harness)
         await testSecondaryProviderRowsExposeOtherProviders(using: harness)
         await testZhipuSecondaryProviderRowsOmitUsedSuffix(using: harness)
@@ -73,6 +76,27 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(codexRow?.quotaWindowRows.last?.detailText, "48%", "codex secondary weekly quota detail")
         harness.expectEqual(codexRow?.quotaWindowRows.last?.resetText, "Resets: 05/18", "codex secondary weekly quota reset")
         harness.expectEqual(codexRow?.statusText, "Quota available", "codex secondary row status")
+    }
+
+    @MainActor
+    private static func testCodexPrimaryProviderFormatsChineseQuotaLabels(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex)
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter,
+            languageStore: makeLanguageStore(selection: .zh)
+        )
+
+        harness.expectEqual(viewModel.statusText, "额度可用", "chinese codex status")
+        harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5 时", "chinese codex primary caption")
+        harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% 剩余", "chinese codex trailing")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "5 时", "chinese codex first quota label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.suffixText, "% 剩余", "chinese codex first quota suffix")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.detailText, "72% 剩余", "chinese codex first quota detail")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.resetText, "重置于：23:05", "chinese codex first quota reset")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.label, "1 周", "chinese codex weekly quota label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.resetText, "重置于：05/18", "chinese codex weekly quota reset")
     }
 
     @MainActor
@@ -215,6 +239,18 @@ enum MenuBarBalanceViewModelTests {
     }
 
     @MainActor
+    private static func testChineseStatusText(using harness: TestHarness) {
+        harness.expectEqual(makeViewModel(state: .notConfigured, languageSelection: .zh).statusText, "未配置", "chinese not configured status")
+        harness.expectEqual(makeViewModel(state: .loading(last: nil), languageSelection: .zh).statusText, "刷新中", "chinese refreshing status")
+        harness.expectEqual(
+            makeViewModel(state: .loaded(.balance(makeSnapshot(total: "0.00", isAvailable: false))), languageSelection: .zh).statusText,
+            "余额不足",
+            "chinese insufficient status"
+        )
+        harness.expectEqual(makeViewModel(state: .failed(message: "Refresh failed.", kind: .unknown, last: nil), languageSelection: .zh).statusText, "不可用", "chinese failed status")
+    }
+
+    @MainActor
     private static func testConfiguredKeyWithoutSnapshotShowsPlaceholderTitle(using harness: TestHarness) {
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "saved-secret-key"])
         let viewModel = makeViewModel(state: .notConfigured, credentialStore: store)
@@ -242,6 +278,17 @@ enum MenuBarBalanceViewModelTests {
             viewModel.setupGuidanceText,
             "Add a DeepSeek API key to start checking your balance.",
             "setup guidance text"
+        )
+    }
+
+    @MainActor
+    private static func testChineseSetupGuidanceUsesAPIKeyTerminology(using harness: TestHarness) {
+        let viewModel = makeViewModel(state: .notConfigured, languageSelection: .zh)
+
+        harness.expectEqual(
+            viewModel.setupGuidanceText,
+            "添加 DeepSeek API 密钥以开始查询余额。",
+            "chinese setup guidance text"
         )
     }
 
@@ -282,7 +329,8 @@ enum MenuBarBalanceViewModelTests {
     @MainActor
     private static func makeViewModel(
         state: BalanceState,
-        credentialStore: CredentialStore = InMemoryCredentialStore()
+        credentialStore: CredentialStore = InMemoryCredentialStore(),
+        languageSelection: AppLanguage = .en
     ) -> MenuBarBalanceViewModel {
         let provider = MockBalanceProvider(results: [])
         let controller = BalanceRefreshController(
@@ -290,7 +338,19 @@ enum MenuBarBalanceViewModelTests {
             credentialStore: credentialStore,
             initialState: state
         )
-        return MenuBarBalanceViewModel(provider: provider, credentialStore: credentialStore, controller: controller)
+        return MenuBarBalanceViewModel(
+            provider: provider,
+            credentialStore: credentialStore,
+            controller: controller,
+            languageStore: makeLanguageStore(selection: languageSelection)
+        )
+    }
+
+    private static func makeLanguageStore(selection: AppLanguage) -> AppLanguageStore {
+        let defaults = UserDefaults(suiteName: "APIInquiry.MenuBarBalanceViewModelTests.\(UUID().uuidString)")!
+        let store = AppLanguageStore(userDefaults: defaults, preferredLanguages: { ["en-US"] })
+        store.selection = selection
+        return store
     }
 
     @MainActor

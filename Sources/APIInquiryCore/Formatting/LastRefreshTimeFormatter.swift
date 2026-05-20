@@ -3,21 +3,28 @@ import Foundation
 public struct LastRefreshTimeFormatter {
     private let locale: Locale
     private let timeZone: TimeZone
+    private let strings: LocalizedStrings
 
     public init(
         locale: Locale = .autoupdatingCurrent,
-        timeZone: TimeZone = .autoupdatingCurrent
+        timeZone: TimeZone = .autoupdatingCurrent,
+        language: ResolvedLanguage = .en
     ) {
         self.locale = locale
         self.timeZone = timeZone
+        self.strings = LocalizedStrings(language: language)
+    }
+
+    public func withLanguage(_ language: ResolvedLanguage) -> LastRefreshTimeFormatter {
+        LastRefreshTimeFormatter(locale: locale, timeZone: timeZone, language: language)
     }
 
     public func lastRefreshText(for date: Date?) -> String {
         guard let date else {
-            return "Last updated: --"
+            return "\(strings.lastUpdatedPrefix)\(labelSeparator)--"
         }
 
-        return "Last updated: \(timeText(for: date))"
+        return "\(strings.lastUpdatedPrefix)\(labelSeparator)\(timeText(for: date))"
     }
 
     public func resetText(for date: Date?) -> String? {
@@ -25,7 +32,7 @@ public struct LastRefreshTimeFormatter {
             return nil
         }
 
-        return "Resets: \(timeText(for: date))"
+        return "\(strings.resetsPrefix)\(labelSeparator)\(timeText(for: date))"
     }
 
     public func resetDateText(for date: Date?) -> String? {
@@ -33,7 +40,7 @@ public struct LastRefreshTimeFormatter {
             return nil
         }
 
-        return "Resets: \(dateText(for: date))"
+        return "\(strings.resetsPrefix)\(labelSeparator)\(dateText(for: date))"
     }
 
     public func planNextResetText(for date: Date?) -> String? {
@@ -41,7 +48,11 @@ public struct LastRefreshTimeFormatter {
             return nil
         }
 
-        return "Plan Next Resets: \(timeText(for: date))"
+        return "\(strings.planNextResetsPrefix)\(labelSeparator)\(timeText(for: date))"
+    }
+
+    private var labelSeparator: String {
+        strings.language == .zh ? "：" : ": "
     }
 
     private func timeText(for date: Date) -> String {

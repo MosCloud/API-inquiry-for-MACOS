@@ -57,19 +57,22 @@ public final class UsageConsoleViewModel: ObservableObject {
     private let coordinator: MultiProviderBalanceCoordinator?
     private let credentialStore: CredentialStore
     private let lastRefreshTimeFormatter: LastRefreshTimeFormatter
+    private let languageStore: AppLanguageStore?
     private var cancellables: Set<AnyCancellable> = []
 
     public init(
         provider: BalanceProvider,
         credentialStore: CredentialStore,
         controller: BalanceRefreshController,
-        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter()
+        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
+        languageStore: AppLanguageStore? = nil
     ) {
         self.singleProvider = provider
         self.singleController = controller
         self.coordinator = nil
         self.credentialStore = credentialStore
         self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
+        self.languageStore = languageStore
         self.singleIsCredentialConfigured = Self.hasConfiguredCredential(
             in: credentialStore,
             account: provider.credentialAccount
@@ -80,18 +83,26 @@ public final class UsageConsoleViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+
+        languageStore?.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
 
     public init(
         coordinator: MultiProviderBalanceCoordinator,
         credentialStore: CredentialStore,
-        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter()
+        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
+        languageStore: AppLanguageStore? = nil
     ) {
         self.singleProvider = nil
         self.singleController = nil
         self.coordinator = coordinator
         self.credentialStore = credentialStore
         self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
+        self.languageStore = languageStore
         self.singleIsCredentialConfigured = false
 
         coordinator.objectWillChange
@@ -99,10 +110,16 @@ public final class UsageConsoleViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+
+        languageStore?.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
 
     public var providerDisplayName: String {
-        singleProvider?.displayName ?? coordinator?.provider(for: coordinator?.primaryProviderID ?? .deepseek)?.displayName ?? "Provider"
+        singleProvider?.displayName ?? coordinator?.provider(for: coordinator?.primaryProviderID ?? .deepseek)?.displayName ?? strings.provider
     }
 
     public var state: BalanceState {
@@ -110,7 +127,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public var credentialStatusText: String {
-        isAPIKeyConfigured ? "Configured" : "Not configured"
+        isAPIKeyConfigured ? strings.configured : strings.notConfigured
     }
 
     public var isAPIKeyConfigured: Bool {
@@ -144,9 +161,9 @@ public final class UsageConsoleViewModel: ObservableObject {
                     apiKeyStatusText: credentialStatusText,
                     validationStatusText: validationStatusText(for: state),
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
-                    balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot),
-                    lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
-                    planNextResetText: lastRefreshTimeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
+                    balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
+                    lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
+                    planNextResetText: timeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
                     planNameText: state.lastQuotaUsageSnapshot?.planName,
                     isPrimary: true
                 )
@@ -162,12 +179,12 @@ public final class UsageConsoleViewModel: ObservableObject {
                 id: id,
                 displayName: provider.displayName,
                 homepageURL: provider.homepageURL,
-                apiKeyStatusText: coordinator.isCredentialConfigured(for: id) ? "Configured" : "Not configured",
+                apiKeyStatusText: coordinator.isCredentialConfigured(for: id) ? strings.configured : strings.notConfigured,
                 validationStatusText: validationStatusText(for: state),
                 statusTone: ProviderDisplayFormatter.statusTone(for: state),
-                balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot),
-                lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
-                planNextResetText: lastRefreshTimeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
+                balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
+                lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
+                planNextResetText: timeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
                 planNameText: state.lastQuotaUsageSnapshot?.planName,
                 isPrimary: id == coordinator.primaryProviderID
             )
@@ -195,7 +212,7 @@ public final class UsageConsoleViewModel: ObservableObject {
         } catch {
             settingsFeedbacksByProviderID[id] = SettingsFeedback(
                 kind: .error,
-                message: Self.settingsMessage(for: error, fallback: "Provider could not be removed.")
+                message: settingsMessage(for: error, fallback: strings.providerCouldNotBeRemoved)
             )
         }
     }
@@ -312,14 +329,14 @@ public final class UsageConsoleViewModel: ObservableObject {
             try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
             apiKeyInput = ""
             isAPIKeyDeleteConfirmationPresented = false
-            settingsFeedback = SettingsFeedback(kind: .success, message: "API key deleted.")
+            settingsFeedback = SettingsFeedback(kind: .success, message: strings.apiKeyDeleted)
             singleIsCredentialConfigured = false
             controller.markNotConfigured()
         } catch {
             isAPIKeyDeleteConfirmationPresented = false
             settingsFeedback = SettingsFeedback(
                 kind: .error,
-                message: Self.settingsMessage(for: error, fallback: "API key could not be deleted.")
+                message: settingsMessage(for: error, fallback: strings.apiKeyCouldNotBeDeleted)
             )
         }
     }
@@ -333,12 +350,12 @@ public final class UsageConsoleViewModel: ObservableObject {
         do {
             try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
             apiKeyInputsByProviderID[id] = ""
-            settingsFeedbacksByProviderID[id] = SettingsFeedback(kind: .success, message: "API key deleted.")
+            settingsFeedbacksByProviderID[id] = SettingsFeedback(kind: .success, message: strings.apiKeyDeleted)
             coordinator.controller(for: id)?.markNotConfigured()
         } catch {
             settingsFeedbacksByProviderID[id] = SettingsFeedback(
                 kind: .error,
-                message: Self.settingsMessage(for: error, fallback: "API key could not be deleted.")
+                message: settingsMessage(for: error, fallback: strings.apiKeyCouldNotBeDeleted)
             )
         }
     }
@@ -353,7 +370,7 @@ public final class UsageConsoleViewModel: ObservableObject {
         setConfigured: (Bool) -> Void
     ) async {
         guard !apiKey.isEmpty else {
-            setFeedback(SettingsFeedback(kind: .error, message: "API key is required."))
+            setFeedback(SettingsFeedback(kind: .error, message: strings.apiKeyRequired))
             return
         }
 
@@ -365,12 +382,12 @@ public final class UsageConsoleViewModel: ObservableObject {
             switch state() {
             case .loaded:
                 clearInput()
-                setFeedback(SettingsFeedback(kind: .success, message: "Saved securely."))
+                setFeedback(SettingsFeedback(kind: .success, message: strings.savedSecurely))
                 setConfigured(true)
             case .failed:
                 setFeedback(SettingsFeedback(
                     kind: .warning,
-                    message: "API key saved, but refresh failed. API key may be invalid. Replace or delete it in the console."
+                    message: strings.apiKeySavedButRefreshFailed
                 ))
                 setConfigured(true)
             case .notConfigured, .loading:
@@ -379,7 +396,7 @@ public final class UsageConsoleViewModel: ObservableObject {
         } catch {
             setFeedback(SettingsFeedback(
                 kind: .error,
-                message: Self.settingsMessage(for: error, fallback: "API key could not be saved.")
+                message: settingsMessage(for: error, fallback: strings.apiKeyCouldNotBeSaved)
             ))
         }
     }
@@ -387,28 +404,28 @@ public final class UsageConsoleViewModel: ObservableObject {
     private func validationStatusText(for state: BalanceState) -> String {
         switch state {
         case .notConfigured:
-            return "Not configured"
+            return strings.notConfigured
         case .loading:
-            return "Checking"
+            return strings.checking
         case .loaded(let snapshot):
             switch snapshot {
             case .balance(let balance):
-                return balance.isAvailable ? "Active" : "Insufficient balance"
+                return balance.isAvailable ? strings.active : strings.insufficientBalance
             case .planUsage(let usage):
-                return usage.isAvailable ? "Plan available" : "Limit reached"
+                return usage.isAvailable ? strings.planAvailable : strings.limitReached
             case .quotaUsage(let usage):
-                return usage.isAvailable ? "Quota available" : "Quota exhausted"
+                return usage.isAvailable ? strings.quotaAvailable : strings.quotaExhausted
             }
         case .failed(_, let kind, _):
             switch kind {
             case .authenticationFailed:
-                return "Invalid"
+                return strings.invalid
             case .usageLimitReached:
-                return "Limit reached"
+                return strings.limitReached
             case .planExpired:
-                return "Plan expired"
+                return strings.planExpired
             default:
-                return "Unavailable"
+                return strings.unavailable
             }
         }
     }
@@ -428,5 +445,33 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
 
         return fallback
+    }
+
+    private func settingsMessage(for error: Error, fallback: String) -> String {
+        if let providerError = error as? BalanceProviderError {
+            return providerError.localizedDescription(strings: strings)
+        }
+
+        if let credentialError = error as? CredentialStoreError {
+            return credentialError.localizedDescription(strings: strings)
+        }
+
+        if let httpError = error as? HTTPClientError {
+            return httpError.localizedDescription(strings: strings)
+        }
+
+        return Self.settingsMessage(for: error, fallback: fallback)
+    }
+
+    public var localizedStrings: LocalizedStrings {
+        strings
+    }
+
+    private var strings: LocalizedStrings {
+        LocalizedStrings(language: languageStore?.resolvedLanguage ?? .en)
+    }
+
+    private var timeFormatter: LastRefreshTimeFormatter {
+        lastRefreshTimeFormatter.withLanguage(strings.language)
     }
 }

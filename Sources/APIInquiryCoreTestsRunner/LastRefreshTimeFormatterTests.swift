@@ -10,6 +10,7 @@ enum LastRefreshTimeFormatterTests {
         testResetDateUsesMonthDay(using: harness)
         testPlanNextResetUsesTwentyFourHourLocale(using: harness)
         testPlanNextResetHidesMissingDate(using: harness)
+        testChineseLabelsUseReviewedCopy(using: harness)
     }
 
     private static func testUsesTwelveHourLocale(using harness: TestHarness) {
@@ -79,6 +80,19 @@ enum LastRefreshTimeFormatterTests {
         )
 
         harness.expectEqual(formatter.planNextResetText(for: nil), nil as String?, "missing plan next reset")
+    }
+
+    private static func testChineseLabelsUseReviewedCopy(using harness: TestHarness) {
+        let formatter = LastRefreshTimeFormatter(
+            locale: Locale(identifier: "en_GB"),
+            timeZone: TimeZone(secondsFromGMT: 0)!,
+            language: .zh
+        )
+
+        harness.expectEqual(formatter.lastRefreshText(for: sampleDate), "最近更新：23:05", "chinese last refresh")
+        harness.expectEqual(formatter.resetText(for: sampleDate), "重置于：23:05", "chinese reset")
+        harness.expectEqual(formatter.resetDateText(for: sampleDate), "重置于：05/15", "chinese reset date")
+        harness.expectEqual(formatter.planNextResetText(for: sampleDate), "计划下次重置：23:05", "chinese plan next reset")
     }
 
     private static var sampleDate: Date {

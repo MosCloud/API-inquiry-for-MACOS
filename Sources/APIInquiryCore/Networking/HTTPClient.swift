@@ -25,6 +25,15 @@ public enum HTTPClientError: Error, Equatable, LocalizedError {
     }
 }
 
+public extension HTTPClientError {
+    func localizedDescription(strings: LocalizedStrings) -> String {
+        switch self {
+        case .invalidResponse:
+            return strings.invalidServerResponse
+        }
+    }
+}
+
 public final class URLSessionHTTPClient: HTTPClient {
     private let session: URLSession
 

@@ -9,6 +9,7 @@ enum LocalizedStringsTests {
         testChineseQuotaWindowLabelsUseCompactText(using: harness)
         testChineseProviderGuidanceUsesLocalizedPlaceholder(using: harness)
         testErrorMessagesUseChineseTerminology(using: harness)
+        testLocalizedErrorMessages(using: harness)
     }
 
     private static func testEnglishStringsMatchExistingCopy(using harness: TestHarness) {
@@ -87,6 +88,31 @@ enum LocalizedStringsTests {
             strings.keychainUnexpectedStatus(42),
             "密钥串返回了异常状态 42。",
             "chinese keychain error"
+        )
+    }
+
+    private static func testLocalizedErrorMessages(using harness: TestHarness) {
+        let strings = LocalizedStrings(language: .zh)
+
+        harness.expectEqual(
+            BalanceProviderError.authenticationFailed.localizedDescription(strings: strings),
+            "API 密钥可能无效，请在控制台中更换或删除。",
+            "chinese auth error"
+        )
+        harness.expectEqual(
+            BalanceProviderError.serverError(statusCode: 503).localizedDescription(strings: strings),
+            "Balance API 返回 HTTP 503，请稍后重试。",
+            "chinese server error"
+        )
+        harness.expectEqual(
+            CredentialStoreError.invalidCredentialData.localizedDescription(strings: strings),
+            "凭证数据无法编码或解码。",
+            "chinese credential data error"
+        )
+        harness.expectEqual(
+            HTTPClientError.invalidResponse.localizedDescription(strings: strings),
+            "服务器响应无效。",
+            "chinese http response error"
         )
     }
 }

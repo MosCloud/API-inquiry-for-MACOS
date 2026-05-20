@@ -32,6 +32,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     private let singleController: BalanceRefreshController?
     private let coordinator: MultiProviderBalanceCoordinator?
     private let lastRefreshTimeFormatter: LastRefreshTimeFormatter
+    private let languageStore: AppLanguageStore?
     private var cancellables: Set<AnyCancellable> = []
 
     public convenience init() {
@@ -46,16 +47,24 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         credentialStore: CredentialStore,
         controller: BalanceRefreshController,
         displayMode: MenuBarDisplayMode = .text,
-        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter()
+        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
+        languageStore: AppLanguageStore? = nil
     ) {
         self.singleProvider = provider
         self.singleCredentialStore = credentialStore
         self.singleController = controller
         self.coordinator = nil
         self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
+        self.languageStore = languageStore
         self.displayMode = displayMode
 
         controller.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
+        languageStore?.objectWillChange
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
             }
@@ -65,13 +74,15 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     public init(
         coordinator: MultiProviderBalanceCoordinator,
         displayMode: MenuBarDisplayMode = .text,
-        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter()
+        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
+        languageStore: AppLanguageStore? = nil
     ) {
         self.singleProvider = nil
         self.singleCredentialStore = nil
         self.singleController = nil
         self.coordinator = coordinator
         self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
+        self.languageStore = languageStore
         self.displayMode = displayMode
 
         coordinator.objectWillChange
@@ -79,10 +90,16 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+
+        languageStore?.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
 
     public var providerDisplayName: String {
-        activeProvider?.displayName ?? "Provider"
+        activeProvider?.displayName ?? strings.provider
     }
 
     public var state: BalanceState {
@@ -97,18 +114,18 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var menuBarValueText: String {
-        ProviderDisplayFormatter.menuValueText(for: activeState, isCredentialConfigured: isCredentialConfigured)
+        ProviderDisplayFormatter.menuValueText(for: activeState, isCredentialConfigured: isCredentialConfigured, strings: strings)
     }
 
     public var panelBalanceText: String {
-        ProviderDisplayFormatter.detailText(for: activeState.lastSnapshot)
+        ProviderDisplayFormatter.detailText(for: activeState.lastSnapshot, strings: strings)
     }
 
     public var primaryDisplayParts: PrimaryProviderDisplayParts {
         guard let provider = activeProvider else {
             return PrimaryProviderDisplayParts(
                 providerID: .deepseek,
-                displayName: "Provider",
+                displayName: strings.provider,
                 detailKind: .balance,
                 leadingText: "",
                 amountText: "--",
@@ -117,7 +134,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             )
         }
 
-        return ProviderDisplayFormatter.primaryDisplayParts(provider: provider, state: activeState)
+        return ProviderDisplayFormatter.primaryDisplayParts(provider: provider, state: activeState, strings: strings)
     }
 
     public var panelBalanceDisplayParts: BalanceDisplayParts {
@@ -144,12 +161,12 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                 return ProviderDetailRow(
                     providerID: id,
                     displayName: providerDisplayName(for: provider),
-                    detailText: ProviderDisplayFormatter.secondaryDetailText(for: state.lastSnapshot),
+                    detailText: ProviderDisplayFormatter.secondaryDetailText(for: state.lastSnapshot, strings: strings),
                     quotaWindowRows: quotaWindowRows(for: state, suffixText: "%"),
-                    statusText: ProviderDisplayFormatter.statusText(for: state),
+                    statusText: ProviderDisplayFormatter.statusText(for: state, strings: strings),
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
-                    lastRefreshText: lastRefreshTimeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
-                    resetText: lastRefreshTimeFormatter.resetText(for: state.lastPlanUsageSnapshot?.resetAt)
+                    lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
+                    resetText: timeFormatter.resetText(for: state.lastPlanUsageSnapshot?.resetAt)
                 )
             }
     }
@@ -159,7 +176,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             return []
         }
 
-        return quotaWindowRows(for: quota, suffixText: "% remg")
+        return quotaWindowRows(for: quota, suffixText: "% \(strings.compactRemainingSuffix)")
     }
 
     private func quotaWindowRows(for state: BalanceState, suffixText: String) -> [QuotaWindowDisplayRow] {
@@ -185,15 +202,12 @@ public final class MenuBarBalanceViewModel: ObservableObject {
 
     private func quotaWindowResetText(for window: QuotaWindowSnapshot) -> String? {
         window.label == "Week"
-            ? lastRefreshTimeFormatter.resetDateText(for: window.resetAt)
-            : lastRefreshTimeFormatter.resetText(for: window.resetAt)
+            ? timeFormatter.resetDateText(for: window.resetAt)
+            : timeFormatter.resetText(for: window.resetAt)
     }
 
     private func quotaWindowDisplayLabel(for label: String) -> String {
-        guard label == "Week" else {
-            return label
-        }
-        return "7d"
+        strings.quotaWindowLabel(label)
     }
 
     private func providerDisplayName(for provider: BalanceProvider) -> String {
@@ -201,7 +215,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var statusText: String {
-        ProviderDisplayFormatter.statusText(for: activeState)
+        ProviderDisplayFormatter.statusText(for: activeState, strings: strings)
     }
 
     public var statusTone: ProviderStatusTone {
@@ -216,15 +230,15 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var lastRefreshText: String {
-        lastRefreshTimeFormatter.lastRefreshText(for: activeState.lastSnapshot?.fetchedAt)
+        timeFormatter.lastRefreshText(for: activeState.lastSnapshot?.fetchedAt)
     }
 
     public var resetText: String? {
-        lastRefreshTimeFormatter.resetText(for: activeState.lastPlanUsageSnapshot?.resetAt)
+        timeFormatter.resetText(for: activeState.lastPlanUsageSnapshot?.resetAt)
     }
 
     public var credentialStatusText: String {
-        isCredentialConfigured ? "Configured" : "Not configured"
+        isCredentialConfigured ? strings.configured : strings.notConfigured
     }
 
     public var isAPIKeyConfigured: Bool {
@@ -236,7 +250,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var setupGuidanceText: String {
-        "Add a \(providerDisplayName) API key to start checking your balance."
+        strings.setupGuidance(providerDisplayName: providerDisplayName)
     }
 
     public var isRefreshDisabled: Bool {
@@ -313,5 +327,13 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             return false
         }
         return !credential.isEmpty
+    }
+
+    private var strings: LocalizedStrings {
+        LocalizedStrings(language: languageStore?.resolvedLanguage ?? .en)
+    }
+
+    private var timeFormatter: LastRefreshTimeFormatter {
+        lastRefreshTimeFormatter.withLanguage(strings.language)
     }
 }

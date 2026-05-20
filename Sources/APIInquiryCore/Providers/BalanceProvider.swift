@@ -59,6 +59,31 @@ public enum BalanceProviderError: Error, Equatable, LocalizedError {
 }
 
 public extension BalanceProviderError {
+    func localizedDescription(strings: LocalizedStrings) -> String {
+        switch self {
+        case .invalidURL:
+            return strings.invalidBalanceAPIURL
+        case .authenticationFailed:
+            return strings.apiKeyMayBeInvalid
+        case .rateLimited:
+            return strings.balanceAPIRateLimitReached
+        case .serverError(let statusCode):
+            return strings.balanceAPIReturnedHTTP(statusCode)
+        case .missingBalanceInfo:
+            return strings.balanceAPIMissingBalanceInfo
+        case .invalidBalanceAmount:
+            return strings.invalidBalanceAmount
+        case .invalidResponseKind:
+            return strings.unsupportedResponseKind
+        case .usageLimitReached:
+            return strings.planUsageLimitReached
+        case .planExpired:
+            return strings.planHasExpired
+        case .decodingFailed:
+            return strings.balanceAPIResponseCouldNotBeDecoded
+        }
+    }
+
     var failureKind: BalanceFailureKind {
         switch self {
         case .authenticationFailed:

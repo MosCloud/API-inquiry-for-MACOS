@@ -8,6 +8,7 @@ enum BalanceRefreshControllerTests {
         await testSuccessfulRefreshLoadsSnapshot(using: harness)
         await testFailurePreservesLastSnapshot(using: harness)
         await testAuthenticationFailureUsesTypedFailureKind(using: harness)
+        await testAuthenticationFailureCanUseChineseMessage(using: harness)
         await testOverlappingRefreshDoesNotStartSecondProviderCall(using: harness)
         await testMarkNotConfiguredInvalidatesInFlightRefresh(using: harness)
         await testCancellationRestoresPreviousState(using: harness)
@@ -82,6 +83,29 @@ enum BalanceRefreshControllerTests {
                 last: nil
             ),
             "authentication failure kind"
+        )
+    }
+
+    @MainActor
+    private static func testAuthenticationFailureCanUseChineseMessage(using harness: TestHarness) async {
+        let provider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
+        let controller = BalanceRefreshController(
+            provider: provider,
+            credentialStore: store,
+            localizedStrings: { LocalizedStrings(language: .zh) }
+        )
+
+        await controller.refresh()
+
+        harness.expectEqual(
+            controller.state,
+            .failed(
+                message: "API 密钥可能无效，请在控制台中更换或删除。",
+                kind: .authenticationFailed,
+                last: nil
+            ),
+            "authentication failure chinese message"
         )
     }
 
