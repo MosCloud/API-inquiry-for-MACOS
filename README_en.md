@@ -5,11 +5,11 @@
 ## Screenshots
 
 <p>
-  <img src="docs/assets/v0.3.3/menu-panel.png" alt="API Inquiry menu bar details panel" width="360">
+  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.3/menu-panel.png" alt="API Inquiry menu bar details panel" width="360">
 </p>
 
 <p>
-  <img src="docs/assets/v0.3.3/console-home.png" alt="API Inquiry console home" width="720">
+  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.3/console-home.png" alt="API Inquiry console home" width="720">
 </p>
 
 API Inquiry is a native macOS menu bar app for checking API provider status and managing provider API keys. It supports DeepSeek balance checks, Zhipu GLM Coding Plan usage, Codex/ChatGPT session quota checks, automatic Chinese/English UI matching, and manual language switching. It stores provider API keys in macOS Keychain, refreshes configured providers every 5 minutes, shows the Primary Provider in the menu bar, and provides a lightweight local console for provider management.
