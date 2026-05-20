@@ -203,7 +203,7 @@ struct MenuBarContentView: View {
 
             Text(viewModel.statusText)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(statusColor)
 
             Spacer()
 
