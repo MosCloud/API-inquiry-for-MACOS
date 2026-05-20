@@ -70,7 +70,7 @@ enum DeepSeekImages {
         providerPrefix: String = "DS"
     ) -> NSImage {
         let icon = menuIconTemplate(for: providerID)
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .regular)
+        let font = NSFont.menuBarFont(ofSize: 0)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: NSColor.white

@@ -37,6 +37,7 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.resetsPrefix, "重置于", "chinese resets")
         harness.expectEqual(strings.planNextResetsPrefix, "计划下次重置", "chinese plan next resets")
         harness.expectEqual(strings.apiKeyMetricTitle, "API 密钥", "chinese api key")
+        harness.expectEqual(strings.updatedMetricTitle, "更新于", "chinese updated metric title")
         harness.expectEqual(strings.keychainName, "密钥串", "chinese keychain")
     }
 

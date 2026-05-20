@@ -55,9 +55,9 @@ public enum ProviderDisplayFormatter {
         case .balance(let balance):
             return formatAmount(balance.totalBalance, currency: balance.currency, fractionDigits: 1, includeCurrencyCode: false)
         case .planUsage(let usage):
-            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.usagePercentage))%"
+            return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))%"
         case .quotaUsage(let usage):
-            return quotaWindowText(for: primaryQuotaWindow(in: usage), strings: strings)
+            return menuQuotaWindowText(for: primaryQuotaWindow(in: usage))
         }
     }
 
@@ -248,6 +248,13 @@ public enum ProviderDisplayFormatter {
             return "--"
         }
         return "\(strings.quotaWindowLabel(window.label)) \(formatPercentage(window.remainingPercentage))%"
+    }
+
+    private static func menuQuotaWindowText(for window: QuotaWindowSnapshot?) -> String {
+        guard let window else {
+            return "--"
+        }
+        return "\(window.label) \(formatPercentage(window.remainingPercentage))%"
     }
 
     private static func formatAmount(

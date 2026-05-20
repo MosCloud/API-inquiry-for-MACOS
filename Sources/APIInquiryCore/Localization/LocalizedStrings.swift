@@ -57,7 +57,7 @@ public struct LocalizedStrings: Equatable {
     public var statusMetricTitle: String { text(en: "Status", zh: "状态") }
     public var detailMetricTitle: String { text(en: "Detail", zh: "详情") }
     public var planMetricTitle: String { text(en: "Plan", zh: "计划") }
-    public var updatedMetricTitle: String { text(en: "Updated", zh: "更新") }
+    public var updatedMetricTitle: String { text(en: "Updated", zh: "更新于") }
     public var planNextResetsMetricTitle: String { text(en: "Plan Next Resets", zh: "计划下次重置") }
 
     public var apiKeyPlaceholder: String { text(en: "API key", zh: "API 密钥") }
@@ -223,4 +223,3 @@ public struct LocalizedStrings: Equatable {
         language == .zh ? zh : en
     }
 }
-

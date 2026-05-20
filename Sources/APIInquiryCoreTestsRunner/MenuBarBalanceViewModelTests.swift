@@ -89,6 +89,8 @@ enum MenuBarBalanceViewModelTests {
         )
 
         harness.expectEqual(viewModel.statusText, "额度可用", "chinese codex status")
+        harness.expectEqual(viewModel.menuBarValueText, "5h 72%", "chinese codex menu bar keeps compact official label")
+        harness.expectEqual(viewModel.menuBarTitle, "5h 72%", "chinese codex menu bar title keeps compact official label")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5 时", "chinese codex primary caption")
         harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% 剩余", "chinese codex trailing")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "5 时", "chinese codex first quota label")
