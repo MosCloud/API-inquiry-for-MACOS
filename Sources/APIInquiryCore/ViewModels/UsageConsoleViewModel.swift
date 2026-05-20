@@ -22,7 +22,7 @@ public struct APIProviderSummary: Equatable {
         validationStatusText: String,
         statusTone: ProviderStatusTone = .neutral,
         balanceText: String,
-        lastRefreshText: String = "Last updated: --",
+        lastRefreshText: String = "--",
         planNextResetText: String? = nil,
         planNameText: String? = nil,
         isPrimary: Bool = false
