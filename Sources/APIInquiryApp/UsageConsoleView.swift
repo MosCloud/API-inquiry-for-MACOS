@@ -5,6 +5,7 @@ import SwiftUI
 enum UsageConsoleSection: String, CaseIterable, Identifiable {
     case home = "Home"
     case api = "API"
+    case settings = "Settings"
 
     var id: String { rawValue }
 
@@ -14,6 +15,8 @@ enum UsageConsoleSection: String, CaseIterable, Identifiable {
             return "house"
         case .api:
             return "key"
+        case .settings:
+            return "gearshape"
         }
     }
 
@@ -23,6 +26,8 @@ enum UsageConsoleSection: String, CaseIterable, Identifiable {
             return strings.homeSection
         case .api:
             return strings.apiSection
+        case .settings:
+            return strings.settingsSection
         }
     }
 }
@@ -33,6 +38,7 @@ private struct ProviderMetricItem {
 }
 
 private let providerHomepageButtonHeight: CGFloat = 40
+private let projectHomepageURL = URL(string: "https://github.com/MosCloud/API-inquiry-for-MACOS")!
 
 struct UsageConsoleView: View {
     @ObservedObject var viewModel: UsageConsoleViewModel
@@ -55,6 +61,8 @@ struct UsageConsoleView: View {
                     homeSection
                 case .api:
                     apiSection
+                case .settings:
+                    settingsSection
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -107,15 +115,6 @@ struct UsageConsoleView: View {
 
                 Spacer()
 
-                Picker(strings.languageTitle, selection: languageSelectionBinding) {
-                    ForEach(AppLanguage.allCases, id: \.self) { language in
-                        Text(strings.languageOptionTitle(language)).tag(language)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.segmented)
-                .frame(width: 220)
-
                 Menu {
                     ForEach(viewModel.availableProviderIDsToAdd, id: \.self) { id in
                         Button(viewModel.displayName(for: id)) {
@@ -154,6 +153,56 @@ struct UsageConsoleView: View {
             ForEach(viewModel.providerSummaries, id: \.id) { summary in
                 apiProviderPanel(summary)
             }
+        }
+    }
+
+    private var settingsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(strings.settingsSection)
+                .font(.headline)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(strings.languageTitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Picker(strings.languageTitle, selection: languageSelectionBinding) {
+                    ForEach(AppLanguage.allCases, id: \.self) { language in
+                        Text(strings.languageOptionTitle(language)).tag(language)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 260)
+
+                Divider()
+
+                HStack {
+                    Text(strings.versionTitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    Text(appVersionText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+
+                    Button {
+                        NSWorkspace.shared.open(projectHomepageURL)
+                    } label: {
+                        Label(strings.projectHomepage, systemImage: "arrow.up.right")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .help(strings.projectHomepage)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.secondary.opacity(0.10))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
     }
 
@@ -256,7 +305,7 @@ struct UsageConsoleView: View {
 
             if showsMenuBarControl {
                 if summary.isPrimary {
-                    statusBadge(strings.menuBar, tone: .success)
+                    menuBarBadge(strings.menuBar)
                 } else {
                     Button(strings.showInMenuBar) {
                         viewModel.setPrimaryProvider(summary.id)
@@ -402,6 +451,11 @@ struct UsageConsoleView: View {
         viewModel.localizedStrings
     }
 
+    private var appVersionText: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        return "v\(version ?? "0.3.3")"
+    }
+
     private func strippedPrefix(_ text: String, prefix: String) -> String {
         if text.hasPrefix("\(prefix): ") {
             return String(text.dropFirst(prefix.count + 2))
@@ -444,6 +498,20 @@ struct UsageConsoleView: View {
             .padding(.vertical, 5)
             .foregroundStyle(statusColor(for: tone))
             .background(statusColor(for: tone).opacity(0.14))
+            .clipShape(Capsule())
+    }
+
+    private func menuBarBadge(_ text: String) -> some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .foregroundStyle(Color.white)
+            .background(Color.accentColor.opacity(0.30))
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.accentColor.opacity(0.65), lineWidth: 1)
+            )
             .clipShape(Capsule())
     }
 

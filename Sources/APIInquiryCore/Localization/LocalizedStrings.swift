@@ -47,6 +47,9 @@ public struct LocalizedStrings: Equatable {
 
     public var homeSection: String { text(en: "Home", zh: "首页") }
     public var apiSection: String { "API" }
+    public var settingsSection: String { text(en: "Settings", zh: "设置") }
+    public var versionTitle: String { text(en: "Version", zh: "版本") }
+    public var projectHomepage: String { text(en: "Project Homepage", zh: "项目主页") }
     public var providersTitle: String { text(en: "Providers", zh: "供应商") }
     public var addProvider: String { text(en: "Add Provider", zh: "添加供应商") }
     public var apiProvidersTitle: String { text(en: "API Providers", zh: "API 供应商") }
