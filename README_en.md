@@ -2,7 +2,7 @@
 
 [中文](README.md)
 
-API Inquiry is a native macOS menu bar app for checking API provider status and managing provider API keys. It supports DeepSeek balance checks, Zhipu GLM Coding Plan usage, and Codex/ChatGPT session quota checks, stores provider API keys in macOS Keychain, refreshes configured providers every 5 minutes, shows the Primary Provider in the menu bar, and provides a lightweight local console for provider management.
+API Inquiry is a native macOS menu bar app for checking API provider status and managing provider API keys. It supports DeepSeek balance checks, Zhipu GLM Coding Plan usage, Codex/ChatGPT session quota checks, automatic Chinese/English UI matching, and manual language switching. It stores provider API keys in macOS Keychain, refreshes configured providers every 5 minutes, shows the Primary Provider in the menu bar, and provides a lightweight local console for provider management.
 
 ## Requirements
 
@@ -30,7 +30,7 @@ swift run APIInquiryCoreTestsRunner
 Expected result:
 
 ```text
-PASS: 250 expectations
+PASS: 341 expectations
 ```
 
 ## Build
@@ -91,8 +91,8 @@ Scripts/package-dmg.sh
 The script creates:
 
 ```text
-dist/API-Inquiry-v0.3.1.dmg
-dist/API-Inquiry-v0.3.1.dmg.sha256
+dist/API-Inquiry-v0.3.2.dmg
+dist/API-Inquiry-v0.3.2.dmg.sha256
 ```
 
 After release validation and upload, remove local development app bundles so Launchpad only indexes the installed app:
@@ -105,11 +105,11 @@ Scripts/clean-development-apps.sh
 
 This project uses a free GitHub Releases distribution strategy. The DMG is ad-hoc signed but not Apple notarized.
 
-1. Download `API-Inquiry-v0.3.1.dmg` and `API-Inquiry-v0.3.1.dmg.sha256` from GitHub Releases.
+1. Download `API-Inquiry-v0.3.2.dmg` and `API-Inquiry-v0.3.2.dmg.sha256` from GitHub Releases.
 2. Verify the download:
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.3.1.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.3.2.dmg.sha256
    ```
 
 3. Open the DMG.
@@ -178,6 +178,9 @@ Manual checks:
 - Console provider names open the provider's API page; DeepSeek opens `https://platform.deepseek.com/usage`.
 - The `AutoStart` action toggles launch at login and changes color when enabled.
 - The last updated time follows the system 12-hour or 24-hour clock setting.
+- The default language is `Auto`, which follows the macOS preferred language and resolves to Chinese or English.
+- Console Home can switch between `Auto / 中文 / English`; language changes update both the menu details panel and Console.
+- Chinese UI uses compact quota labels, `5 时` and `1 周`, to preserve the menu bar and details layout.
 - Manual refresh uses the same refresh path as automatic refresh.
 - Deleting the key from the console returns the app to setup state.
 - The menu bar shows only the Primary Provider detail: DeepSeek shows compact balance such as `¥68.6`; Zhipu GLM Coding Plan shows usage such as `5h 17%`.
@@ -204,6 +207,7 @@ Included in this release:
 - Minimal native `MenuBarExtra` status UI for the Primary Provider
 - Local API Inquiry console window
 - Local API provider console with Home and API pages
+- Automatic Chinese/English UI matching and manual language switching
 - Provider status summary with API key, validation, balance, and plan usage state
 - Plan reset time display for coding-plan providers
 - Local `.app` bundle generation
