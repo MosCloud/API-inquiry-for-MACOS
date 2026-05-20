@@ -19,10 +19,16 @@ public enum AppLanguage: String, CaseIterable, Equatable {
         case .en:
             return .en
         case .auto:
-            return preferredLanguages.contains { preferredLanguage in
-                preferredLanguage.lowercased().hasPrefix("zh")
-            } ? .zh : .en
+            for preferredLanguage in preferredLanguages {
+                let normalizedLanguage = preferredLanguage.lowercased()
+                if normalizedLanguage.hasPrefix("zh") {
+                    return .zh
+                }
+                if normalizedLanguage.hasPrefix("en") {
+                    return .en
+                }
+            }
+            return .en
         }
     }
 }
-

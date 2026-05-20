@@ -29,6 +29,7 @@ enum AppLanguageTests {
 
     private static func testAutoResolvesNonChinesePreferredLanguagesToEnglish(using harness: TestHarness) {
         harness.expectEqual(AppLanguage.auto.resolved(preferredLanguages: ["en-US"]), .en, "english resolves english")
+        harness.expectEqual(AppLanguage.auto.resolved(preferredLanguages: ["en-CN", "zh-Hans-CN"]), .en, "english region before chinese fallback resolves english")
         harness.expectEqual(AppLanguage.auto.resolved(preferredLanguages: ["ja-JP", "en-US"]), .en, "non chinese resolves english")
         harness.expectEqual(AppLanguage.auto.resolved(preferredLanguages: []), .en, "empty languages resolves english")
     }
