@@ -8,8 +8,10 @@ struct APIInquiryApp: App {
     @StateObject private var viewModel: MenuBarBalanceViewModel
     @StateObject private var consoleViewModel: UsageConsoleViewModel
     @StateObject private var consoleWindowController: UsageConsoleWindowController
+    @StateObject private var languageStore: AppLanguageStore
 
     init() {
+        let languageStore = AppLanguageStore()
         let providers: [BalanceProvider] = [
             DeepSeekBalanceProvider(),
             ZhipuCodingPlanProvider(),
@@ -19,15 +21,21 @@ struct APIInquiryApp: App {
         let coordinator = MultiProviderBalanceCoordinator(
             providers: providers,
             credentialStore: credentialStore,
-            preferences: UserDefaultsProviderPreferencesStore()
+            preferences: UserDefaultsProviderPreferencesStore(),
+            localizedStrings: { LocalizedStrings(language: languageStore.resolvedLanguage) }
         )
-        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator)
-        let consoleViewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator, languageStore: languageStore)
+        let consoleViewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: credentialStore,
+            languageStore: languageStore
+        )
 
+        _languageStore = StateObject(wrappedValue: languageStore)
         _viewModel = StateObject(wrappedValue: viewModel)
         _consoleViewModel = StateObject(wrappedValue: consoleViewModel)
         _consoleWindowController = StateObject(
-            wrappedValue: UsageConsoleWindowController(viewModel: consoleViewModel)
+            wrappedValue: UsageConsoleWindowController(viewModel: consoleViewModel, languageStore: languageStore)
         )
 
         Task { @MainActor in
@@ -38,7 +46,7 @@ struct APIInquiryApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarContentView(viewModel: viewModel) { section in
+            MenuBarContentView(viewModel: viewModel, languageStore: languageStore) { section in
                 consoleWindowController.open(defaultSection: section)
             }
         } label: {

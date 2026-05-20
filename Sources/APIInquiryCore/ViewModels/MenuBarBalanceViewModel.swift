@@ -329,6 +329,10 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         return !credential.isEmpty
     }
 
+    public var localizedStrings: LocalizedStrings {
+        strings
+    }
+
     private var strings: LocalizedStrings {
         LocalizedStrings(language: languageStore?.resolvedLanguage ?? .en)
     }

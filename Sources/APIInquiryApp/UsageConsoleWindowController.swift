@@ -1,14 +1,24 @@
 import APIInquiryCore
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
 final class UsageConsoleWindowController: ObservableObject {
     private let viewModel: UsageConsoleViewModel
+    private let languageStore: AppLanguageStore
     private var window: NSWindow?
+    private var cancellables: Set<AnyCancellable> = []
 
-    init(viewModel: UsageConsoleViewModel) {
+    init(viewModel: UsageConsoleViewModel, languageStore: AppLanguageStore = AppLanguageStore()) {
         self.viewModel = viewModel
+        self.languageStore = languageStore
+
+        languageStore.objectWillChange
+            .sink { [weak self] _ in
+                self?.window?.title = LocalizedStrings(language: languageStore.resolvedLanguage).appConsoleTitle
+            }
+            .store(in: &cancellables)
     }
 
     func open(defaultSection: UsageConsoleSection = .home) {
@@ -27,7 +37,7 @@ final class UsageConsoleWindowController: ObservableObject {
             backing: .buffered,
             defer: false
         )
-        window.title = "API Inquiry Console"
+        window.title = LocalizedStrings(language: languageStore.resolvedLanguage).appConsoleTitle
         window.contentViewController = NSHostingController(rootView: rootView)
         window.isReleasedWhenClosed = false
         window.center()

@@ -7,13 +7,19 @@ struct MenuBarContentView: View {
     @Environment(\.dismiss) private var dismissMenu
 
     @ObservedObject var viewModel: MenuBarBalanceViewModel
+    @ObservedObject var languageStore: AppLanguageStore
     @StateObject private var launchAtLoginController: LaunchAtLoginController
     private let openConsole: (UsageConsoleSection) -> Void
 
-    init(viewModel: MenuBarBalanceViewModel, openConsole: @escaping (UsageConsoleSection) -> Void) {
+    init(
+        viewModel: MenuBarBalanceViewModel,
+        languageStore: AppLanguageStore,
+        openConsole: @escaping (UsageConsoleSection) -> Void
+    ) {
         self.viewModel = viewModel
+        self.languageStore = languageStore
         self.openConsole = openConsole
-        _launchAtLoginController = StateObject(wrappedValue: LaunchAtLoginController())
+        _launchAtLoginController = StateObject(wrappedValue: LaunchAtLoginController(languageStore: languageStore))
     }
 
     var body: some View {
@@ -81,7 +87,7 @@ struct MenuBarContentView: View {
             Button {
                 openConsoleAndCloseMenu(.api)
             } label: {
-                Label("Open Console", systemImage: "macwindow")
+                Label(strings.openConsole, systemImage: "macwindow")
             }
             .buttonStyle(.borderless)
         }
@@ -109,13 +115,13 @@ struct MenuBarContentView: View {
             Spacer()
 
             HStack(spacing: 6) {
-                headerIconButton(systemImage: "macwindow", help: "Console") {
+                headerIconButton(systemImage: "macwindow", help: strings.console) {
                     openConsoleAndCloseMenu(.home)
                 }
 
                 headerIconButton(
                     systemImage: viewModel.isRefreshDisabled ? "arrow.clockwise.circle" : "arrow.clockwise",
-                    help: viewModel.isRefreshDisabled ? "Refreshing" : "Refresh"
+                    help: viewModel.isRefreshDisabled ? strings.refreshing : strings.refresh
                 ) {
                     Task { await viewModel.refresh() }
                 }
@@ -255,12 +261,12 @@ struct MenuBarContentView: View {
     private func recoveryButton(for action: BalanceRecoveryAction) -> some View {
         switch action {
         case .retry:
-            Button("Retry") {
+            Button(strings.retry) {
                 Task { await viewModel.refresh() }
             }
             .disabled(viewModel.isRefreshDisabled)
         case .replaceKey, .deleteKey, .openConsole:
-            Button("Open Console") {
+            Button(strings.openConsole) {
                 openConsoleAndCloseMenu(.api)
             }
         }
@@ -342,14 +348,14 @@ struct MenuBarContentView: View {
 
         return HStack(spacing: 10) {
             footerAction(
-                title: autoStartDisplay.title,
+                title: strings.autoStart,
                 systemImage: autoStartDisplay.systemImageName,
                 isHighlighted: autoStartDisplay.isHighlighted
             ) {
                 launchAtLoginController.toggle()
             }
 
-            footerAction(title: "Quit", systemImage: "power", role: .destructive) {
+            footerAction(title: strings.quit, systemImage: "power", role: .destructive) {
                 NSApplication.shared.terminate(nil)
             }
         }
@@ -403,6 +409,10 @@ struct MenuBarContentView: View {
 
     private var statusColor: Color {
         statusColor(for: viewModel.statusTone)
+    }
+
+    private var strings: LocalizedStrings {
+        viewModel.localizedStrings
     }
 
     private func statusColor(for statusTone: ProviderStatusTone) -> Color {

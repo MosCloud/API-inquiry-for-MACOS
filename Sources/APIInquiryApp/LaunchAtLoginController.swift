@@ -1,27 +1,53 @@
 import APIInquiryCore
+import Combine
 import Foundation
 import ServiceManagement
 
 @MainActor
 final class LaunchAtLoginController: ObservableObject {
     @Published private(set) var status: AutoStartStatus
-    @Published private(set) var message: String?
+    @Published private var messageKind: MessageKind?
 
     private let service: LaunchAtLoginService
+    private let languageStore: AppLanguageStore
+    private var cancellables: Set<AnyCancellable> = []
 
-    init(service: LaunchAtLoginService = MainAppLaunchAtLoginService()) {
+    init(
+        service: LaunchAtLoginService = MainAppLaunchAtLoginService(),
+        languageStore: AppLanguageStore = AppLanguageStore()
+    ) {
         self.service = service
+        self.languageStore = languageStore
         self.status = service.currentStatus
+
+        languageStore.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
 
     var isEnabled: Bool {
         status == .enabled
     }
 
+    var message: String? {
+        guard let messageKind else {
+            return nil
+        }
+
+        switch messageKind {
+        case .requiresApproval:
+            return strings.approveAutoStartInSystemSettings
+        case .updateFailed:
+            return strings.autoStartCouldNotBeUpdated
+        }
+    }
+
     func refreshStatus() {
         status = service.currentStatus
         if status != .requiresApproval {
-            message = nil
+            messageKind = nil
         }
     }
 
@@ -34,11 +60,20 @@ final class LaunchAtLoginController: ObservableObject {
             }
 
             status = service.currentStatus
-            message = status == .requiresApproval ? "Approve AutoStart in System Settings." : nil
+            messageKind = status == .requiresApproval ? .requiresApproval : nil
         } catch {
             status = service.currentStatus
-            message = "AutoStart could not be updated."
+            messageKind = .updateFailed
         }
+    }
+
+    private var strings: LocalizedStrings {
+        LocalizedStrings(language: languageStore.resolvedLanguage)
+    }
+
+    private enum MessageKind {
+        case requiresApproval
+        case updateFailed
     }
 }
 

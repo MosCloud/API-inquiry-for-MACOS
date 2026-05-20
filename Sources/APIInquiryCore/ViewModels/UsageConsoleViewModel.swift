@@ -142,6 +142,15 @@ public final class UsageConsoleViewModel: ObservableObject {
         coordinator?.availableProviderIDsToAdd ?? []
     }
 
+    public var languageSelection: AppLanguage {
+        get {
+            languageStore?.selection ?? .en
+        }
+        set {
+            languageStore?.selection = newValue
+        }
+    }
+
     public func displayName(for id: ProviderID) -> String {
         coordinator?.provider(for: id)?.displayName
             ?? singleProvider?.displayName
