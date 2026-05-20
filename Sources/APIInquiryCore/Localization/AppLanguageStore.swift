@@ -18,6 +18,10 @@ public final class AppLanguageStore: ObservableObject {
         selection.resolved(preferredLanguages: preferredLanguages())
     }
 
+    public func resolvedLanguage(for selection: AppLanguage) -> ResolvedLanguage {
+        selection.resolved(preferredLanguages: preferredLanguages())
+    }
+
     public init(
         userDefaults: UserDefaults = .standard,
         storageKey: String = AppLanguageStore.defaultStorageKey,
@@ -35,4 +39,3 @@ public final class AppLanguageStore: ObservableObject {
         }
     }
 }
-

@@ -9,6 +9,7 @@ enum AppLanguageTests {
         testAutoResolvesNonChinesePreferredLanguagesToEnglish(using: harness)
         testManualLanguageOverridesSystemLanguages(using: harness)
         testLanguageStorePersistsSelection(using: harness)
+        testLanguageStoreResolvesSpecificSelection(using: harness)
         testLanguageStorePublishesSelectionChanges(using: harness)
     }
 
@@ -50,6 +51,18 @@ enum AppLanguageTests {
         let reloaded = AppLanguageStore(userDefaults: defaults, preferredLanguages: { ["en-US"] })
         harness.expectEqual(reloaded.selection, .zh, "language store persisted selection")
         harness.expectEqual(reloaded.resolvedLanguage, .zh, "language store persisted resolved")
+
+        defaults.removePersistentDomain(forName: suiteName)
+    }
+
+    private static func testLanguageStoreResolvesSpecificSelection(using harness: TestHarness) {
+        let suiteName = "APIInquiry.AppLanguageTests.resolveSpecific"
+        let defaults = makeCleanDefaults(suiteName: suiteName)
+        let store = AppLanguageStore(userDefaults: defaults, preferredLanguages: { ["zh-Hans-US"] })
+
+        harness.expectEqual(store.resolvedLanguage(for: .auto), .zh, "specific auto selection uses store preferred languages")
+        harness.expectEqual(store.resolvedLanguage(for: .en), .en, "specific english selection resolves english")
+        harness.expectEqual(store.resolvedLanguage(for: .zh), .zh, "specific chinese selection resolves chinese")
 
         defaults.removePersistentDomain(forName: suiteName)
     }

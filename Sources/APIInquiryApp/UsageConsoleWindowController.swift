@@ -14,9 +14,14 @@ final class UsageConsoleWindowController: ObservableObject {
         self.viewModel = viewModel
         self.languageStore = languageStore
 
-        languageStore.objectWillChange
-            .sink { [weak self] _ in
-                self?.window?.title = LocalizedStrings(language: languageStore.resolvedLanguage).appConsoleTitle
+        languageStore.$selection
+            .sink { [weak self, weak languageStore] selection in
+                guard let languageStore else {
+                    return
+                }
+                self?.window?.title = LocalizedStrings(
+                    language: languageStore.resolvedLanguage(for: selection)
+                ).appConsoleTitle
             }
             .store(in: &cancellables)
     }
