@@ -18,6 +18,9 @@ enum MenuBarBalanceViewModelTests {
         testAuthenticationFailureExposesKeyRecoveryActions(using: harness)
         testRateLimitExposesRetryAction(using: harness)
         testRefreshingDisablesRefresh(using: harness)
+        testPrimaryBalanceAmountToneBoundaries(using: harness)
+        testPrimaryPlanUsageAmountToneBoundaries(using: harness)
+        testPrimaryQuotaWindowAmountToneBoundaries(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
         await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
         await testCodexPrimaryProviderFormatsChineseQuotaLabels(using: harness)
@@ -118,6 +121,67 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% used", "zhipu primary display trailing")
         harness.expectEqual(viewModel.resetText, "Resets: 23:05", "zhipu reset text")
         harness.expectEqual(viewModel.statusText, "Plan available", "zhipu primary status")
+    }
+
+    @MainActor
+    private static func testPrimaryBalanceAmountToneBoundaries(using harness: TestHarness) {
+        harness.expectEqual(
+            makeViewModel(state: .loaded(.balance(makeSnapshot(total: "50")))).primaryDisplayParts.amountTone,
+            .good,
+            "balance 50 is good"
+        )
+        harness.expectEqual(
+            makeViewModel(state: .loaded(.balance(makeSnapshot(total: "49.99")))).primaryDisplayParts.amountTone,
+            .warning,
+            "balance below 50 is warning"
+        )
+        harness.expectEqual(
+            makeViewModel(state: .loaded(.balance(makeSnapshot(total: "10")))).primaryDisplayParts.amountTone,
+            .warning,
+            "balance 10 is warning"
+        )
+        harness.expectEqual(
+            makeViewModel(state: .loaded(.balance(makeSnapshot(total: "9.99")))).primaryDisplayParts.amountTone,
+            .critical,
+            "balance below 10 is critical"
+        )
+    }
+
+    @MainActor
+    private static func testPrimaryPlanUsageAmountToneBoundaries(using harness: TestHarness) {
+        harness.expectEqual(
+            primaryPlanUsageParts(usagePercentage: Decimal(40)).amountTone,
+            .good,
+            "plan usage 40 is good"
+        )
+        harness.expectEqual(
+            primaryPlanUsageParts(usagePercentage: Decimal(string: "40.01")!).amountTone,
+            .warning,
+            "plan usage above 40 is warning"
+        )
+        harness.expectEqual(
+            primaryPlanUsageParts(usagePercentage: Decimal(80)).amountTone,
+            .warning,
+            "plan usage 80 is warning"
+        )
+        harness.expectEqual(
+            primaryPlanUsageParts(usagePercentage: Decimal(string: "80.01")!).amountTone,
+            .critical,
+            "plan usage above 80 is critical"
+        )
+    }
+
+    @MainActor
+    private static func testPrimaryQuotaWindowAmountToneBoundaries(using harness: TestHarness) {
+        let viewModel = makeQuotaToneViewModel(remainingPercentages: [
+            Decimal(60),
+            Decimal(59),
+            Decimal(20),
+            Decimal(19)
+        ])
+
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.map(\.amountTone), [.good, .warning, .warning, .critical], "quota tone boundaries")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.map(\.amountText), ["60", "59", "20", "19"], "quota amount text preserved")
     }
 
     @MainActor
@@ -428,6 +492,40 @@ enum MenuBarBalanceViewModelTests {
                 addedProviderIDs: [.deepseek, .codex],
                 primaryProviderID: primaryProviderID
             )
+        )
+    }
+
+    @MainActor
+    private static func primaryPlanUsageParts(usagePercentage: Decimal) -> PrimaryProviderDisplayParts {
+        makeViewModel(
+            state: .loaded(.planUsage(PlanUsageSnapshot(
+                providerID: .zhipuCodingPlan,
+                windowLabel: "5h",
+                usagePercentage: usagePercentage,
+                resetAt: nil,
+                isAvailable: usagePercentage < 100,
+                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+            )))
+        ).primaryDisplayParts
+    }
+
+    @MainActor
+    private static func makeQuotaToneViewModel(remainingPercentages: [Decimal]) -> MenuBarBalanceViewModel {
+        let windows = remainingPercentages.enumerated().map { index, remaining in
+            QuotaWindowSnapshot(
+                label: index == 0 ? "5h" : "Window \(index)",
+                remainingPercentage: remaining,
+                resetAt: nil,
+                isAvailable: remaining > 0
+            )
+        }
+        return makeViewModel(
+            state: .loaded(.quotaUsage(QuotaUsageSnapshot(
+                providerID: .codex,
+                planName: "Plus",
+                windows: windows,
+                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+            )))
         )
     }
 
