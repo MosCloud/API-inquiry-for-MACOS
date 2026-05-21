@@ -182,6 +182,7 @@ struct MenuBarContentView: View {
 
             Text(parts.amountText)
                 .font(.system(size: amountSize, weight: .medium, design: .rounded))
+                .foregroundStyle(amountColor(for: parts.amountTone))
                 .monospacedDigit()
 
             if !parts.trailingText.isEmpty {
@@ -229,6 +230,7 @@ struct MenuBarContentView: View {
 
                     Text(row.amountText)
                         .font(.system(size: 36, weight: .medium, design: .rounded))
+                        .foregroundStyle(amountColor(for: row.amountTone))
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -425,6 +427,19 @@ struct MenuBarContentView: View {
             return .orange
         case .neutral:
             return .secondary
+        }
+    }
+
+    private func amountColor(for amountTone: ProviderAmountTone) -> Color {
+        switch amountTone {
+        case .neutral:
+            return .primary
+        case .good:
+            return .green
+        case .warning:
+            return .yellow
+        case .critical:
+            return .red
         }
     }
 }
