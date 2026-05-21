@@ -6,6 +6,7 @@ public struct PrimaryProviderDisplayParts: Equatable {
     public let detailKind: ProviderDetailKind
     public let leadingText: String
     public let amountText: String
+    public let amountTone: ProviderAmountTone
     public let trailingText: String
     public let captionText: String
 }
@@ -24,6 +25,7 @@ public struct ProviderDetailRow: Equatable {
 public struct QuotaWindowDisplayRow: Equatable {
     public let label: String
     public let amountText: String
+    public let amountTone: ProviderAmountTone
     public let suffixText: String
     public let detailText: String
     public let resetText: String?
@@ -35,6 +37,13 @@ public enum ProviderStatusTone: Equatable {
     case success
     case refreshing
     case warning
+}
+
+public enum ProviderAmountTone: Equatable {
+    case neutral
+    case good
+    case warning
+    case critical
 }
 
 public enum ProviderDisplayFormatter {
@@ -125,6 +134,7 @@ public enum ProviderDisplayFormatter {
                 detailKind: .balance,
                 leadingText: "",
                 amountText: "--",
+                amountTone: .neutral,
                 trailingText: "",
                 captionText: ""
             )
@@ -140,6 +150,7 @@ public enum ProviderDisplayFormatter {
                 detailKind: .balance,
                 leadingText: currencyCode == "CNY" ? "¥" : "",
                 amountText: amountText,
+                amountTone: balanceAmountTone(for: balance.totalBalance),
                 trailingText: currencyCode,
                 captionText: ""
             )
@@ -150,6 +161,7 @@ public enum ProviderDisplayFormatter {
                 detailKind: .planUsage,
                 leadingText: "",
                 amountText: formatPercentage(usage.usagePercentage),
+                amountTone: planUsageAmountTone(for: usage.usagePercentage),
                 trailingText: "% \(strings.usedSuffix)",
                 captionText: strings.quotaWindowLabel(usage.windowLabel)
             )
@@ -161,6 +173,7 @@ public enum ProviderDisplayFormatter {
                 detailKind: .quotaUsage,
                 leadingText: "",
                 amountText: formatPercentage(window?.remainingPercentage ?? 0),
+                amountTone: window.map { remainingQuotaAmountTone(for: $0.remainingPercentage) } ?? .neutral,
                 trailingText: "% \(strings.remainingSuffix)",
                 captionText: window.map { strings.quotaWindowLabel($0.label) } ?? ""
             )
@@ -236,6 +249,10 @@ public enum ProviderDisplayFormatter {
         formatPercentage(window.remainingPercentage)
     }
 
+    public static func quotaWindowAmountTone(for window: QuotaWindowSnapshot) -> ProviderAmountTone {
+        remainingQuotaAmountTone(for: window.remainingPercentage)
+    }
+
     private static func primaryQuotaWindow(in usage: QuotaUsageSnapshot) -> QuotaWindowSnapshot? {
         usage.windows.first { $0.label == "5h" } ?? usage.windows.first
     }
@@ -275,6 +292,36 @@ public enum ProviderDisplayFormatter {
 
     private static func formatPercentage(_ percentage: Decimal) -> String {
         formatNumber(truncate(percentage, scale: 0), fractionDigits: 0)
+    }
+
+    private static func balanceAmountTone(for amount: Decimal) -> ProviderAmountTone {
+        if amount >= Decimal(50) {
+            return .good
+        }
+        if amount >= Decimal(10) {
+            return .warning
+        }
+        return .critical
+    }
+
+    private static func planUsageAmountTone(for usagePercentage: Decimal) -> ProviderAmountTone {
+        if usagePercentage <= Decimal(40) {
+            return .good
+        }
+        if usagePercentage <= Decimal(80) {
+            return .warning
+        }
+        return .critical
+    }
+
+    private static func remainingQuotaAmountTone(for remainingPercentage: Decimal) -> ProviderAmountTone {
+        if remainingPercentage >= Decimal(60) {
+            return .good
+        }
+        if remainingPercentage >= Decimal(20) {
+            return .warning
+        }
+        return .critical
     }
 
     private static func formatNumber(_ amount: Decimal, fractionDigits: Int) -> String {
