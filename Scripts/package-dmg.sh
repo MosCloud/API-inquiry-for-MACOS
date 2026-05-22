@@ -11,13 +11,22 @@ DMG_PATH="$DIST_DIR/$DMG_NAME"
 CHECKSUM_PATH="$DMG_PATH.sha256"
 DMG_WORK_ROOT="${API_INQUIRY_DMG_WORK_ROOT:-/private/tmp/api-inquiry-dmg-$$}"
 DMG_ROOT="$DMG_WORK_ROOT/dmg-root"
+STAGING_MOUNT="/Volumes/$VOLUME_NAME"
 VERIFY_MOUNT="$DMG_WORK_ROOT/dmg-verify-mount"
+RW_DMG_PATH="$DMG_WORK_ROOT/$DMG_BASENAME-rw.dmg"
+DMG_BACKGROUND_PATH="$ROOT_DIR/Scripts/Assets/dmg-background.png"
+DMG_SIZE="${API_INQUIRY_DMG_SIZE:-200m}"
 
 detach_verify_mount() {
     hdiutil detach "$VERIFY_MOUNT" >/dev/null 2>&1 || true
 }
 
+detach_staging_mount() {
+    hdiutil detach "$STAGING_MOUNT" >/dev/null 2>&1 || true
+}
+
 cleanup_dmg_work() {
+    detach_staging_mount
     detach_verify_mount
     rm -rf "$DMG_WORK_ROOT"
 }
@@ -34,6 +43,13 @@ ditto "$APP_DIR" "$DMG_ROOT/$APP_NAME"
 chflags -R nohidden "$DMG_ROOT/$APP_NAME"
 xattr -cr "$DMG_ROOT/$APP_NAME"
 ln -s /Applications "$DMG_ROOT/Applications"
+if [ ! -f "$DMG_BACKGROUND_PATH" ]; then
+    echo "DMG background is missing: $DMG_BACKGROUND_PATH" >&2
+    exit 1
+fi
+mkdir -p "$DMG_ROOT/.background"
+cp "$DMG_BACKGROUND_PATH" "$DMG_ROOT/.background/dmg-background.png"
+chflags hidden "$DMG_ROOT/.background"
 
 if ls -ldO "$DMG_ROOT/$APP_NAME" | grep -q hidden; then
     echo "$APP_NAME is hidden and would not appear in Finder." >&2
@@ -45,8 +61,45 @@ hdiutil create \
     -srcfolder "$DMG_ROOT" \
     -ov \
     -fs HFS+ \
+    -format UDRW \
+    -size "$DMG_SIZE" \
+    "$RW_DMG_PATH"
+
+hdiutil attach -readwrite -noverify -noautoopen "$RW_DMG_PATH" >/dev/null
+if [ ! -d "$STAGING_MOUNT" ]; then
+    echo "Mounted DMG volume is missing: $STAGING_MOUNT" >&2
+    exit 1
+fi
+
+osascript <<APPLESCRIPT
+with timeout of 20 seconds
+    tell application "Finder"
+        tell disk "$VOLUME_NAME"
+            open
+            set current view of container window to icon view
+            set toolbar visible of container window to false
+            set statusbar visible of container window to false
+            set bounds of container window to {160, 160, 920, 580}
+            set viewOptions to the icon view options of container window
+            set arrangement of viewOptions to not arranged
+            set icon size of viewOptions to 152
+            set background picture of viewOptions to POSIX file "$STAGING_MOUNT/.background/dmg-background.png"
+            set position of item "$APP_NAME" of container window to {210, 210}
+            set position of item "Applications" of container window to {550, 210}
+            delay 1
+            close
+        end tell
+    end tell
+end timeout
+APPLESCRIPT
+
+sync
+detach_staging_mount
+
+hdiutil convert "$RW_DMG_PATH" \
     -format UDZO \
-    "$DMG_PATH"
+    -imagekey zlib-level=9 \
+    -o "$DMG_PATH"
 
 hdiutil verify "$DMG_PATH"
 
