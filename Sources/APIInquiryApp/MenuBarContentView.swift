@@ -133,7 +133,7 @@ struct MenuBarContentView: View {
     @ViewBuilder
     private var balance: some View {
         let parts = viewModel.primaryDisplayParts
-        let amountSize: CGFloat = parts.amountText == "--" ? 30 : 52
+        let amountSize: CGFloat = parts.amountText == "--" ? 30 : 42
 
         Group {
             if parts.detailKind == .planUsage {
@@ -184,6 +184,7 @@ struct MenuBarContentView: View {
                 .font(.system(size: amountSize, weight: .medium, design: .rounded))
                 .foregroundStyle(amountColor(for: parts.amountTone))
                 .monospacedDigit()
+                .fixedSize(horizontal: true, vertical: false)
 
             if !parts.trailingText.isEmpty {
                 Text(parts.trailingText)
@@ -193,7 +194,6 @@ struct MenuBarContentView: View {
             }
         }
         .lineLimit(1)
-        .minimumScaleFactor(0.75)
     }
 
     private var status: some View {
@@ -437,7 +437,7 @@ struct MenuBarContentView: View {
         case .good:
             return .green
         case .warning:
-            return .yellow
+            return Color(red: 1.0, green: 0.78, blue: 0.04)
         case .critical:
             return .red
         }
