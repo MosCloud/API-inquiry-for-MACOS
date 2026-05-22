@@ -310,6 +310,11 @@ func drawAppIcon(size: Int, whaleImage: NSImage) throws -> NSBitmapImageRep {
     let barGap = 22 * scale
     let barStartX = chipRect.minX + 55 * scale
     let barHeights = [58 * scale, 96 * scale, 126 * scale]
+    let barColors = [
+        color(255, 102, 94, 0.82),
+        color(255, 212, 70, 0.82),
+        color(80, 220, 116, 0.82)
+    ]
     for (index, height) in barHeights.enumerated() {
         let barRect = CGRect(
             x: barStartX + CGFloat(index) * (barWidth + barGap),
@@ -318,8 +323,7 @@ func drawAppIcon(size: Int, whaleImage: NSImage) throws -> NSBitmapImageRep {
             height: height
         )
         let barPath = NSBezierPath(roundedRect: barRect, xRadius: 12 * scale, yRadius: 12 * scale)
-        let barColor = index == 2 ? color(157, 229, 255, 0.96) : color(255, 255, 255, 0.92)
-        barColor.setFill()
+        barColors[index].setFill()
         barPath.fill()
     }
 
