@@ -8,7 +8,7 @@ Last updated: 2026-05-22
 
 - 最新已发布版本：`v0.3.4`
 - 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、多供应商菜单栏展示、Console 管理、详情页额度健康色彩提示、DMG 打包发布。
-- 下一计划版本：`v0.4.0`，聚焦历史用量与趋势。
+- 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
 
 ### v0.3.2：中文本地化与语言切换
 
@@ -56,25 +56,17 @@ Last updated: 2026-05-22
 - 不新增更多语言。
 - 不做 Provider 名称自定义翻译。
 - 不改 provider 查询逻辑。
-- 不改历史数据结构。
+- 不引入本地历史数据存储。
 - 不实现历史趋势图表。
 
-### v0.4.0：历史用量与趋势
-
-- 本地保存每次刷新快照。
-- Console 新增历史记录页。
-- 展示余额、plan 用量和 Codex quota 趋势。
-- 支持按供应商查看最近 24h、7d、30d 变化。
-- 支持导出 CSV。
-
-### v0.5.0：更多供应商与通用 Provider 能力
+### v0.4.0：更多供应商与通用 Provider 能力
 
 - 增加更多内置供应商。
 - 抽象更完整的 `balance`、`plan usage`、`quota` 类型。
 - 支持供应商排序、隐藏、启用/停用。
 - 为未来自定义 endpoint 或 plugin provider 做结构准备。
 
-### v0.6.0：正式分发体验
+### v0.5.0：正式分发体验
 
 - Developer ID 签名。
 - Apple notarization。
@@ -83,7 +75,7 @@ Last updated: 2026-05-22
 
 ### v1.0.0：稳定主版本
 
-- 多供应商、语言切换、历史趋势、打包分发都稳定。
+- 多供应商、语言切换、菜单栏体验、打包分发都稳定。
 - 文档、release、tag 和分支流程固定。
 - API Key 管理、安全策略、失败恢复和测试覆盖达到长期维护标准。
 
@@ -93,7 +85,7 @@ Last updated: 2026-05-22
 
 - Latest released version: `v0.3.4`
 - Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, multi-provider menu bar display, Console management, detail-panel quota health colors, and DMG release packaging.
-- Next planned version: `v0.4.0`, focused on historical usage and trends.
+- Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
 
 ### v0.3.2: Chinese Localization and Language Switching
 
@@ -141,25 +133,17 @@ Out of scope for `v0.3.2`:
 - No additional languages.
 - No custom translation for provider names.
 - No provider query logic changes.
-- No history data model changes.
+- No local history data storage.
 - No historical trend charts.
 
-### v0.4.0: Historical Usage and Trends
-
-- Store each refresh snapshot locally.
-- Add a history view in Console.
-- Show trends for balance, plan usage, and Codex quota.
-- Support provider-level views for the last 24h, 7d, and 30d.
-- Support CSV export.
-
-### v0.5.0: More Providers and Generic Provider Capabilities
+### v0.4.0: More Providers and Generic Provider Capabilities
 
 - Add more built-in providers.
 - Further generalize `balance`, `plan usage`, and `quota` detail types.
 - Support provider ordering, hiding, enabling, and disabling.
 - Prepare the structure for future custom endpoints or plugin providers.
 
-### v0.6.0: Distribution Experience
+### v0.5.0: Distribution Experience
 
 - Developer ID signing.
 - Apple notarization.
@@ -168,6 +152,6 @@ Out of scope for `v0.3.2`:
 
 ### v1.0.0: Stable Major Version
 
-- Multi-provider support, language switching, history trends, and release packaging are stable.
+- Multi-provider support, language switching, menu bar experience, and release packaging are stable.
 - Documentation, release, tag, and branch workflows are fixed.
 - API key management, security policy, failure recovery, and test coverage are ready for long-term maintenance.

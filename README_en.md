@@ -227,14 +227,13 @@ Included in this release:
 
 Deferred:
 
-- Historical usage import and charts
 - Arbitrary custom providers
 - Developer ID signing and notarization
 
 ## Roadmap
 
 - Latest released version: `v0.3.4`
-- Next planned version: `v0.4.0`, focused on historical usage and trends.
-- Later direction: historical usage trends, more providers, Developer ID signing/notarization, and automatic updates.
+- Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
+- Later direction: more providers, provider display controls, Developer ID signing/notarization, and automatic updates.
 
 See [docs/roadmap.md](docs/roadmap.md) for the detailed plan.
