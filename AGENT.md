@@ -29,6 +29,12 @@ Read the approved docs before implementation:
 - Secure storage: macOS Keychain.
 - Tests: local Swift executable runner `APIInquiryCoreTestsRunner`, with fake API keys only.
 
+## UI Design Direction
+
+API Inquiry's UI should stay simple, restrained, and lightly technical. Prioritize fast quota-state scanning and lightweight configuration. Avoid heavy analytics dashboards, decorative complexity, or UI patterns that make the app feel like a full operations backend.
+
+Use status color sparingly and semantically: highlight critical quota values, warning values, healthy values, and direct feedback, while keeping surrounding labels, secondary information, and configuration surfaces calm. Console pages should favor clear structure, stable alignment, and comfortable spacing over visual density or ornament.
+
 ## Security Rules
 
 - Never commit, log, print, or display a real DeepSeek API key.
