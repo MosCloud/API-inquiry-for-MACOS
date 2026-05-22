@@ -3,8 +3,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 const zlib = require("node:zlib");
 
-const width = 760;
-const height = 420;
+const logicalWidth = 760;
+const logicalHeight = 420;
+const pixelRatio = 2;
+const width = logicalWidth * pixelRatio;
+const height = logicalHeight * pixelRatio;
 const scale = 3;
 const scaledWidth = width * scale;
 const scaledHeight = height * scale;
@@ -135,10 +138,10 @@ function pngChunk(type, data) {
     return Buffer.concat([length, typeBuffer, data, crc]);
 }
 
-drawLine(351, 253, 393, 211, 11, [0, 0, 0, 28]);
-drawLine(393, 211, 351, 169, 11, [0, 0, 0, 28]);
-drawLine(350, 252, 392, 210, 8, [37, 40, 45, 255]);
-drawLine(392, 210, 350, 168, 8, [37, 40, 45, 255]);
+drawLine(361 * pixelRatio, 202 * pixelRatio, 382 * pixelRatio, 181 * pixelRatio, 5 * pixelRatio, [0, 0, 0, 18]);
+drawLine(382 * pixelRatio, 181 * pixelRatio, 361 * pixelRatio, 160 * pixelRatio, 5 * pixelRatio, [0, 0, 0, 18]);
+drawLine(360 * pixelRatio, 201 * pixelRatio, 381 * pixelRatio, 180 * pixelRatio, 4 * pixelRatio, [37, 40, 45, 245]);
+drawLine(381 * pixelRatio, 180 * pixelRatio, 360 * pixelRatio, 159 * pixelRatio, 4 * pixelRatio, [37, 40, 45, 245]);
 
 const pixels = downsample();
 const raw = Buffer.alloc((width * 4 + 1) * height);
@@ -161,6 +164,7 @@ header[12] = 0;
 const png = Buffer.concat([
     Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
     pngChunk("IHDR", header),
+    pngChunk("pHYs", pngDensityChunk(144)),
     pngChunk("IDAT", zlib.deflateSync(raw, { level: 9 })),
     pngChunk("IEND", Buffer.alloc(0))
 ]);
@@ -169,3 +173,12 @@ const outputPath = path.join(__dirname, "Assets", "dmg-background.png");
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, png);
 console.log(`Generated ${outputPath}`);
+
+function pngDensityChunk(dpi) {
+    const pixelsPerMeter = Math.round(dpi / 0.0254);
+    const data = Buffer.alloc(9);
+    data.writeUInt32BE(pixelsPerMeter, 0);
+    data.writeUInt32BE(pixelsPerMeter, 4);
+    data[8] = 1;
+    return data;
+}

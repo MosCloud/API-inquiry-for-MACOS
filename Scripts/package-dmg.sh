@@ -84,8 +84,8 @@ with timeout of 20 seconds
             set arrangement of viewOptions to not arranged
             set icon size of viewOptions to 152
             set background picture of viewOptions to POSIX file "$STAGING_MOUNT/.background/dmg-background.png"
-            set position of item "$APP_NAME" of container window to {210, 210}
-            set position of item "Applications" of container window to {550, 210}
+            set position of item "$APP_NAME" of container window to {210, 180}
+            set position of item "Applications" of container window to {550, 180}
             delay 1
             close
         end tell
