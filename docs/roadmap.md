@@ -66,10 +66,8 @@ Last updated: 2026-05-22
 - 支持供应商排序、隐藏、启用/停用。
 - 为未来自定义 endpoint 或 plugin provider 做结构准备。
 
-### v0.5.0：正式分发体验
+### v0.5.0：分发体验优化
 
-- Developer ID 签名。
-- Apple notarization。
 - 自动更新机制。
 - 更完善的首次安装、升级和卸载体验。
 
@@ -143,10 +141,8 @@ Out of scope for `v0.3.2`:
 - Support provider ordering, hiding, enabling, and disabling.
 - Prepare the structure for future custom endpoints or plugin providers.
 
-### v0.5.0: Distribution Experience
+### v0.5.0: Distribution Experience Polish
 
-- Developer ID signing.
-- Apple notarization.
 - Automatic updates.
 - Better first-install, upgrade, and uninstall flows.
 

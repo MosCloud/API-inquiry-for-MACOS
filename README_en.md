@@ -228,12 +228,12 @@ Included in this release:
 Deferred:
 
 - Arbitrary custom providers
-- Developer ID signing and notarization
+- Automatic updates and better install/upgrade flows
 
 ## Roadmap
 
 - Latest released version: `v0.3.4`
 - Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
-- Later direction: more providers, provider display controls, Developer ID signing/notarization, and automatic updates.
+- Later direction: more providers, provider display controls, automatic updates, and better install/upgrade flows.
 
 See [docs/roadmap.md](docs/roadmap.md) for the detailed plan.

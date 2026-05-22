@@ -228,12 +228,12 @@ Scripts/restart-installed-app.sh
 延后处理：
 
 - 任意自定义供应商
-- Developer ID 签名和 Apple notarization 公证
+- 自动更新和更完善的安装/升级体验
 
 ## 路线图
 
 - 最新已发布版本：`v0.3.4`
 - 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
-- 后续方向：更多供应商、供应商显示控制、正式签名公证和自动更新。
+- 后续方向：更多供应商、供应商显示控制、自动更新和更完善的安装/升级体验。
 
 详细计划见 [docs/roadmap.md](docs/roadmap.md)。
