@@ -1,14 +1,14 @@
 # API Inquiry Roadmap
 
-Last updated: 2026-05-20
+Last updated: 2026-05-22
 
 ## 中文
 
 ### 当前状态
 
-- 最新已发布版本：`v0.3.3`
-- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、多供应商菜单栏展示、Console 管理、DMG 打包发布。
-- 下一计划版本：`v0.3.4`，具体规划待确认。
+- 最新已发布版本：`v0.3.4`
+- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、多供应商菜单栏展示、Console 管理、详情页额度健康色彩提示、DMG 打包发布。
+- 下一计划版本：`v0.4.0`，聚焦历史用量与趋势。
 
 ### v0.3.2：中文本地化与语言切换
 
@@ -91,9 +91,9 @@ Last updated: 2026-05-20
 
 ### Current Status
 
-- Latest released version: `v0.3.3`
-- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, multi-provider menu bar display, Console management, and DMG release packaging.
-- Next planned version: `v0.3.4`, with details to be confirmed.
+- Latest released version: `v0.3.4`
+- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, multi-provider menu bar display, Console management, detail-panel quota health colors, and DMG release packaging.
+- Next planned version: `v0.4.0`, focused on historical usage and trends.
 
 ### v0.3.2: Chinese Localization and Language Switching
 

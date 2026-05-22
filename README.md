@@ -101,8 +101,8 @@ Scripts/package-dmg.sh
 脚本会生成：
 
 ```text
-dist/API-Inquiry-v0.3.2.dmg
-dist/API-Inquiry-v0.3.2.dmg.sha256
+dist/API-Inquiry-v0.3.4.dmg
+dist/API-Inquiry-v0.3.4.dmg.sha256
 ```
 
 完成发布验证和上传后，删除本机开发态 app bundle，避免 Launchpad 将非正式副本索引成重复图标：
@@ -115,11 +115,11 @@ Scripts/clean-development-apps.sh
 
 本项目采用免费的 GitHub Releases 发布策略。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。
 
-1. 从 GitHub Releases 下载 `API-Inquiry-v0.3.2.dmg` 和 `API-Inquiry-v0.3.2.dmg.sha256`。
+1. 从 GitHub Releases 下载 `API-Inquiry-v0.3.4.dmg` 和 `API-Inquiry-v0.3.4.dmg.sha256`。
 2. 校验下载文件：
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.3.2.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.3.4.dmg.sha256
    ```
 
 3. 打开 DMG。
@@ -233,8 +233,8 @@ Scripts/restart-installed-app.sh
 
 ## 路线图
 
-- 最新已发布版本：`v0.3.3`
-- 下一计划版本：`v0.3.4`，具体规划待确认。
+- 最新已发布版本：`v0.3.4`
+- 下一计划版本：`v0.4.0`，聚焦历史用量与趋势。
 - 后续方向：历史用量与趋势、更多供应商、正式签名公证和自动更新。
 
 详细计划见 [docs/roadmap.md](docs/roadmap.md)。
