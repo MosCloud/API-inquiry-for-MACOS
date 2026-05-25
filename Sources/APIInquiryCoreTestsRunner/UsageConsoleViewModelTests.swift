@@ -339,6 +339,32 @@ enum UsageConsoleViewModelTests {
         await controller.refresh()
 
         harness.expectEqual(viewModel.providerSummaries.first?.healthTone, .critical, "quota summary uses most urgent window")
+
+        let boundaryProvider = MockBalanceProvider(
+            id: .codex,
+            displayName: "Codex",
+            menuPrefix: "GPT",
+            credentialAccount: "codex-session-token",
+            homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
+            results: [.success(.quotaUsage(QuotaUsageSnapshot(
+                providerID: .codex,
+                planName: "Plus",
+                windows: [
+                    QuotaWindowSnapshot(label: "5h", remainingPercentage: Decimal(60), resetAt: nil, isAvailable: true),
+                    QuotaWindowSnapshot(label: "Window 1", remainingPercentage: Decimal(59), resetAt: nil, isAvailable: true),
+                    QuotaWindowSnapshot(label: "Window 2", remainingPercentage: Decimal(20), resetAt: nil, isAvailable: true),
+                    QuotaWindowSnapshot(label: "Window 3", remainingPercentage: Decimal(19), resetAt: nil, isAvailable: true)
+                ],
+                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+            )))]
+        )
+        let boundaryStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "test-token"])
+        let boundaryController = BalanceRefreshController(provider: boundaryProvider, credentialStore: boundaryStore)
+        let boundaryViewModel = UsageConsoleViewModel(provider: boundaryProvider, credentialStore: boundaryStore, controller: boundaryController)
+
+        await boundaryController.refresh()
+
+        harness.expectEqual(boundaryViewModel.providerSummaries.first?.healthTone, .critical, "quota summary aggregates boundary tones")
     }
 
     @MainActor
@@ -360,6 +386,18 @@ enum UsageConsoleViewModelTests {
         )
         harness.expectEqual(loadingViewModel.providerSummaries.first?.healthTone, .neutral, "loading without snapshot summary health neutral")
 
+        let loadingWithLastController = BalanceRefreshController(
+            provider: loadingProvider,
+            credentialStore: loadingStore,
+            initialState: .loading(last: .balance(makeSnapshot(total: "68.65")))
+        )
+        let loadingWithLastViewModel = UsageConsoleViewModel(
+            provider: loadingProvider,
+            credentialStore: loadingStore,
+            controller: loadingWithLastController
+        )
+        harness.expectEqual(loadingWithLastViewModel.providerSummaries.first?.healthTone, .neutral, "loading with snapshot summary health neutral")
+
         let invalidProvider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
         let invalidStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
         let invalidController = BalanceRefreshController(provider: invalidProvider, credentialStore: invalidStore)
@@ -370,6 +408,22 @@ enum UsageConsoleViewModelTests {
         )
         await invalidController.refresh()
         harness.expectEqual(invalidViewModel.providerSummaries.first?.healthTone, .neutral, "auth failure summary health neutral")
+
+        let unavailableController = BalanceRefreshController(
+            provider: loadingProvider,
+            credentialStore: loadingStore,
+            initialState: .failed(
+                message: "Network unavailable.",
+                kind: .networkUnavailable,
+                last: .balance(makeSnapshot(total: "68.65"))
+            )
+        )
+        let unavailableViewModel = UsageConsoleViewModel(
+            provider: loadingProvider,
+            credentialStore: loadingStore,
+            controller: unavailableController
+        )
+        harness.expectEqual(unavailableViewModel.providerSummaries.first?.healthTone, .neutral, "unavailable failure with snapshot summary health neutral")
     }
 
     @MainActor
