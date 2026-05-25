@@ -326,8 +326,8 @@ enum UsageConsoleViewModelTests {
                 providerID: .codex,
                 planName: "Plus",
                 windows: [
-                    QuotaWindowSnapshot(label: "5h", remainingPercentage: Decimal(18), resetAt: nil, isAvailable: true),
-                    QuotaWindowSnapshot(label: "Week", remainingPercentage: Decimal(63), resetAt: nil, isAvailable: true)
+                    QuotaWindowSnapshot(label: "5h", remainingPercentage: Decimal(63), resetAt: nil, isAvailable: true),
+                    QuotaWindowSnapshot(label: "Week", remainingPercentage: Decimal(18), resetAt: nil, isAvailable: true)
                 ],
                 fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
             )))]
