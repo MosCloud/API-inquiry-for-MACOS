@@ -69,6 +69,7 @@ struct UsageConsoleView: View {
         }
         .padding(20)
         .frame(minWidth: 720, minHeight: 520)
+        .background(.regularMaterial)
     }
 
     private var topNavigation: some View {
@@ -573,12 +574,8 @@ struct UsageConsoleView: View {
         switch tone {
         case .neutral:
             return Color.secondary.opacity(0.10)
-        case .good:
-            return Color.green.opacity(0.14)
-        case .warning:
-            return Color(red: 1.0, green: 0.78, blue: 0.04).opacity(0.14)
-        case .critical:
-            return Color.red.opacity(0.14)
+        case .good, .warning, .critical:
+            return healthColor(for: tone).opacity(0.14)
         }
     }
 

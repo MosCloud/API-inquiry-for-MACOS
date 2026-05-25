@@ -43,6 +43,11 @@ final class UsageConsoleWindowController: ObservableObject {
             defer: false
         )
         window.title = LocalizedStrings(language: languageStore.resolvedLanguage).appConsoleTitle
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .visible
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.styleMask.insert(.fullSizeContentView)
         window.contentViewController = NSHostingController(rootView: rootView)
         window.isReleasedWhenClosed = false
         window.center()
