@@ -38,6 +38,7 @@ private struct ProviderMetricItem {
 }
 
 private let providerHomepageButtonHeight: CGFloat = 40
+private let providerRowCornerRadius: CGFloat = 8
 private let projectHomepageURL = URL(string: "https://github.com/MosCloud/API-inquiry-for-MACOS")!
 
 struct UsageConsoleView: View {
@@ -145,22 +146,12 @@ struct UsageConsoleView: View {
         .background {
             providerRowBackground(for: summary.healthTone)
         }
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(healthColor(for: summary.healthTone).opacity(summary.healthTone == .neutral ? 0 : 0.85))
-                .frame(width: summary.healthTone == .neutral ? 0 : 3)
-                .padding(.vertical, 1)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(rowStrokeColor(for: summary.healthTone), lineWidth: 1)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: providerRowCornerRadius, style: .continuous))
     }
 
     @ViewBuilder
     private func providerRowBackground(for tone: ProviderAmountTone) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: providerRowCornerRadius, style: .continuous)
 
         switch tone {
         case .neutral:
@@ -172,10 +163,11 @@ struct UsageConsoleView: View {
                     shape.fill(
                         LinearGradient(
                             stops: [
-                                Gradient.Stop(color: healthColor(for: tone).opacity(0.22), location: 0),
-                                Gradient.Stop(color: healthColor(for: tone).opacity(0.14), location: 0.34),
-                                Gradient.Stop(color: healthColor(for: tone).opacity(0.06), location: 0.68),
-                                Gradient.Stop(color: healthColor(for: tone).opacity(0.02), location: 1)
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0.13), location: 0),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0.08), location: 0.32),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0.03), location: 0.60),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0), location: 0.75),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0), location: 1)
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
@@ -593,15 +585,6 @@ struct UsageConsoleView: View {
             return Color(red: 1.0, green: 0.78, blue: 0.04)
         case .critical:
             return .red
-        }
-    }
-
-    private func rowStrokeColor(for tone: ProviderAmountTone) -> Color {
-        switch tone {
-        case .neutral:
-            return Color.white.opacity(0.05)
-        case .good, .warning, .critical:
-            return healthColor(for: tone).opacity(0.22)
         }
     }
 
