@@ -38,6 +38,9 @@ private struct ProviderMetricItem {
 }
 
 private let providerHomepageButtonHeight: CGFloat = 40
+private let providerModuleHorizontalPadding: CGFloat = 14
+private let providerModuleVerticalPadding: CGFloat = 10
+private let providerModuleMinHeight: CGFloat = 126
 private let providerRowCornerRadius: CGFloat = 8
 private let projectHomepageURL = URL(string: "https://github.com/MosCloud/API-inquiry-for-MACOS")!
 
@@ -141,8 +144,9 @@ struct UsageConsoleView: View {
             providerHeader(summary, showsMenuBarControl: true)
             providerMetrics(summary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, providerModuleHorizontalPadding)
+        .padding(.vertical, providerModuleVerticalPadding)
+        .frame(maxWidth: .infinity, minHeight: providerModuleMinHeight, alignment: .topLeading)
         .background {
             providerRowBackground(for: summary.healthTone)
         }
@@ -326,9 +330,11 @@ struct UsageConsoleView: View {
 
             feedbackText(viewModel.settingsFeedback(for: summary.id))
         }
-        .padding(12)
+        .padding(.horizontal, providerModuleHorizontalPadding)
+        .padding(.vertical, providerModuleVerticalPadding)
+        .frame(maxWidth: .infinity, minHeight: providerModuleMinHeight, alignment: .topLeading)
         .background(Color.secondary.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: providerRowCornerRadius, style: .continuous))
     }
 
     private func providerHeader(_ summary: APIProviderSummary, showsMenuBarControl: Bool) -> some View {
