@@ -141,7 +141,20 @@ struct UsageConsoleView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.secondary.opacity(0.10))
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(rowBackgroundColor(for: summary.healthTone))
+        }
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(healthColor(for: summary.healthTone).opacity(summary.healthTone == .neutral ? 0 : 0.85))
+                .frame(width: summary.healthTone == .neutral ? 0 : 3)
+                .padding(.vertical, 1)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(rowStrokeColor(for: summary.healthTone), lineWidth: 1)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
@@ -317,7 +330,7 @@ struct UsageConsoleView: View {
 
             Spacer()
 
-            statusBadge(summary.validationStatusText, tone: summary.statusTone)
+            statusBadge(summary.validationStatusText, healthTone: summary.healthTone, fallbackTone: summary.statusTone)
         }
         .frame(minHeight: 34)
     }
@@ -491,13 +504,18 @@ struct UsageConsoleView: View {
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
     }
 
-    private func statusBadge(_ text: String, tone: ProviderStatusTone) -> some View {
-        Text(text)
+    private func statusBadge(
+        _ text: String,
+        healthTone: ProviderAmountTone,
+        fallbackTone: ProviderStatusTone
+    ) -> some View {
+        let color = healthTone == .neutral ? statusColor(for: fallbackTone) : healthColor(for: healthTone)
+        return Text(text)
             .font(.caption.weight(.semibold))
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
-            .foregroundStyle(statusColor(for: tone))
-            .background(statusColor(for: tone).opacity(0.14))
+            .foregroundStyle(color)
+            .background(color.opacity(0.14))
             .clipShape(Capsule())
     }
 
@@ -535,6 +553,41 @@ struct UsageConsoleView: View {
             return .orange
         case .neutral:
             return .secondary
+        }
+    }
+
+    private func healthColor(for tone: ProviderAmountTone) -> Color {
+        switch tone {
+        case .neutral:
+            return .secondary
+        case .good:
+            return .green
+        case .warning:
+            return Color(red: 1.0, green: 0.78, blue: 0.04)
+        case .critical:
+            return .red
+        }
+    }
+
+    private func rowBackgroundColor(for tone: ProviderAmountTone) -> Color {
+        switch tone {
+        case .neutral:
+            return Color.secondary.opacity(0.10)
+        case .good:
+            return Color.green.opacity(0.14)
+        case .warning:
+            return Color(red: 1.0, green: 0.78, blue: 0.04).opacity(0.14)
+        case .critical:
+            return Color.red.opacity(0.14)
+        }
+    }
+
+    private func rowStrokeColor(for tone: ProviderAmountTone) -> Color {
+        switch tone {
+        case .neutral:
+            return Color.white.opacity(0.05)
+        case .good, .warning, .critical:
+            return healthColor(for: tone).opacity(0.22)
         }
     }
 
