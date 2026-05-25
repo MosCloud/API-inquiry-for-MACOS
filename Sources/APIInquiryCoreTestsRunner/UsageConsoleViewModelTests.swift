@@ -8,6 +8,8 @@ enum UsageConsoleViewModelTests {
         await testProviderSummariesExposeConfiguredActiveProvider(using: harness)
         await testProviderSummariesExposeChineseCopy(using: harness)
         await testProviderSummariesExposeInvalidProvider(using: harness)
+        await testProviderSummariesExposeBalanceHealthToneBoundaries(using: harness)
+        await testProviderSummariesExposePlanHealthToneBoundaries(using: harness)
         await testSavingAPIKeyRefreshesBalance(using: harness)
         await testSavingAPIKeyUsesChineseFeedback(using: harness)
         await testSaveFailureKeepsInputAndDoesNotExposeKey(using: harness)
@@ -225,6 +227,70 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(viewModel.providerSummaries.first?.apiKeyStatusText, "Configured", "console invalid provider key status")
         harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "Invalid", "console invalid provider validation status")
         harness.expectEqual(viewModel.providerSummaries.first?.statusTone, .warning, "console invalid provider status tone")
+    }
+
+    @MainActor
+    private static func testProviderSummariesExposeBalanceHealthToneBoundaries(using harness: TestHarness) async {
+        let cases: [(String, ProviderAmountTone, String)] = [
+            ("50", .good, "balance 50 is good"),
+            ("49.99", .warning, "balance below 50 is warning"),
+            ("10", .warning, "balance 10 is warning"),
+            ("9.99", .critical, "balance below 10 is critical")
+        ]
+
+        for item in cases {
+            let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: item.0)))])
+            let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+            let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+            let viewModel = UsageConsoleViewModel(
+                provider: provider,
+                credentialStore: credentialStore,
+                controller: controller
+            )
+
+            await controller.refresh()
+
+            harness.expectEqual(viewModel.providerSummaries.first?.healthTone, item.1, item.2)
+        }
+    }
+
+    @MainActor
+    private static func testProviderSummariesExposePlanHealthToneBoundaries(using harness: TestHarness) async {
+        let cases: [(Decimal, ProviderAmountTone, String)] = [
+            (Decimal(40), .good, "plan usage 40 is good"),
+            (Decimal(string: "40.01")!, .warning, "plan usage above 40 is warning"),
+            (Decimal(80), .warning, "plan usage 80 is warning"),
+            (Decimal(string: "80.01")!, .critical, "plan usage above 80 is critical")
+        ]
+
+        for item in cases {
+            let provider = MockBalanceProvider(
+                id: .zhipuCodingPlan,
+                displayName: "Zhipu GLM Coding Plan",
+                menuPrefix: "GLM",
+                credentialAccount: "zhipu-coding-plan-api-key",
+                homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
+                results: [.success(.planUsage(PlanUsageSnapshot(
+                    providerID: .zhipuCodingPlan,
+                    windowLabel: "5h",
+                    usagePercentage: item.0,
+                    resetAt: nil,
+                    isAvailable: item.0 < Decimal(100),
+                    fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+                )))]
+            )
+            let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["zhipu-coding-plan-api-key": "test-key"])
+            let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+            let viewModel = UsageConsoleViewModel(
+                provider: provider,
+                credentialStore: credentialStore,
+                controller: controller
+            )
+
+            await controller.refresh()
+
+            harness.expectEqual(viewModel.providerSummaries.first?.healthTone, item.1, item.2)
+        }
     }
 
     @MainActor

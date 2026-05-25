@@ -8,6 +8,7 @@ public struct APIProviderSummary: Equatable {
     public let apiKeyStatusText: String
     public let validationStatusText: String
     public let statusTone: ProviderStatusTone
+    public let healthTone: ProviderAmountTone
     public let balanceText: String
     public let lastRefreshText: String
     public let planNextResetText: String?
@@ -21,6 +22,7 @@ public struct APIProviderSummary: Equatable {
         apiKeyStatusText: String,
         validationStatusText: String,
         statusTone: ProviderStatusTone = .neutral,
+        healthTone: ProviderAmountTone = .neutral,
         balanceText: String,
         lastRefreshText: String = "--",
         planNextResetText: String? = nil,
@@ -33,6 +35,7 @@ public struct APIProviderSummary: Equatable {
         self.apiKeyStatusText = apiKeyStatusText
         self.validationStatusText = validationStatusText
         self.statusTone = statusTone
+        self.healthTone = healthTone
         self.balanceText = balanceText
         self.lastRefreshText = lastRefreshText
         self.planNextResetText = planNextResetText
@@ -170,6 +173,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                     apiKeyStatusText: credentialStatusText,
                     validationStatusText: validationStatusText(for: state),
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
+                    healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                     balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
                     lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
                     planNextResetText: timeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
@@ -191,6 +195,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                 apiKeyStatusText: coordinator.isCredentialConfigured(for: id) ? strings.configured : strings.notConfigured,
                 validationStatusText: validationStatusText(for: state),
                 statusTone: ProviderDisplayFormatter.statusTone(for: state),
+                healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
                 lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
                 planNextResetText: timeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),

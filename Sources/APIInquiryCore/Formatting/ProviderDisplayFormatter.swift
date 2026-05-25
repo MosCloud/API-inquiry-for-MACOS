@@ -232,6 +232,21 @@ public enum ProviderDisplayFormatter {
         }
     }
 
+    public static func summaryHealthTone(for state: BalanceState) -> ProviderAmountTone {
+        guard case .loaded(let snapshot) = state else {
+            return .neutral
+        }
+
+        switch snapshot {
+        case .balance(let balance):
+            return balanceAmountTone(for: balance.totalBalance)
+        case .planUsage(let usage):
+            return planUsageAmountTone(for: usage.usagePercentage)
+        case .quotaUsage(let usage):
+            return aggregateAmountTone(usage.windows.map { remainingQuotaAmountTone(for: $0.remainingPercentage) })
+        }
+    }
+
     public static func resetText(for snapshot: ProviderSnapshot?) -> String? {
         guard case .planUsage(let usage) = snapshot,
               let resetAt = usage.resetAt else {
@@ -322,6 +337,19 @@ public enum ProviderDisplayFormatter {
             return .warning
         }
         return .critical
+    }
+
+    private static func aggregateAmountTone(_ tones: [ProviderAmountTone]) -> ProviderAmountTone {
+        if tones.contains(.critical) {
+            return .critical
+        }
+        if tones.contains(.warning) {
+            return .warning
+        }
+        if tones.contains(.good) {
+            return .good
+        }
+        return .neutral
     }
 
     private static func formatNumber(_ amount: Decimal, fractionDigits: Int) -> String {
