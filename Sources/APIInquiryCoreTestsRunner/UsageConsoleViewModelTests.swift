@@ -10,11 +10,14 @@ enum UsageConsoleViewModelTests {
         await testProviderSummariesExposeInvalidProvider(using: harness)
         await testProviderSummariesExposeBalanceHealthToneBoundaries(using: harness)
         await testProviderSummariesExposePlanHealthToneBoundaries(using: harness)
+        await testProviderSummariesAggregateQuotaHealthTone(using: harness)
+        await testProviderSummariesKeepNonQuotaStatesNeutral(using: harness)
         await testSavingAPIKeyRefreshesBalance(using: harness)
         await testSavingAPIKeyUsesChineseFeedback(using: harness)
         await testSaveFailureKeepsInputAndDoesNotExposeKey(using: harness)
         await testConfirmingAPIKeyDeletionReturnsBalanceToSetup(using: harness)
         await testMultiProviderSummariesExposePrimaryAndPlanUsage(using: harness)
+        await testMultiProviderSummariesExposeHealthTone(using: harness)
         testAddingProviderUpdatesAvailableProviderOptions(using: harness)
         testRemovingProviderShowsFeedbackWhenCredentialDeletionFails(using: harness)
         testRemovingProviderClearsProviderScopedAPIKeyInput(using: harness)
@@ -58,6 +61,24 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(viewModel.providerSummaries.last?.planNextResetText, "Plan Next Resets: 23:05", "multi console zhipu plan next reset")
         harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Plan available", "multi console zhipu status")
         harness.expectTrue(viewModel.providerSummaries.last?.isPrimary == true, "multi console zhipu primary")
+    }
+
+    @MainActor
+    private static func testMultiProviderSummariesExposeHealthTone(using harness: TestHarness) async {
+        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan, resetAt: sampleResetDate)
+        await coordinator.refreshAddedProviders()
+        let viewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [
+                "deepseek-api-key": "deepseek-key",
+                "zhipu-coding-plan-api-key": "zhipu-key"
+            ])
+        )
+
+        let deepSeekSummary = viewModel.providerSummaries.first { $0.id == .deepseek }
+        let zhipuSummary = viewModel.providerSummaries.first { $0.id == .zhipuCodingPlan }
+        harness.expectEqual(deepSeekSummary?.healthTone, .good, "multi console deepseek health tone")
+        harness.expectEqual(zhipuSummary?.healthTone, .good, "multi console zhipu health tone")
     }
 
     @MainActor
@@ -291,6 +312,64 @@ enum UsageConsoleViewModelTests {
 
             harness.expectEqual(viewModel.providerSummaries.first?.healthTone, item.1, item.2)
         }
+    }
+
+    @MainActor
+    private static func testProviderSummariesAggregateQuotaHealthTone(using harness: TestHarness) async {
+        let provider = MockBalanceProvider(
+            id: .codex,
+            displayName: "Codex",
+            menuPrefix: "GPT",
+            credentialAccount: "codex-session-token",
+            homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
+            results: [.success(.quotaUsage(QuotaUsageSnapshot(
+                providerID: .codex,
+                planName: "Plus",
+                windows: [
+                    QuotaWindowSnapshot(label: "5h", remainingPercentage: Decimal(18), resetAt: nil, isAvailable: true),
+                    QuotaWindowSnapshot(label: "Week", remainingPercentage: Decimal(63), resetAt: nil, isAvailable: true)
+                ],
+                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+            )))]
+        )
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "test-token"])
+        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let viewModel = UsageConsoleViewModel(provider: provider, credentialStore: credentialStore, controller: controller)
+
+        await controller.refresh()
+
+        harness.expectEqual(viewModel.providerSummaries.first?.healthTone, .critical, "quota summary uses most urgent window")
+    }
+
+    @MainActor
+    private static func testProviderSummariesKeepNonQuotaStatesNeutral(using harness: TestHarness) async {
+        let unconfigured = makeViewModel()
+        harness.expectEqual(unconfigured.providerSummaries.first?.healthTone, .neutral, "unconfigured summary health neutral")
+
+        let loadingProvider = MockBalanceProvider(results: [])
+        let loadingStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+        let loadingController = BalanceRefreshController(
+            provider: loadingProvider,
+            credentialStore: loadingStore,
+            initialState: .loading(last: nil)
+        )
+        let loadingViewModel = UsageConsoleViewModel(
+            provider: loadingProvider,
+            credentialStore: loadingStore,
+            controller: loadingController
+        )
+        harness.expectEqual(loadingViewModel.providerSummaries.first?.healthTone, .neutral, "loading without snapshot summary health neutral")
+
+        let invalidProvider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
+        let invalidStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
+        let invalidController = BalanceRefreshController(provider: invalidProvider, credentialStore: invalidStore)
+        let invalidViewModel = UsageConsoleViewModel(
+            provider: invalidProvider,
+            credentialStore: invalidStore,
+            controller: invalidController
+        )
+        await invalidController.refresh()
+        harness.expectEqual(invalidViewModel.providerSummaries.first?.healthTone, .neutral, "auth failure summary health neutral")
     }
 
     @MainActor
