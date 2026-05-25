@@ -143,8 +143,7 @@ struct UsageConsoleView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(rowBackgroundColor(for: summary.healthTone))
+            providerRowBackground(for: summary.healthTone)
         }
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -157,6 +156,33 @@ struct UsageConsoleView: View {
                 .strokeBorder(rowStrokeColor(for: summary.healthTone), lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func providerRowBackground(for tone: ProviderAmountTone) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+
+        switch tone {
+        case .neutral:
+            shape.fill(Color.secondary.opacity(0.10))
+        case .good, .warning, .critical:
+            shape
+                .fill(Color.secondary.opacity(0.08))
+                .overlay {
+                    shape.fill(
+                        LinearGradient(
+                            stops: [
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0.22), location: 0),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0.14), location: 0.34),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0.06), location: 0.68),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0.02), location: 1)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                }
+        }
     }
 
     private var apiSection: some View {
@@ -567,15 +593,6 @@ struct UsageConsoleView: View {
             return Color(red: 1.0, green: 0.78, blue: 0.04)
         case .critical:
             return .red
-        }
-    }
-
-    private func rowBackgroundColor(for tone: ProviderAmountTone) -> Color {
-        switch tone {
-        case .neutral:
-            return Color.secondary.opacity(0.10)
-        case .good, .warning, .critical:
-            return healthColor(for: tone).opacity(0.14)
         }
     }
 
