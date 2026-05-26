@@ -167,10 +167,10 @@ struct UsageConsoleView: View {
                     shape.fill(
                         LinearGradient(
                             stops: [
-                                Gradient.Stop(color: healthColor(for: tone).opacity(0.13), location: 0),
-                                Gradient.Stop(color: healthColor(for: tone).opacity(0.08), location: 0.32),
-                                Gradient.Stop(color: healthColor(for: tone).opacity(0.03), location: 0.60),
-                                Gradient.Stop(color: healthColor(for: tone).opacity(0), location: 0.75),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0.07), location: 0),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0.045), location: 0.28),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0.018), location: 0.50),
+                                Gradient.Stop(color: healthColor(for: tone).opacity(0), location: 0.65),
                                 Gradient.Stop(color: healthColor(for: tone).opacity(0), location: 1)
                             ],
                             startPoint: .leading,
