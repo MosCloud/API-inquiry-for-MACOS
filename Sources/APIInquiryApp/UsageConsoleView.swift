@@ -71,7 +71,13 @@ struct UsageConsoleView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(20)
-        .frame(minWidth: 720, minHeight: 520)
+        .frame(
+            minWidth: 720,
+            maxWidth: .infinity,
+            minHeight: 520,
+            maxHeight: .infinity,
+            alignment: .topLeading
+        )
         .background(.regularMaterial)
     }
 
