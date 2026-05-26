@@ -42,6 +42,9 @@ private let providerModuleHorizontalPadding: CGFloat = 14
 private let providerModuleVerticalPadding: CGFloat = 10
 private let providerModuleMinHeight: CGFloat = 126
 private let providerRowCornerRadius: CGFloat = 8
+private let consoleNavigationHeight: CGFloat = 40
+private let consoleNavigationButtonHeight: CGFloat = 32
+private let consoleNavigationIconSize: CGFloat = 18
 private let projectHomepageURL = URL(string: "https://github.com/MosCloud/API-inquiry-for-MACOS")!
 
 struct UsageConsoleView: View {
@@ -85,12 +88,14 @@ struct UsageConsoleView: View {
                     Label {
                         Text(section.displayName(strings: strings))
                             .font(.system(.callout, design: .rounded).weight(.semibold))
+                            .lineLimit(1)
                     } icon: {
                         Image(systemName: section.systemImageName)
                             .font(.system(size: 13, weight: .semibold))
+                            .frame(width: consoleNavigationIconSize, height: consoleNavigationIconSize)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 7)
+                    .frame(height: consoleNavigationButtonHeight)
                     .foregroundStyle(section == selectedSection ? Color.white : Color.secondary)
                     .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
@@ -108,6 +113,7 @@ struct UsageConsoleView: View {
         }
         .padding(4)
         .frame(maxWidth: .infinity)
+        .frame(height: consoleNavigationHeight)
         .background(Color.secondary.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
