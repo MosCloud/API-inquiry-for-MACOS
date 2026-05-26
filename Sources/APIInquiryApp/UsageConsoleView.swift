@@ -63,15 +63,10 @@ struct UsageConsoleView: View {
         VStack(alignment: .leading, spacing: 18) {
             topNavigation
 
-            Group {
-                switch selectedSection {
-                case .home:
-                    homeSection
-                case .api:
-                    apiSection
-                case .settings:
-                    settingsSection
-                }
+            VStack(alignment: .leading, spacing: 14) {
+                sectionHeader
+
+                selectedSectionContent
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
@@ -121,20 +116,6 @@ struct UsageConsoleView: View {
 
     private var homeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(strings.providersTitle) {
-                Menu {
-                    ForEach(viewModel.availableProviderIDsToAdd, id: \.self) { id in
-                        Button(viewModel.displayName(for: id)) {
-                            viewModel.addProvider(id)
-                            selectedSection = .api
-                        }
-                    }
-                } label: {
-                    Label(strings.addProvider, systemImage: "plus")
-                }
-                .disabled(viewModel.availableProviderIDsToAdd.isEmpty)
-            }
-
             ForEach(viewModel.providerSummaries, id: \.id) { summary in
                 providerStatusRow(summary)
             }
@@ -185,8 +166,6 @@ struct UsageConsoleView: View {
 
     private var apiSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(strings.apiProvidersTitle)
-
             ForEach(viewModel.providerSummaries, id: \.id) { summary in
                 apiProviderPanel(summary)
             }
@@ -195,8 +174,6 @@ struct UsageConsoleView: View {
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(strings.settingsSection)
-
             VStack(alignment: .leading, spacing: 8) {
                 Text(strings.languageTitle)
                     .font(.caption)
@@ -242,27 +219,53 @@ struct UsageConsoleView: View {
         }
     }
 
-    private func sectionHeader(_ title: String) -> some View {
-        sectionHeader(title) {
-            EmptyView()
+    @ViewBuilder
+    private var selectedSectionContent: some View {
+        switch selectedSection {
+        case .home:
+            homeSection
+        case .api:
+            apiSection
+        case .settings:
+            settingsSection
         }
     }
 
-    private func sectionHeader<Accessory: View>(
-        _ title: String,
-        @ViewBuilder accessory: () -> Accessory
-    ) -> some View {
+    private var sectionHeader: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text(title)
+            Text(selectedSectionTitle)
                 .font(.headline)
                 .lineLimit(1)
 
             Spacer(minLength: 8)
 
-            accessory()
+            if selectedSection == .home {
+                Menu {
+                    ForEach(viewModel.availableProviderIDsToAdd, id: \.self) { id in
+                        Button(viewModel.displayName(for: id)) {
+                            viewModel.addProvider(id)
+                            selectedSection = .api
+                        }
+                    }
+                } label: {
+                    Label(strings.addProvider, systemImage: "plus")
+                }
+                .disabled(viewModel.availableProviderIDsToAdd.isEmpty)
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: consoleSectionHeaderHeight)
+    }
+
+    private var selectedSectionTitle: String {
+        switch selectedSection {
+        case .home:
+            return strings.providersTitle
+        case .api:
+            return strings.apiProvidersTitle
+        case .settings:
+            return strings.settingsSection
+        }
     }
 
     private func apiProviderPanel(_ summary: APIProviderSummary) -> some View {
