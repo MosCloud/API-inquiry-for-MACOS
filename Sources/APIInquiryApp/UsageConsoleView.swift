@@ -45,6 +45,7 @@ private let providerRowCornerRadius: CGFloat = 8
 private let consoleNavigationHeight: CGFloat = 40
 private let consoleNavigationButtonHeight: CGFloat = 32
 private let consoleNavigationIconSize: CGFloat = 18
+private let consoleSectionHeaderHeight: CGFloat = 28
 private let projectHomepageURL = URL(string: "https://github.com/MosCloud/API-inquiry-for-MACOS")!
 
 struct UsageConsoleView: View {
@@ -85,14 +86,14 @@ struct UsageConsoleView: View {
                 Button {
                     selectedSection = section
                 } label: {
-                    Label {
-                        Text(section.displayName(strings: strings))
-                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .lineLimit(1)
-                    } icon: {
+                    HStack(spacing: 8) {
                         Image(systemName: section.systemImageName)
                             .font(.system(size: 13, weight: .semibold))
                             .frame(width: consoleNavigationIconSize, height: consoleNavigationIconSize)
+
+                        Text(section.displayName(strings: strings))
+                            .font(.system(.callout, design: .rounded).weight(.semibold))
+                            .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: consoleNavigationButtonHeight)
@@ -120,12 +121,7 @@ struct UsageConsoleView: View {
 
     private var homeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text(strings.providersTitle)
-                    .font(.headline)
-
-                Spacer()
-
+            sectionHeader(strings.providersTitle) {
                 Menu {
                     ForEach(viewModel.availableProviderIDsToAdd, id: \.self) { id in
                         Button(viewModel.displayName(for: id)) {
@@ -189,8 +185,7 @@ struct UsageConsoleView: View {
 
     private var apiSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(strings.apiProvidersTitle)
-                .font(.headline)
+            sectionHeader(strings.apiProvidersTitle)
 
             ForEach(viewModel.providerSummaries, id: \.id) { summary in
                 apiProviderPanel(summary)
@@ -200,8 +195,7 @@ struct UsageConsoleView: View {
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(strings.settingsSection)
-                .font(.headline)
+            sectionHeader(strings.settingsSection)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(strings.languageTitle)
@@ -246,6 +240,29 @@ struct UsageConsoleView: View {
             .background(Color.secondary.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        sectionHeader(title) {
+            EmptyView()
+        }
+    }
+
+    private func sectionHeader<Accessory: View>(
+        _ title: String,
+        @ViewBuilder accessory: () -> Accessory
+    ) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            accessory()
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: consoleSectionHeaderHeight)
     }
 
     private func apiProviderPanel(_ summary: APIProviderSummary) -> some View {
