@@ -11,7 +11,7 @@ DMG_PATH="$DIST_DIR/$DMG_NAME"
 CHECKSUM_PATH="$DMG_PATH.sha256"
 DMG_WORK_ROOT="${API_INQUIRY_DMG_WORK_ROOT:-/private/tmp/api-inquiry-dmg-$$}"
 DMG_ROOT="$DMG_WORK_ROOT/dmg-root"
-STAGING_MOUNT="/Volumes/$VOLUME_NAME"
+STAGING_MOUNT="$DMG_WORK_ROOT/dmg-staging-mount"
 VERIFY_MOUNT="$DMG_WORK_ROOT/dmg-verify-mount"
 RW_DMG_PATH="$DMG_WORK_ROOT/$DMG_BASENAME-rw.dmg"
 DMG_BACKGROUND_PATH="$ROOT_DIR/Scripts/Assets/dmg-background.png"
@@ -65,7 +65,9 @@ hdiutil create \
     -size "$DMG_SIZE" \
     "$RW_DMG_PATH"
 
-hdiutil attach -readwrite -noverify -noautoopen "$RW_DMG_PATH" >/dev/null
+detach_staging_mount
+mkdir -p "$STAGING_MOUNT"
+hdiutil attach -readwrite -noverify -noautoopen -mountpoint "$STAGING_MOUNT" "$RW_DMG_PATH" >/dev/null
 if [ ! -d "$STAGING_MOUNT" ]; then
     echo "Mounted DMG volume is missing: $STAGING_MOUNT" >&2
     exit 1
@@ -74,21 +76,21 @@ fi
 osascript <<APPLESCRIPT
 with timeout of 20 seconds
     tell application "Finder"
-        tell disk "$VOLUME_NAME"
-            open
-            set current view of container window to icon view
-            set toolbar visible of container window to false
-            set statusbar visible of container window to false
-            set bounds of container window to {160, 160, 920, 580}
-            set viewOptions to the icon view options of container window
-            set arrangement of viewOptions to not arranged
-            set icon size of viewOptions to 152
-            set background picture of viewOptions to POSIX file "$STAGING_MOUNT/.background/dmg-background.png"
-            set position of item "$APP_NAME" of container window to {210, 180}
-            set position of item "Applications" of container window to {550, 180}
-            delay 1
-            close
-        end tell
+        set stagingFolder to POSIX file "$STAGING_MOUNT" as alias
+        open stagingFolder
+        set stagingWindow to container window of stagingFolder
+        set current view of stagingWindow to icon view
+        set toolbar visible of stagingWindow to false
+        set statusbar visible of stagingWindow to false
+        set bounds of stagingWindow to {160, 160, 920, 580}
+        set viewOptions to the icon view options of stagingWindow
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to 152
+        set background picture of viewOptions to POSIX file "$STAGING_MOUNT/.background/dmg-background.png"
+        set position of item "$APP_NAME" of stagingFolder to {210, 180}
+        set position of item "Applications" of stagingFolder to {550, 180}
+        delay 1
+        close stagingWindow
     end tell
 end timeout
 APPLESCRIPT
