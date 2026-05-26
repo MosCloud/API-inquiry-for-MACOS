@@ -17,6 +17,7 @@ enum UsageConsoleViewModelTests {
         await testSavingAPIKeyUsesChineseFeedback(using: harness)
         await testSaveFailureKeepsInputAndDoesNotExposeKey(using: harness)
         await testConfirmingAPIKeyDeletionReturnsBalanceToSetup(using: harness)
+        testRemovingUnmanagedCredentialProviderSkipsCredentialDeletion(using: harness)
         await testMultiProviderSummariesExposePrimaryAndPlanUsage(using: harness)
         await testMultiProviderSummariesExposeHealthTone(using: harness)
         testAddingProviderUpdatesAvailableProviderOptions(using: harness)
@@ -39,6 +40,7 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(codexSummary?.balanceText, "5h 72% remg", "codex console detail")
         harness.expectEqual(codexSummary?.planNameText, "Plus", "codex console plan")
         harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex console status")
+        harness.expectEqual(codexSummary?.supportsAPIKeyManagement, false, "codex console hides api key management")
     }
 
     @MainActor
@@ -61,6 +63,8 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(viewModel.providerSummaries.last?.balanceText, "5h 17% used", "multi console zhipu usage text")
         harness.expectEqual(viewModel.providerSummaries.last?.planNextResetText, "Plan Next Resets: 23:05", "multi console zhipu plan next reset")
         harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Plan available", "multi console zhipu status")
+        harness.expectEqual(viewModel.providerSummaries.first?.supportsAPIKeyManagement, true, "multi console deepseek supports key management")
+        harness.expectEqual(viewModel.providerSummaries.last?.supportsAPIKeyManagement, true, "multi console zhipu supports key management")
         harness.expectTrue(viewModel.providerSummaries.last?.isPrimary == true, "multi console zhipu primary")
     }
 
@@ -151,6 +155,39 @@ enum UsageConsoleViewModelTests {
         viewModel.addProvider(.zhipuCodingPlan)
 
         harness.expectEqual(viewModel.apiKeyInput(for: .zhipuCodingPlan), "", "console remove clears provider-scoped api key input")
+    }
+
+    @MainActor
+    private static func testRemovingUnmanagedCredentialProviderSkipsCredentialDeletion(using harness: TestHarness) {
+        let store = FailingDeleteCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+        let deepSeek = MockBalanceProvider(
+            id: .deepseek,
+            displayName: "DeepSeek",
+            menuPrefix: "DS",
+            credentialAccount: "deepseek-api-key",
+            homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
+            results: []
+        )
+        let codex = MockBalanceProvider(
+            id: .codex,
+            displayName: "Codex",
+            menuPrefix: "GPT",
+            credentialAccount: "codex-session-token",
+            homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
+            supportsConsoleCredentialManagement: false,
+            results: []
+        )
+        let coordinator = MultiProviderBalanceCoordinator(
+            providers: [deepSeek, codex],
+            credentialStore: store,
+            preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek, .codex])
+        )
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: store)
+
+        viewModel.removeProvider(.codex)
+
+        harness.expectEqual(coordinator.addedProviderIDs, [.deepseek], "console removes unmanaged credential provider")
+        harness.expectEqual(viewModel.settingsFeedback(for: .codex), nil, "console unmanaged credential removal has no delete feedback")
     }
 
     @MainActor
@@ -669,6 +706,7 @@ enum UsageConsoleViewModelTests {
                     menuPrefix: "GPT",
                     credentialAccount: "codex-session-token",
                     homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
+                    supportsConsoleCredentialManagement: false,
                     results: [.success(.quotaUsage(QuotaUsageSnapshot(
                         providerID: .codex,
                         planName: "Plus",

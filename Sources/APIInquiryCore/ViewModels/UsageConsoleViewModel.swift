@@ -8,6 +8,7 @@ public struct APIProviderSummary: Equatable {
     public let apiKeyStatusText: String
     public let validationStatusText: String
     public let summaryBadgeText: String
+    public let supportsAPIKeyManagement: Bool
     public let statusTone: ProviderStatusTone
     public let healthTone: ProviderAmountTone
     public let balanceText: String
@@ -23,6 +24,7 @@ public struct APIProviderSummary: Equatable {
         apiKeyStatusText: String,
         validationStatusText: String,
         summaryBadgeText: String? = nil,
+        supportsAPIKeyManagement: Bool = true,
         statusTone: ProviderStatusTone = .neutral,
         healthTone: ProviderAmountTone = .neutral,
         balanceText: String,
@@ -37,6 +39,7 @@ public struct APIProviderSummary: Equatable {
         self.apiKeyStatusText = apiKeyStatusText
         self.validationStatusText = validationStatusText
         self.summaryBadgeText = summaryBadgeText ?? validationStatusText
+        self.supportsAPIKeyManagement = supportsAPIKeyManagement
         self.statusTone = statusTone
         self.healthTone = healthTone
         self.balanceText = balanceText
@@ -181,6 +184,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                         fallbackText: validationStatusText,
                         strings: strings
                     ),
+                    supportsAPIKeyManagement: provider.supportsConsoleCredentialManagement,
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
                     healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                     balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
@@ -209,6 +213,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                     fallbackText: validationStatusText,
                     strings: strings
                 ),
+                supportsAPIKeyManagement: provider.supportsConsoleCredentialManagement,
                 statusTone: ProviderDisplayFormatter.statusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
@@ -235,7 +240,10 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     public func removeProvider(_ id: ProviderID, deletingCredential: Bool = true) {
         do {
-            try coordinator?.removeProvider(id, deletingCredential: deletingCredential)
+            try coordinator?.removeProvider(
+                id,
+                deletingCredential: deletingCredential && supportsConsoleCredentialManagement(for: id)
+            )
             apiKeyInputsByProviderID[id] = nil
             settingsFeedbacksByProviderID[id] = nil
         } catch {
@@ -277,7 +285,8 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func requestAPIKeyDeletion() {
-        guard singleIsCredentialConfigured else {
+        guard singleIsCredentialConfigured,
+              singleProvider?.supportsConsoleCredentialManagement == true else {
             return
         }
 
@@ -285,7 +294,8 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func requestAPIKeyDeletion(for id: ProviderID) {
-        guard isAPIKeyConfigured(for: id) else {
+        guard isAPIKeyConfigured(for: id),
+              supportsConsoleCredentialManagement(for: id) else {
             return
         }
 
@@ -314,6 +324,7 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     public func saveAPIKey() async {
         guard let provider = singleProvider,
+              provider.supportsConsoleCredentialManagement,
               let controller = singleController else {
             return
         }
@@ -332,7 +343,8 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     public func saveAPIKey(for id: ProviderID) async {
         guard let coordinator,
-              let provider = coordinator.provider(for: id) else {
+              let provider = coordinator.provider(for: id),
+              provider.supportsConsoleCredentialManagement else {
             return
         }
 
@@ -350,6 +362,7 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     public func deleteAPIKey() async {
         guard let provider = singleProvider,
+              provider.supportsConsoleCredentialManagement,
               let controller = singleController else {
             return
         }
@@ -372,7 +385,8 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     public func deleteAPIKey(for id: ProviderID) async {
         guard let coordinator,
-              let provider = coordinator.provider(for: id) else {
+              let provider = coordinator.provider(for: id),
+              provider.supportsConsoleCredentialManagement else {
             return
         }
 
@@ -490,6 +504,14 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
 
         return Self.settingsMessage(for: error, fallback: fallback)
+    }
+
+    private func supportsConsoleCredentialManagement(for id: ProviderID) -> Bool {
+        if let coordinator {
+            return coordinator.provider(for: id)?.supportsConsoleCredentialManagement ?? true
+        }
+
+        return singleProvider?.id == id ? singleProvider?.supportsConsoleCredentialManagement ?? true : true
     }
 
     public var localizedStrings: LocalizedStrings {

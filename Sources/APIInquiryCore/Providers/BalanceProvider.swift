@@ -6,11 +6,14 @@ public protocol BalanceProvider {
     var menuPrefix: String { get }
     var credentialAccount: String { get }
     var homepageURL: URL { get }
+    var supportsConsoleCredentialManagement: Bool { get }
 
     func fetchSnapshot(apiKey: String) async throws -> ProviderSnapshot
 }
 
 public extension BalanceProvider {
+    var supportsConsoleCredentialManagement: Bool { true }
+
     func fetchBalance(apiKey: String) async throws -> BalanceSnapshot {
         let snapshot = try await fetchSnapshot(apiKey: apiKey)
         guard case .balance(let balanceSnapshot) = snapshot else {

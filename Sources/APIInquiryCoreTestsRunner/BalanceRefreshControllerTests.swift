@@ -245,6 +245,7 @@ final class MockBalanceProvider: BalanceProvider {
     let menuPrefix: String
     let credentialAccount: String
     let homepageURL: URL
+    let supportsConsoleCredentialManagement: Bool
 
     private var results: [Result<ProviderSnapshot, Error>]
     private(set) var fetchCount = 0
@@ -256,6 +257,7 @@ final class MockBalanceProvider: BalanceProvider {
         menuPrefix: String = "DS",
         credentialAccount: String = "deepseek-api-key",
         homepageURL: URL = URL(string: "https://platform.deepseek.com/usage")!,
+        supportsConsoleCredentialManagement: Bool = true,
         results: [Result<ProviderSnapshot, Error>]
     ) {
         self.id = id
@@ -263,6 +265,7 @@ final class MockBalanceProvider: BalanceProvider {
         self.menuPrefix = menuPrefix
         self.credentialAccount = credentialAccount
         self.homepageURL = homepageURL
+        self.supportsConsoleCredentialManagement = supportsConsoleCredentialManagement
         self.results = results
     }
 

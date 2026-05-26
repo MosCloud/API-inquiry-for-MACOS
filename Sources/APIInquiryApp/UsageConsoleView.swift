@@ -246,50 +246,60 @@ struct UsageConsoleView: View {
         VStack(alignment: .leading, spacing: 10) {
             providerAPIHeader(summary)
 
-            if !viewModel.isAPIKeyConfigured(for: summary.id) || replacingProviderIDs.contains(summary.id) {
-                SecureField(
-                    viewModel.isAPIKeyConfigured(for: summary.id) ? strings.newAPIKeyPlaceholder : strings.apiKeyPlaceholder,
-                    text: apiKeyBinding(for: summary.id)
-                )
-                    .textFieldStyle(.roundedBorder)
+            if summary.supportsAPIKeyManagement {
+                if !viewModel.isAPIKeyConfigured(for: summary.id) || replacingProviderIDs.contains(summary.id) {
+                    SecureField(
+                        viewModel.isAPIKeyConfigured(for: summary.id) ? strings.newAPIKeyPlaceholder : strings.apiKeyPlaceholder,
+                        text: apiKeyBinding(for: summary.id)
+                    )
+                        .textFieldStyle(.roundedBorder)
 
-                HStack(spacing: 8) {
-                    Button(viewModel.isAPIKeyConfigured(for: summary.id) ? strings.saveReplacement : strings.save) {
-                        Task {
-                            await viewModel.saveAPIKey(for: summary.id)
-                            if viewModel.isAPIKeyConfigured(for: summary.id) {
-                                replacingProviderIDs.remove(summary.id)
+                    HStack(spacing: 8) {
+                        Button(viewModel.isAPIKeyConfigured(for: summary.id) ? strings.saveReplacement : strings.save) {
+                            Task {
+                                await viewModel.saveAPIKey(for: summary.id)
+                                if viewModel.isAPIKeyConfigured(for: summary.id) {
+                                    replacingProviderIDs.remove(summary.id)
+                                }
                             }
                         }
-                    }
-                    .disabled(viewModel.apiKeyInput(for: summary.id).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(viewModel.apiKeyInput(for: summary.id).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                    if replacingProviderIDs.contains(summary.id) {
-                        Button(strings.cancel) {
-                            replacingProviderIDs.remove(summary.id)
+                        if replacingProviderIDs.contains(summary.id) {
+                            Button(strings.cancel) {
+                                replacingProviderIDs.remove(summary.id)
+                                viewModel.setAPIKeyInput("", for: summary.id)
+                            }
+                        }
+
+                        removeProviderButtonIfNeeded(summary)
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        Button(strings.replaceKey) {
+                            replacingProviderIDs.insert(summary.id)
                             viewModel.setAPIKeyInput("", for: summary.id)
                         }
-                    }
 
-                    removeProviderButtonIfNeeded(summary)
+                        Button(strings.deleteKey, role: .destructive) {
+                            viewModel.requestAPIKeyDeletion(for: summary.id)
+                        }
+                        removeProviderButtonIfNeeded(summary)
+                    }
                 }
             } else {
                 HStack(spacing: 8) {
-                    Button(strings.replaceKey) {
-                        replacingProviderIDs.insert(summary.id)
-                        viewModel.setAPIKeyInput("", for: summary.id)
-                    }
-
-                    Button(strings.deleteKey, role: .destructive) {
-                        viewModel.requestAPIKeyDeletion(for: summary.id)
-                    }
                     removeProviderButtonIfNeeded(summary)
                 }
             }
 
             if providerRemovalConfirmationID == summary.id {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(viewModel.isAPIKeyConfigured(for: summary.id) ? strings.removeProviderAndDeleteAPIKeyConfirmation : strings.removeProviderConfirmation)
+                    Text(
+                        summary.supportsAPIKeyManagement && viewModel.isAPIKeyConfigured(for: summary.id)
+                            ? strings.removeProviderAndDeleteAPIKeyConfirmation
+                            : strings.removeProviderConfirmation
+                    )
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -366,9 +376,11 @@ struct UsageConsoleView: View {
 
             Spacer()
 
-            Text(summary.apiKeyStatusText)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(summary.apiKeyStatusText == strings.configured ? Color.green : Color.secondary)
+            if summary.supportsAPIKeyManagement {
+                Text(summary.apiKeyStatusText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(summary.apiKeyStatusText == strings.configured ? Color.green : Color.secondary)
+            }
         }
         .frame(minHeight: 32)
     }
