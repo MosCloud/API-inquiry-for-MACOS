@@ -66,7 +66,11 @@ struct UsageConsoleView: View {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader
 
-                selectedSectionContent
+                ScrollView(.vertical) {
+                    selectedSectionContent
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
