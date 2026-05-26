@@ -247,6 +247,37 @@ public enum ProviderDisplayFormatter {
         }
     }
 
+    public static func summaryBadgeText(
+        for state: BalanceState,
+        fallbackText: String,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
+        guard case .loaded(let snapshot) = state else {
+            return fallbackText
+        }
+
+        switch snapshot {
+        case .balance(let balance):
+            return balanceSummaryBadgeText(
+                for: balanceAmountTone(for: balance.totalBalance),
+                fallbackText: fallbackText,
+                strings: strings
+            )
+        case .planUsage(let usage):
+            return quotaSummaryBadgeText(
+                for: planUsageAmountTone(for: usage.usagePercentage),
+                fallbackText: fallbackText,
+                strings: strings
+            )
+        case .quotaUsage(let usage):
+            return quotaSummaryBadgeText(
+                for: aggregateAmountTone(usage.windows.map { remainingQuotaAmountTone(for: $0.remainingPercentage) }),
+                fallbackText: fallbackText,
+                strings: strings
+            )
+        }
+    }
+
     public static func resetText(for snapshot: ProviderSnapshot?) -> String? {
         guard case .planUsage(let usage) = snapshot,
               let resetAt = usage.resetAt else {
@@ -337,6 +368,40 @@ public enum ProviderDisplayFormatter {
             return .warning
         }
         return .critical
+    }
+
+    private static func balanceSummaryBadgeText(
+        for tone: ProviderAmountTone,
+        fallbackText: String,
+        strings: LocalizedStrings
+    ) -> String {
+        switch tone {
+        case .neutral:
+            return fallbackText
+        case .good:
+            return strings.balanceSufficient
+        case .warning:
+            return strings.balanceLow
+        case .critical:
+            return strings.balanceCritical
+        }
+    }
+
+    private static func quotaSummaryBadgeText(
+        for tone: ProviderAmountTone,
+        fallbackText: String,
+        strings: LocalizedStrings
+    ) -> String {
+        switch tone {
+        case .neutral:
+            return fallbackText
+        case .good:
+            return strings.quotaSufficient
+        case .warning:
+            return strings.quotaLow
+        case .critical:
+            return strings.quotaCritical
+        }
     }
 
     private static func aggregateAmountTone(_ tones: [ProviderAmountTone]) -> ProviderAmountTone {

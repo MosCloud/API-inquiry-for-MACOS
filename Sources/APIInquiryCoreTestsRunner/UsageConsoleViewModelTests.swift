@@ -11,6 +11,7 @@ enum UsageConsoleViewModelTests {
         await testProviderSummariesExposeBalanceHealthToneBoundaries(using: harness)
         await testProviderSummariesExposePlanHealthToneBoundaries(using: harness)
         await testProviderSummariesAggregateQuotaHealthTone(using: harness)
+        await testProviderSummariesExposeResourceBadgeCopy(using: harness)
         await testProviderSummariesKeepNonQuotaStatesNeutral(using: harness)
         await testSavingAPIKeyRefreshesBalance(using: harness)
         await testSavingAPIKeyUsesChineseFeedback(using: harness)
@@ -365,6 +366,86 @@ enum UsageConsoleViewModelTests {
         await boundaryController.refresh()
 
         harness.expectEqual(boundaryViewModel.providerSummaries.first?.healthTone, .critical, "quota summary aggregates boundary tones")
+    }
+
+    @MainActor
+    private static func testProviderSummariesExposeResourceBadgeCopy(using harness: TestHarness) async {
+        let balanceCases: [(String, String, String)] = [
+            ("68.65", "Balance Sufficient", "余额充足"),
+            ("20", "Balance Low", "余额偏低"),
+            ("5", "Balance Critical", "余额告急")
+        ]
+
+        for item in balanceCases {
+            let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: item.0)))])
+            let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+            let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+            let englishViewModel = UsageConsoleViewModel(
+                provider: provider,
+                credentialStore: credentialStore,
+                controller: controller
+            )
+            let chineseViewModel = UsageConsoleViewModel(
+                provider: provider,
+                credentialStore: credentialStore,
+                controller: controller,
+                languageStore: makeLanguageStore(selection: .zh)
+            )
+
+            await controller.refresh()
+
+            harness.expectEqual(englishViewModel.providerSummaries.first?.summaryBadgeText, item.1, "english balance badge \(item.0)")
+            harness.expectEqual(chineseViewModel.providerSummaries.first?.summaryBadgeText, item.2, "chinese balance badge \(item.0)")
+            harness.expectEqual(englishViewModel.providerSummaries.first?.validationStatusText, "Active", "balance status metric stays service status")
+        }
+
+        let planCases: [(Decimal, String)] = [
+            (Decimal(17), "额度充足"),
+            (Decimal(60), "额度偏低"),
+            (Decimal(90), "额度告急")
+        ]
+
+        for item in planCases {
+            let provider = MockBalanceProvider(
+                id: .zhipuCodingPlan,
+                displayName: "Zhipu GLM Coding Plan",
+                menuPrefix: "GLM",
+                credentialAccount: "zhipu-coding-plan-api-key",
+                homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
+                results: [.success(.planUsage(PlanUsageSnapshot(
+                    providerID: .zhipuCodingPlan,
+                    windowLabel: "5h",
+                    usagePercentage: item.0,
+                    resetAt: nil,
+                    isAvailable: true,
+                    fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+                )))]
+            )
+            let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["zhipu-coding-plan-api-key": "test-key"])
+            let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+            let viewModel = UsageConsoleViewModel(
+                provider: provider,
+                credentialStore: credentialStore,
+                controller: controller,
+                languageStore: makeLanguageStore(selection: .zh)
+            )
+
+            await controller.refresh()
+
+            harness.expectEqual(viewModel.providerSummaries.first?.summaryBadgeText, item.1, "chinese plan badge \(item.0)")
+            harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "计划可用", "plan status metric stays service status")
+        }
+
+        let codexCoordinator = makeCodexCoordinator(primaryProviderID: .codex)
+        await codexCoordinator.refresh(.codex)
+        let codexViewModel = UsageConsoleViewModel(
+            coordinator: codexCoordinator,
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"]),
+            languageStore: makeLanguageStore(selection: .zh)
+        )
+
+        harness.expectEqual(codexViewModel.providerSummaries.first?.summaryBadgeText, "额度偏低", "chinese quota badge uses quota copy")
+        harness.expectEqual(codexViewModel.providerSummaries.first?.validationStatusText, "额度可用", "quota status metric stays service status")
     }
 
     @MainActor

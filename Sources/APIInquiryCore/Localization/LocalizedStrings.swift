@@ -29,11 +29,17 @@ public struct LocalizedStrings: Equatable {
     public var available: String { text(en: "Available", zh: "可用") }
     public var balanceInsufficient: String { text(en: "Balance insufficient", zh: "余额不足") }
     public var insufficientBalance: String { text(en: "Insufficient balance", zh: "余额不足") }
+    public var balanceSufficient: String { text(en: "Balance Sufficient", zh: "余额充足") }
+    public var balanceLow: String { text(en: "Balance Low", zh: "余额偏低") }
+    public var balanceCritical: String { text(en: "Balance Critical", zh: "余额告急") }
     public var planAvailable: String { text(en: "Plan available", zh: "计划可用") }
     public var limitReached: String { text(en: "Limit reached", zh: "已达上限") }
     public var planExpired: String { text(en: "Plan expired", zh: "计划已过期") }
     public var quotaAvailable: String { text(en: "Quota available", zh: "额度可用") }
     public var quotaExhausted: String { text(en: "Quota exhausted", zh: "额度已用尽") }
+    public var quotaSufficient: String { text(en: "Quota Sufficient", zh: "额度充足") }
+    public var quotaLow: String { text(en: "Quota Low", zh: "额度偏低") }
+    public var quotaCritical: String { text(en: "Quota Critical", zh: "额度告急") }
     public var invalid: String { text(en: "Invalid", zh: "无效") }
     public var unavailable: String { text(en: "Unavailable", zh: "不可用") }
     public var unknown: String { text(en: "Unknown", zh: "未知") }

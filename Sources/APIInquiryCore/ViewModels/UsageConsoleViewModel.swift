@@ -7,6 +7,7 @@ public struct APIProviderSummary: Equatable {
     public let homepageURL: URL
     public let apiKeyStatusText: String
     public let validationStatusText: String
+    public let summaryBadgeText: String
     public let statusTone: ProviderStatusTone
     public let healthTone: ProviderAmountTone
     public let balanceText: String
@@ -21,6 +22,7 @@ public struct APIProviderSummary: Equatable {
         homepageURL: URL,
         apiKeyStatusText: String,
         validationStatusText: String,
+        summaryBadgeText: String? = nil,
         statusTone: ProviderStatusTone = .neutral,
         healthTone: ProviderAmountTone = .neutral,
         balanceText: String,
@@ -34,6 +36,7 @@ public struct APIProviderSummary: Equatable {
         self.homepageURL = homepageURL
         self.apiKeyStatusText = apiKeyStatusText
         self.validationStatusText = validationStatusText
+        self.summaryBadgeText = summaryBadgeText ?? validationStatusText
         self.statusTone = statusTone
         self.healthTone = healthTone
         self.balanceText = balanceText
@@ -165,13 +168,19 @@ public final class UsageConsoleViewModel: ObservableObject {
             guard let provider = singleProvider else {
                 return []
             }
+            let validationStatusText = validationStatusText(for: state)
             return [
                 APIProviderSummary(
                     id: provider.id,
                     displayName: providerDisplayName,
                     homepageURL: provider.homepageURL,
                     apiKeyStatusText: credentialStatusText,
-                    validationStatusText: validationStatusText(for: state),
+                    validationStatusText: validationStatusText,
+                    summaryBadgeText: ProviderDisplayFormatter.summaryBadgeText(
+                        for: state,
+                        fallbackText: validationStatusText,
+                        strings: strings
+                    ),
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
                     healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                     balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
@@ -188,12 +197,18 @@ public final class UsageConsoleViewModel: ObservableObject {
                 return nil
             }
             let state = coordinator.state(for: id)
+            let validationStatusText = validationStatusText(for: state)
             return APIProviderSummary(
                 id: id,
                 displayName: provider.displayName,
                 homepageURL: provider.homepageURL,
                 apiKeyStatusText: coordinator.isCredentialConfigured(for: id) ? strings.configured : strings.notConfigured,
-                validationStatusText: validationStatusText(for: state),
+                validationStatusText: validationStatusText,
+                summaryBadgeText: ProviderDisplayFormatter.summaryBadgeText(
+                    for: state,
+                    fallbackText: validationStatusText,
+                    strings: strings
+                ),
                 statusTone: ProviderDisplayFormatter.statusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),

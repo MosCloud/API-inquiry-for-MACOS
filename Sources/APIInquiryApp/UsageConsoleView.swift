@@ -355,7 +355,7 @@ struct UsageConsoleView: View {
 
             Spacer()
 
-            statusBadge(summary.validationStatusText, healthTone: summary.healthTone, fallbackTone: summary.statusTone)
+            statusBadge(summary.summaryBadgeText, healthTone: summary.healthTone, fallbackTone: summary.statusTone)
         }
         .frame(minHeight: 34)
     }
