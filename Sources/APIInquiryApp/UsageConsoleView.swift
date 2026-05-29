@@ -53,6 +53,7 @@ struct UsageConsoleView: View {
     @State private var selectedSection: UsageConsoleSection
     @State private var replacingProviderIDs: Set<ProviderID> = []
     @State private var providerRemovalConfirmationID: ProviderID?
+    @State private var localFeedbacksByProviderID: [ProviderID: SettingsFeedback] = [:]
 
     init(viewModel: UsageConsoleViewModel, initialSection: UsageConsoleSection = .home) {
         self.viewModel = viewModel
@@ -279,53 +280,43 @@ struct UsageConsoleView: View {
     }
 
     private func apiProviderPanel(_ summary: APIProviderSummary) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            providerAPIHeader(summary)
+        let isEditingAPIKey = summary.supportsAPIKeyManagement && replacingProviderIDs.contains(summary.id)
 
-            if summary.supportsAPIKeyManagement {
-                if !viewModel.isAPIKeyConfigured(for: summary.id) || replacingProviderIDs.contains(summary.id) {
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                providerHomepageButton(summary)
+
+                HStack(spacing: 8) {
+                    apiAccessBadge(summary)
+
+                    Text(summary.apiAccessPurposeText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(1)
+
+                apiPrimaryAction(summary, isEditingAPIKey: isEditingAPIKey)
+                    .fixedSize()
+                apiProviderMoreMenu(summary)
+                    .fixedSize()
+            }
+
+            if isEditingAPIKey {
+                HStack(spacing: 8) {
                     SecureField(
                         viewModel.isAPIKeyConfigured(for: summary.id) ? strings.newAPIKeyPlaceholder : strings.apiKeyPlaceholder,
                         text: apiKeyBinding(for: summary.id)
                     )
-                        .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.roundedBorder)
 
-                    HStack(spacing: 8) {
-                        Button(viewModel.isAPIKeyConfigured(for: summary.id) ? strings.saveReplacement : strings.save) {
-                            Task {
-                                await viewModel.saveAPIKey(for: summary.id)
-                                if viewModel.isAPIKeyConfigured(for: summary.id) {
-                                    replacingProviderIDs.remove(summary.id)
-                                }
-                            }
-                        }
-                        .disabled(viewModel.apiKeyInput(for: summary.id).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                        if replacingProviderIDs.contains(summary.id) {
-                            Button(strings.cancel) {
-                                replacingProviderIDs.remove(summary.id)
-                                viewModel.setAPIKeyInput("", for: summary.id)
-                            }
-                        }
-
-                        removeProviderButtonIfNeeded(summary)
+                    Button(strings.cancel) {
+                        replacingProviderIDs.remove(summary.id)
+                        viewModel.setAPIKeyInput("", for: summary.id)
                     }
-                } else {
-                    HStack(spacing: 8) {
-                        Button(strings.replaceKey) {
-                            replacingProviderIDs.insert(summary.id)
-                            viewModel.setAPIKeyInput("", for: summary.id)
-                        }
-
-                        Button(strings.deleteKey, role: .destructive) {
-                            viewModel.requestAPIKeyDeletion(for: summary.id)
-                        }
-                        removeProviderButtonIfNeeded(summary)
-                    }
-                }
-            } else {
-                HStack(spacing: 8) {
-                    removeProviderButtonIfNeeded(summary)
+                    .controlSize(.small)
                 }
             }
 
@@ -375,10 +366,11 @@ struct UsageConsoleView: View {
             }
 
             feedbackText(viewModel.settingsFeedback(for: summary.id))
+            feedbackText(localFeedbacksByProviderID[summary.id])
         }
         .padding(.horizontal, providerModuleHorizontalPadding)
         .padding(.vertical, providerModuleVerticalPadding)
-        .frame(maxWidth: .infinity, minHeight: providerModuleMinHeight, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 76, alignment: .topLeading)
         .background(Color.secondary.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: providerRowCornerRadius, style: .continuous))
     }
@@ -404,21 +396,6 @@ struct UsageConsoleView: View {
             statusBadge(summary.summaryBadgeText, healthTone: summary.healthTone, fallbackTone: summary.statusTone)
         }
         .frame(minHeight: 34)
-    }
-
-    private func providerAPIHeader(_ summary: APIProviderSummary) -> some View {
-        HStack(spacing: 10) {
-            providerHomepageButton(summary)
-
-            Spacer()
-
-            if summary.supportsAPIKeyManagement {
-                Text(summary.apiKeyStatusText)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(summary.apiKeyStatusText == strings.configured ? Color.green : Color.secondary)
-            }
-        }
-        .frame(minHeight: 32)
     }
 
     private func providerMetrics(_ summary: APIProviderSummary) -> some View {
@@ -471,11 +448,95 @@ struct UsageConsoleView: View {
     }
 
     @ViewBuilder
-    private func removeProviderButtonIfNeeded(_ summary: APIProviderSummary) -> some View {
-        Button(strings.removeProvider, role: .destructive) {
-            providerRemovalConfirmationID = summary.id
+    private func apiPrimaryAction(_ summary: APIProviderSummary, isEditingAPIKey: Bool) -> some View {
+        if summary.supportsAPIKeyManagement {
+            if isEditingAPIKey {
+                Button(viewModel.isAPIKeyConfigured(for: summary.id) ? strings.saveReplacement : strings.save) {
+                    Task {
+                        await viewModel.saveAPIKey(for: summary.id)
+                        if viewModel.isAPIKeyConfigured(for: summary.id) {
+                            replacingProviderIDs.remove(summary.id)
+                        }
+                    }
+                }
+                .disabled(viewModel.apiKeyInput(for: summary.id).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .controlSize(.small)
+            } else {
+                Button(viewModel.isAPIKeyConfigured(for: summary.id) ? strings.replaceKey : strings.configureKey) {
+                    replacingProviderIDs.insert(summary.id)
+                    viewModel.setAPIKeyInput("", for: summary.id)
+                }
+                .controlSize(.small)
+            }
+        } else if summary.codexConfigTargetURL != nil {
+            Button(strings.openConfig) {
+                openCodexConfig(summary)
+            }
+            .controlSize(.small)
         }
-        .disabled(viewModel.providerSummaries.count <= 1)
+    }
+
+    private func apiProviderMoreMenu(_ summary: APIProviderSummary) -> some View {
+        Menu {
+            if summary.supportsAPIKeyManagement, viewModel.isAPIKeyConfigured(for: summary.id) {
+                Button(strings.deleteKey, role: .destructive) {
+                    viewModel.requestAPIKeyDeletion(for: summary.id)
+                }
+            }
+
+            if !summary.supportsAPIKeyManagement, summary.codexConfigTargetURL != nil {
+                Button(strings.showConfigInFinder) {
+                    showCodexConfigInFinder(summary)
+                }
+            }
+
+            Button(strings.removeProvider, role: .destructive) {
+                providerRemovalConfirmationID = summary.id
+            }
+            .disabled(viewModel.providerSummaries.count <= 1)
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: 16, weight: .semibold))
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .controlSize(.small)
+        .help(strings.removeProvider)
+    }
+
+    private func apiAccessBadge(_ summary: APIProviderSummary) -> some View {
+        let color = apiAccessStatusColor(summary)
+        return Text(summary.apiAccessStatusText)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .foregroundStyle(color)
+            .background(color.opacity(0.14))
+            .clipShape(Capsule())
+            .lineLimit(1)
+            .fixedSize()
+    }
+
+    private func openCodexConfig(_ summary: APIProviderSummary) {
+        guard let targetURL = summary.codexConfigTargetURL else {
+            localFeedbacksByProviderID[summary.id] = SettingsFeedback(kind: .error, message: strings.configCouldNotBeOpened)
+            return
+        }
+
+        if NSWorkspace.shared.open(targetURL) {
+            localFeedbacksByProviderID[summary.id] = nil
+        } else {
+            localFeedbacksByProviderID[summary.id] = SettingsFeedback(kind: .error, message: strings.configCouldNotBeOpened)
+        }
+    }
+
+    private func showCodexConfigInFinder(_ summary: APIProviderSummary) {
+        guard let targetURL = summary.codexConfigTargetURL else {
+            return
+        }
+
+        NSWorkspace.shared.activateFileViewerSelecting([targetURL])
+        localFeedbacksByProviderID[summary.id] = nil
     }
 
     private func providerHomepageButton(_ summary: APIProviderSummary) -> some View {
@@ -639,6 +700,15 @@ struct UsageConsoleView: View {
             return Color(red: 1.0, green: 0.78, blue: 0.04)
         case .critical:
             return .red
+        }
+    }
+
+    private func apiAccessStatusColor(_ summary: APIProviderSummary) -> Color {
+        switch summary.apiAccessStatusText {
+        case strings.configured, strings.loaded:
+            return .green
+        default:
+            return .secondary
         }
     }
 

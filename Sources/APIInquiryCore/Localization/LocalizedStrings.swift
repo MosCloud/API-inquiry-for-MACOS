@@ -24,6 +24,8 @@ public struct LocalizedStrings: Equatable {
 
     public var notConfigured: String { text(en: "Not configured", zh: "未配置") }
     public var configured: String { text(en: "Configured", zh: "已配置") }
+    public var loaded: String { text(en: "Loaded", zh: "已加载") }
+    public var notLoaded: String { text(en: "Not loaded", zh: "未加载") }
     public var checking: String { text(en: "Checking", zh: "检查中") }
     public var active: String { text(en: "Active", zh: "正常") }
     public var available: String { text(en: "Available", zh: "可用") }
@@ -73,12 +75,22 @@ public struct LocalizedStrings: Equatable {
     public var newAPIKeyPlaceholder: String { text(en: "New API key", zh: "新 API 密钥") }
     public var save: String { text(en: "Save", zh: "保存") }
     public var saveReplacement: String { text(en: "Save Replacement", zh: "保存新密钥") }
+    public var configureKey: String { text(en: "Configure Key", zh: "配置密钥") }
     public var replaceKey: String { text(en: "Replace Key", zh: "更换 API 密钥") }
     public var deleteKey: String { text(en: "Delete Key", zh: "删除 API 密钥") }
     public var cancel: String { text(en: "Cancel", zh: "取消") }
     public var delete: String { text(en: "Delete", zh: "删除") }
     public var remove: String { text(en: "Remove", zh: "移除") }
     public var removeProvider: String { text(en: "Remove Provider", zh: "移除供应商") }
+    public var prepaidBalanceCheckPurpose: String {
+        text(en: "Available for prepaid balance checks", zh: "可用于充值余额查询")
+    }
+    public var planBalanceCheckPurpose: String {
+        text(en: "Available for plan balance checks", zh: "可用于套餐余额查询")
+    }
+    public var openConfig: String { text(en: "Open Config", zh: "打开配置") }
+    public var showConfigInFinder: String { text(en: "Show Config in Finder", zh: "在 Finder 中显示配置") }
+    public var configCouldNotBeOpened: String { text(en: "Config could not be opened.", zh: "无法打开配置。") }
 
     public var removeProviderConfirmation: String {
         text(en: "Remove this provider?", zh: "移除此供应商？")
@@ -92,7 +104,7 @@ public struct LocalizedStrings: Equatable {
     }
 
     public var deleteAPIKeyConfirmation: String {
-        text(en: "Remove the saved API key from Keychain?", zh: "从密钥串删除已保存的 API 密钥？")
+        text(en: "Delete the saved API key?", zh: "删除已保存的 API 密钥？")
     }
 
     public var savedSecurely: String { text(en: "Saved securely.", zh: "已安全保存。") }

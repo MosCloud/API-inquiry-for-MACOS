@@ -6,9 +6,12 @@ public struct APIProviderSummary: Equatable {
     public let displayName: String
     public let homepageURL: URL
     public let apiKeyStatusText: String
+    public let apiAccessStatusText: String
+    public let apiAccessPurposeText: String
     public let validationStatusText: String
     public let summaryBadgeText: String
     public let supportsAPIKeyManagement: Bool
+    public let codexConfigTargetURL: URL?
     public let statusTone: ProviderStatusTone
     public let healthTone: ProviderAmountTone
     public let balanceText: String
@@ -22,9 +25,12 @@ public struct APIProviderSummary: Equatable {
         displayName: String,
         homepageURL: URL,
         apiKeyStatusText: String,
+        apiAccessStatusText: String? = nil,
+        apiAccessPurposeText: String = "",
         validationStatusText: String,
         summaryBadgeText: String? = nil,
         supportsAPIKeyManagement: Bool = true,
+        codexConfigTargetURL: URL? = nil,
         statusTone: ProviderStatusTone = .neutral,
         healthTone: ProviderAmountTone = .neutral,
         balanceText: String,
@@ -37,9 +43,12 @@ public struct APIProviderSummary: Equatable {
         self.displayName = displayName
         self.homepageURL = homepageURL
         self.apiKeyStatusText = apiKeyStatusText
+        self.apiAccessStatusText = apiAccessStatusText ?? apiKeyStatusText
+        self.apiAccessPurposeText = apiAccessPurposeText
         self.validationStatusText = validationStatusText
         self.summaryBadgeText = summaryBadgeText ?? validationStatusText
         self.supportsAPIKeyManagement = supportsAPIKeyManagement
+        self.codexConfigTargetURL = codexConfigTargetURL
         self.statusTone = statusTone
         self.healthTone = healthTone
         self.balanceText = balanceText
@@ -172,12 +181,18 @@ public final class UsageConsoleViewModel: ObservableObject {
                 return []
             }
             let validationStatusText = validationStatusText(for: state)
+            let isCredentialConfigured = isAPIKeyConfigured
             return [
                 APIProviderSummary(
                     id: provider.id,
                     displayName: providerDisplayName,
                     homepageURL: provider.homepageURL,
-                    apiKeyStatusText: credentialStatusText,
+                    apiKeyStatusText: isCredentialConfigured ? strings.configured : strings.notConfigured,
+                    apiAccessStatusText: apiAccessStatusText(
+                        for: provider,
+                        isCredentialConfigured: isCredentialConfigured
+                    ),
+                    apiAccessPurposeText: apiAccessPurposeText(for: provider),
                     validationStatusText: validationStatusText,
                     summaryBadgeText: ProviderDisplayFormatter.summaryBadgeText(
                         for: state,
@@ -185,6 +200,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                         strings: strings
                     ),
                     supportsAPIKeyManagement: provider.supportsConsoleCredentialManagement,
+                    codexConfigTargetURL: codexConfigTargetURL(for: provider),
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
                     healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                     balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
@@ -202,11 +218,17 @@ public final class UsageConsoleViewModel: ObservableObject {
             }
             let state = coordinator.state(for: id)
             let validationStatusText = validationStatusText(for: state)
+            let isCredentialConfigured = coordinator.isCredentialConfigured(for: id)
             return APIProviderSummary(
                 id: id,
                 displayName: provider.displayName,
                 homepageURL: provider.homepageURL,
-                apiKeyStatusText: coordinator.isCredentialConfigured(for: id) ? strings.configured : strings.notConfigured,
+                apiKeyStatusText: isCredentialConfigured ? strings.configured : strings.notConfigured,
+                apiAccessStatusText: apiAccessStatusText(
+                    for: provider,
+                    isCredentialConfigured: isCredentialConfigured
+                ),
+                apiAccessPurposeText: apiAccessPurposeText(for: provider),
                 validationStatusText: validationStatusText,
                 summaryBadgeText: ProviderDisplayFormatter.summaryBadgeText(
                     for: state,
@@ -214,6 +236,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                     strings: strings
                 ),
                 supportsAPIKeyManagement: provider.supportsConsoleCredentialManagement,
+                codexConfigTargetURL: codexConfigTargetURL(for: provider),
                 statusTone: ProviderDisplayFormatter.statusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
@@ -471,6 +494,34 @@ public final class UsageConsoleViewModel: ObservableObject {
                 return strings.unavailable
             }
         }
+    }
+
+    private func apiAccessStatusText(
+        for provider: BalanceProvider,
+        isCredentialConfigured: Bool
+    ) -> String {
+        if provider.supportsConsoleCredentialManagement {
+            return isCredentialConfigured ? strings.configured : strings.notConfigured
+        }
+
+        return isCredentialConfigured ? strings.loaded : strings.notLoaded
+    }
+
+    private func apiAccessPurposeText(for provider: BalanceProvider) -> String {
+        switch provider.id {
+        case .deepseek:
+            return strings.prepaidBalanceCheckPurpose
+        case .zhipuCodingPlan, .codex:
+            return strings.planBalanceCheckPurpose
+        }
+    }
+
+    private func codexConfigTargetURL(for provider: BalanceProvider) -> URL? {
+        guard provider.id == .codex else {
+            return nil
+        }
+
+        return (credentialStore as? CodexCredentialStore)?.codexConfigTargetURL()
     }
 
     private static func hasConfiguredCredential(in store: CredentialStore, account: String) -> Bool {

@@ -6,6 +6,9 @@ enum CodexCredentialStoreTests {
         testCodexAuthFileTakesPrecedenceOverFallback(using: harness)
         testMissingCodexAuthFileFallsBackToDelegate(using: harness)
         testDeletingCodexCredentialDoesNotDeleteAuthFile(using: harness)
+        testCodexConfigTargetOpensExistingAuthFile(using: harness)
+        testCodexConfigTargetFallsBackToConfigDirectory(using: harness)
+        testCodexConfigTargetCreatesMissingConfigDirectory(using: harness)
     }
 
     private static func testCodexAuthFileTakesPrecedenceOverFallback(using harness: TestHarness) {
@@ -56,6 +59,50 @@ enum CodexCredentialStoreTests {
         )
 
         removeTemporaryFile(authFileURL)
+    }
+
+    private static func testCodexConfigTargetOpensExistingAuthFile(using harness: TestHarness) {
+        let authJSON = #"{"tokens":{"access_token":"test-access-token"}}"#
+        let authFileURL = writeTemporaryAuthFile(authJSON)
+        let store = CodexCredentialStore(delegate: RecordingCredentialStore(credentialsByAccount: [:]), authFileURLs: [authFileURL])
+
+        harness.expectEqual(
+            store.codexConfigTargetURL(),
+            authFileURL,
+            "codex config target opens existing auth file"
+        )
+
+        removeTemporaryFile(authFileURL)
+    }
+
+    private static func testCodexConfigTargetFallsBackToConfigDirectory(using harness: TestHarness) {
+        let missingURL = temporaryAuthFileURL()
+        let store = CodexCredentialStore(delegate: RecordingCredentialStore(credentialsByAccount: [:]), authFileURLs: [missingURL])
+
+        harness.expectEqual(
+            store.codexConfigTargetURL(),
+            missingURL.deletingLastPathComponent(),
+            "codex config target falls back to config directory"
+        )
+    }
+
+    private static func testCodexConfigTargetCreatesMissingConfigDirectory(using harness: TestHarness) {
+        let missingDirectory = FileManager.default.temporaryDirectory
+            .appending(path: "api-inquiry-codex-config-\(UUID().uuidString)")
+        let missingURL = missingDirectory.appending(path: "auth.json")
+        let store = CodexCredentialStore(delegate: RecordingCredentialStore(credentialsByAccount: [:]), authFileURLs: [missingURL])
+
+        harness.expectEqual(
+            store.codexConfigTargetURL(),
+            URL(fileURLWithPath: missingDirectory.path),
+            "codex config target returns created config directory"
+        )
+        harness.expectTrue(
+            FileManager.default.fileExists(atPath: missingDirectory.path),
+            "codex config target creates missing config directory"
+        )
+
+        removeTemporaryFile(missingDirectory)
     }
 
     private static func temporaryAuthFileURL() -> URL {

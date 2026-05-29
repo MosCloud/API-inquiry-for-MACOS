@@ -25,6 +25,7 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.versionTitle, "Version", "english version title")
         harness.expectEqual(strings.projectHomepage, "Project Homepage", "english project homepage")
         harness.expectEqual(strings.apiKeyMetricTitle, "API Key", "english api key metric")
+        harness.expectEqual(strings.deleteAPIKeyConfirmation, "Delete the saved API key?", "english delete api key confirmation")
         harness.expectEqual(strings.keychainName, "Keychain", "english keychain")
     }
 
@@ -44,6 +45,7 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.projectHomepage, "项目主页", "chinese project homepage")
         harness.expectEqual(strings.apiKeyMetricTitle, "API 密钥", "chinese api key")
         harness.expectEqual(strings.updatedMetricTitle, "更新于", "chinese updated metric title")
+        harness.expectEqual(strings.deleteAPIKeyConfirmation, "删除已保存的 API 密钥？", "chinese delete api key confirmation")
         harness.expectEqual(strings.keychainName, "密钥串", "chinese keychain")
     }
 
@@ -83,7 +85,7 @@ enum LocalizedStringsTests {
 
         harness.expectEqual(
             strings.deleteAPIKeyConfirmation,
-            "从密钥串删除已保存的 API 密钥？",
+            "删除已保存的 API 密钥？",
             "chinese delete api key confirmation"
         )
         harness.expectEqual(

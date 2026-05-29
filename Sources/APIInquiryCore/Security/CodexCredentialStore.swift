@@ -35,6 +35,30 @@ public final class CodexCredentialStore: CredentialStore {
         try delegate.deleteCredential(forAccount: account)
     }
 
+    public func codexConfigTargetURL() -> URL? {
+        if let existingAuthFileURL = firstExistingAuthFileURL() {
+            return existingAuthFileURL
+        }
+
+        guard let configDirectoryURL = authFileURLs.first?.deletingLastPathComponent() else {
+            return nil
+        }
+
+        if FileManager.default.fileExists(atPath: configDirectoryURL.path) {
+            return URL(fileURLWithPath: configDirectoryURL.path)
+        }
+
+        do {
+            try FileManager.default.createDirectory(
+                at: configDirectoryURL,
+                withIntermediateDirectories: true
+            )
+            return URL(fileURLWithPath: configDirectoryURL.path)
+        } catch {
+            return nil
+        }
+    }
+
     private func readFirstUsableAuthFile() -> String? {
         for url in authFileURLs {
             guard let contents = try? String(contentsOf: url, encoding: .utf8),
@@ -44,6 +68,10 @@ public final class CodexCredentialStore: CredentialStore {
             return contents
         }
         return nil
+    }
+
+    private func firstExistingAuthFileURL() -> URL? {
+        authFileURLs.first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
     private func containsAccessToken(_ contents: String) -> Bool {

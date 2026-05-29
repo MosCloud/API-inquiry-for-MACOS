@@ -7,6 +7,10 @@ enum UsageConsoleViewModelTests {
         testProviderSummariesExposeUnconfiguredProvider(using: harness)
         await testProviderSummariesExposeConfiguredActiveProvider(using: harness)
         await testProviderSummariesExposeChineseCopy(using: harness)
+        await testProviderSummariesExposeAPIAccessCopy(using: harness)
+        await testProviderSummariesExposeChineseAPIAccessCopy(using: harness)
+        testProviderSummariesExposeUnconfiguredAPIAccessCopy(using: harness)
+        testProviderSummariesExposeCodexConfigTarget(using: harness)
         await testProviderSummariesExposeInvalidProvider(using: harness)
         await testProviderSummariesExposeBalanceHealthToneBoundaries(using: harness)
         await testProviderSummariesExposePlanHealthToneBoundaries(using: harness)
@@ -41,6 +45,88 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(codexSummary?.planNameText, "Plus", "codex console plan")
         harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex console status")
         harness.expectEqual(codexSummary?.supportsAPIKeyManagement, false, "codex console hides api key management")
+    }
+
+    @MainActor
+    private static func testProviderSummariesExposeAPIAccessCopy(using harness: TestHarness) async {
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: [
+            "deepseek-api-key": "deepseek-key",
+            "zhipu-coding-plan-api-key": "zhipu-key",
+            "codex-session-token": "codex-token"
+        ])
+        let coordinator = makeAPIAccessCoordinator(credentialStore: credentialStore)
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+
+        let deepSeekSummary = viewModel.providerSummaries.first { $0.id == .deepseek }
+        let zhipuSummary = viewModel.providerSummaries.first { $0.id == .zhipuCodingPlan }
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+
+        harness.expectEqual(deepSeekSummary?.apiAccessStatusText, "Configured", "deepseek api access status")
+        harness.expectEqual(deepSeekSummary?.apiAccessPurposeText, "Available for prepaid balance checks", "deepseek api access purpose")
+        harness.expectEqual(zhipuSummary?.apiAccessStatusText, "Configured", "zhipu api access status")
+        harness.expectEqual(zhipuSummary?.apiAccessPurposeText, "Available for plan balance checks", "zhipu api access purpose")
+        harness.expectEqual(codexSummary?.apiAccessStatusText, "Loaded", "codex api access status")
+        harness.expectEqual(codexSummary?.apiAccessPurposeText, "Available for plan balance checks", "codex api access purpose")
+    }
+
+    @MainActor
+    private static func testProviderSummariesExposeChineseAPIAccessCopy(using harness: TestHarness) async {
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: [
+            "deepseek-api-key": "deepseek-key",
+            "zhipu-coding-plan-api-key": "zhipu-key",
+            "codex-session-token": "codex-token"
+        ])
+        let coordinator = makeAPIAccessCoordinator(credentialStore: credentialStore)
+        let viewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: credentialStore,
+            languageStore: makeLanguageStore(selection: .zh)
+        )
+
+        let deepSeekSummary = viewModel.providerSummaries.first { $0.id == .deepseek }
+        let zhipuSummary = viewModel.providerSummaries.first { $0.id == .zhipuCodingPlan }
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+
+        harness.expectEqual(deepSeekSummary?.apiAccessStatusText, "已配置", "chinese deepseek api access status")
+        harness.expectEqual(deepSeekSummary?.apiAccessPurposeText, "可用于充值余额查询", "chinese deepseek api access purpose")
+        harness.expectEqual(zhipuSummary?.apiAccessStatusText, "已配置", "chinese zhipu api access status")
+        harness.expectEqual(zhipuSummary?.apiAccessPurposeText, "可用于套餐余额查询", "chinese zhipu api access purpose")
+        harness.expectEqual(codexSummary?.apiAccessStatusText, "已加载", "chinese codex api access status")
+        harness.expectEqual(codexSummary?.apiAccessPurposeText, "可用于套餐余额查询", "chinese codex api access purpose")
+    }
+
+    @MainActor
+    private static func testProviderSummariesExposeUnconfiguredAPIAccessCopy(using harness: TestHarness) {
+        let coordinator = makeAPIAccessCoordinator(credentialStore: InMemoryCredentialStore())
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: InMemoryCredentialStore())
+
+        let deepSeekSummary = viewModel.providerSummaries.first { $0.id == .deepseek }
+        let zhipuSummary = viewModel.providerSummaries.first { $0.id == .zhipuCodingPlan }
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+
+        harness.expectEqual(deepSeekSummary?.apiAccessStatusText, "Not configured", "deepseek unconfigured api access status")
+        harness.expectEqual(deepSeekSummary?.apiAccessPurposeText, "Available for prepaid balance checks", "deepseek unconfigured api access purpose")
+        harness.expectEqual(zhipuSummary?.apiAccessStatusText, "Not configured", "zhipu unconfigured api access status")
+        harness.expectEqual(zhipuSummary?.apiAccessPurposeText, "Available for plan balance checks", "zhipu unconfigured api access purpose")
+        harness.expectEqual(codexSummary?.apiAccessStatusText, "Not loaded", "codex unloaded api access status")
+        harness.expectEqual(codexSummary?.apiAccessPurposeText, "Available for plan balance checks", "codex unloaded api access purpose")
+    }
+
+    @MainActor
+    private static func testProviderSummariesExposeCodexConfigTarget(using harness: TestHarness) {
+        let authFileURL = writeTemporaryAuthFile(#"{"tokens":{"access_token":"test-access-token"}}"#)
+        let credentialStore = CodexCredentialStore(
+            delegate: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "fallback-token"]),
+            authFileURLs: [authFileURL]
+        )
+        let coordinator = makeAPIAccessCoordinator(credentialStore: credentialStore)
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+
+        harness.expectEqual(codexSummary?.codexConfigTargetURL, authFileURL, "codex summary exposes config target")
+
+        removeTemporaryFile(authFileURL)
     }
 
     @MainActor
@@ -736,6 +822,44 @@ enum UsageConsoleViewModelTests {
         )
     }
 
+    @MainActor
+    private static func makeAPIAccessCoordinator(credentialStore: CredentialStore) -> MultiProviderBalanceCoordinator {
+        MultiProviderBalanceCoordinator(
+            providers: [
+                MockBalanceProvider(
+                    id: .deepseek,
+                    displayName: "DeepSeek",
+                    menuPrefix: "DS",
+                    credentialAccount: "deepseek-api-key",
+                    homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
+                    results: []
+                ),
+                MockBalanceProvider(
+                    id: .zhipuCodingPlan,
+                    displayName: "Zhipu GLM Coding Plan",
+                    menuPrefix: "GLM",
+                    credentialAccount: "zhipu-coding-plan-api-key",
+                    homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
+                    results: []
+                ),
+                MockBalanceProvider(
+                    id: .codex,
+                    displayName: "Codex",
+                    menuPrefix: "GPT",
+                    credentialAccount: "codex-session-token",
+                    homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
+                    supportsConsoleCredentialManagement: false,
+                    results: []
+                )
+            ],
+            credentialStore: credentialStore,
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.deepseek, .zhipuCodingPlan, .codex],
+                primaryProviderID: .deepseek
+            )
+        )
+    }
+
     private static var fixedTimeFormatter: LastRefreshTimeFormatter {
         LastRefreshTimeFormatter(
             locale: Locale(identifier: "en_GB"),
@@ -753,6 +877,17 @@ enum UsageConsoleViewModelTests {
         components.hour = 23
         components.minute = 5
         return components.date!
+    }
+
+    private static func writeTemporaryAuthFile(_ contents: String) -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "api-inquiry-console-codex-auth-\(UUID().uuidString).json")
+        try? contents.write(to: url, atomically: true, encoding: .utf8)
+        return url
+    }
+
+    private static func removeTemporaryFile(_ url: URL) {
+        try? FileManager.default.removeItem(at: url)
     }
 }
 
