@@ -9,9 +9,11 @@ enum MultiProviderBalanceCoordinatorTests {
         testRemovingProviderCanDeleteCredential(using: harness)
         testRemovingProviderDoesNotRemoveWhenCredentialDeletionFails(using: harness)
         testRemovingDefaultProviderFallsBackToRemainingProvider(using: harness)
+        testRemovingOnlyProviderIsNoOp(using: harness)
         await testRemovingProviderStopsRefreshAndClearsState(using: harness)
         testAutoRefreshLifecycleFollowsProviderAddAndRemove(using: harness)
         await testRefreshAddedProvidersKeepsStatesIsolated(using: harness)
+        await testFailedRefreshPreservesLastSnapshotThroughCoordinator(using: harness)
     }
 
     @MainActor
@@ -82,6 +84,24 @@ enum MultiProviderBalanceCoordinatorTests {
 
         harness.expectEqual(coordinator.addedProviderIDs, [.zhipuCodingPlan], "coordinator removes default provider when another provider remains")
         harness.expectEqual(coordinator.primaryProviderID, .zhipuCodingPlan, "coordinator primary falls back after default removal")
+    }
+
+    @MainActor
+    private static func testRemovingOnlyProviderIsNoOp(using harness: TestHarness) {
+        let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+        let preferences = InMemoryProviderPreferencesStore(
+            addedProviderIDs: [.deepseek],
+            primaryProviderID: .deepseek
+        )
+        let coordinator = makeCoordinator(credentialStore: store, preferences: preferences)
+
+        try? coordinator.removeProvider(.deepseek, deletingCredential: true)
+
+        harness.expectEqual(coordinator.addedProviderIDs, [.deepseek], "coordinator keeps last provider when remove is requested")
+        harness.expectEqual(coordinator.primaryProviderID, .deepseek, "coordinator keeps primary when last provider remove is ignored")
+        harness.expectEqual(try? store.credential(forAccount: "deepseek-api-key"), "test-key", "coordinator keeps credential when last provider remove is ignored")
+        harness.expectEqual(preferences.addedProviderIDs, [.deepseek], "coordinator keeps persisted providers when last provider remove is ignored")
+        harness.expectEqual(preferences.primaryProviderID, .deepseek, "coordinator keeps persisted primary when last provider remove is ignored")
     }
 
     @MainActor
@@ -177,6 +197,45 @@ enum MultiProviderBalanceCoordinatorTests {
         harness.expectEqual(coordinator.state(for: .zhipuCodingPlan), .loaded(.planUsage(zhipuSnapshot)), "coordinator zhipu state")
         harness.expectEqual(deepSeek.lastAPIKey, "deepseek-key", "coordinator deepseek key")
         harness.expectEqual(zhipu.lastAPIKey, "zhipu-key", "coordinator zhipu key")
+    }
+
+    @MainActor
+    private static func testFailedRefreshPreservesLastSnapshotThroughCoordinator(using harness: TestHarness) async {
+        let snapshot = makeSnapshot(providerID: .deepseek, total: "68.65")
+        let deepSeek = MockBalanceProvider(
+            id: .deepseek,
+            displayName: "DeepSeek",
+            menuPrefix: "DS",
+            credentialAccount: "deepseek-api-key",
+            homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
+            results: [
+                .success(.balance(snapshot)),
+                .failure(BalanceProviderError.rateLimited)
+            ]
+        )
+        let coordinator = MultiProviderBalanceCoordinator(
+            providers: [deepSeek],
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "deepseek-key"]),
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.deepseek],
+                primaryProviderID: .deepseek
+            )
+        )
+
+        await coordinator.refresh(.deepseek)
+        await coordinator.refresh(.deepseek)
+
+        harness.expectEqual(coordinator.state(for: .deepseek).lastSnapshot, .balance(snapshot), "coordinator failed refresh keeps last snapshot")
+        harness.expectEqual(
+            coordinator.state(for: .deepseek),
+            .failed(
+                message: "Balance API rate limit reached. Try again shortly.",
+                kind: .rateLimited,
+                last: .balance(snapshot)
+            ),
+            "coordinator failed refresh state keeps prior snapshot"
+        )
+        harness.expectEqual(coordinator.primaryProviderID, .deepseek, "coordinator failed refresh keeps primary provider")
     }
 
     @MainActor

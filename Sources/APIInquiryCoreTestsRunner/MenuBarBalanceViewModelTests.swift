@@ -7,6 +7,7 @@ enum MenuBarBalanceViewModelTests {
         testLoadedMenuTitleFormatting(using: harness)
         testLoadedMenuBarValueFormatting(using: harness)
         testFailedStatePreservesMenuTitle(using: harness)
+        await testPrimaryProviderMenuTitlesUseCurrentPrefixes(using: harness)
         testPanelBalanceTextFormatting(using: harness)
         testPanelBalanceDisplayParts(using: harness)
         testStatusText(using: harness)
@@ -79,6 +80,25 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(codexRow?.quotaWindowRows.last?.detailText, "48%", "codex secondary weekly quota detail")
         harness.expectEqual(codexRow?.quotaWindowRows.last?.resetText, "Resets: 05/18", "codex secondary weekly quota reset")
         harness.expectEqual(codexRow?.statusText, "Quota available", "codex secondary row status")
+    }
+
+    @MainActor
+    private static func testPrimaryProviderMenuTitlesUseCurrentPrefixes(using harness: TestHarness) async {
+        let deepSeekCoordinator = makeMultiProviderCoordinator(primaryProviderID: .deepseek)
+        await deepSeekCoordinator.refresh(.deepseek)
+        let deepSeekViewModel = MenuBarBalanceViewModel(coordinator: deepSeekCoordinator)
+
+        let zhipuCoordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan)
+        await zhipuCoordinator.refresh(.zhipuCodingPlan)
+        let zhipuViewModel = MenuBarBalanceViewModel(coordinator: zhipuCoordinator)
+
+        let codexCoordinator = makeCodexCoordinator(primaryProviderID: .codex)
+        await codexCoordinator.refresh(.codex)
+        let codexViewModel = MenuBarBalanceViewModel(coordinator: codexCoordinator)
+
+        harness.expectEqual(deepSeekViewModel.menuBarTitle, "DS ¥68.6", "deepseek primary title keeps DS prefix")
+        harness.expectEqual(zhipuViewModel.menuBarTitle, "GLM 5h 17%", "zhipu primary title keeps GLM prefix")
+        harness.expectEqual(codexViewModel.menuBarTitle, "5h 72%", "codex primary title omits GPT prefix")
     }
 
     @MainActor

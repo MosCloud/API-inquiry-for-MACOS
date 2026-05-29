@@ -5,6 +5,7 @@ enum ProviderCatalogTests {
     static func run(using harness: TestHarness) {
         testDefaultCatalogOrder(using: harness)
         testProviderDescriptorsHaveUniqueStableFields(using: harness)
+        testCredentialAccountsArePreserved(using: harness)
         testDeepSeekCredentialAccountIsPreserved(using: harness)
         testCodexDescriptorExposesQuotaUsage(using: harness)
         testSnapshotsCanRepresentCodexQuotaUsage(using: harness)
@@ -19,6 +20,7 @@ enum ProviderCatalogTests {
             [.deepseek, .zhipuCodingPlan, .codex],
             "default provider catalog order"
         )
+        harness.expectEqual(catalog.descriptors.map(\.id), ProviderID.allCases, "default catalog follows provider id case order")
         harness.expectEqual(catalog.defaultProviderID, .deepseek, "default provider id")
     }
 
@@ -39,6 +41,22 @@ enum ProviderCatalogTests {
 
         harness.expectEqual(descriptor?.credentialAccount, "deepseek-api-key", "deepseek keychain account is preserved")
         harness.expectEqual(descriptor?.detailKind, .balance, "deepseek detail kind")
+    }
+
+    private static func testCredentialAccountsArePreserved(using harness: TestHarness) {
+        let accountsByProviderID = Dictionary(
+            uniqueKeysWithValues: ProviderCatalog.default.descriptors.map { ($0.id, $0.credentialAccount) }
+        )
+
+        harness.expectEqual(
+            accountsByProviderID,
+            [
+                .deepseek: "deepseek-api-key",
+                .zhipuCodingPlan: "zhipu-coding-plan-api-key",
+                .codex: "codex-session-token"
+            ],
+            "provider keychain accounts are preserved"
+        )
     }
 
     private static func testCodexDescriptorExposesQuotaUsage(using harness: TestHarness) {
