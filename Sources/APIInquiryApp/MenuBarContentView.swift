@@ -410,7 +410,7 @@ struct MenuBarContentView: View {
     }
 
     private var statusColor: Color {
-        statusColor(for: viewModel.statusTone)
+        ProviderToneColor.status(viewModel.statusTone)
     }
 
     private var strings: LocalizedStrings {
@@ -418,29 +418,11 @@ struct MenuBarContentView: View {
     }
 
     private func statusColor(for statusTone: ProviderStatusTone) -> Color {
-        switch statusTone {
-        case .success:
-            return .green
-        case .refreshing:
-            return .blue
-        case .warning:
-            return .orange
-        case .neutral:
-            return .secondary
-        }
+        ProviderToneColor.status(statusTone)
     }
 
     private func amountColor(for amountTone: ProviderAmountTone) -> Color {
-        switch amountTone {
-        case .neutral:
-            return .primary
-        case .good:
-            return .green
-        case .warning:
-            return Color(red: 1.0, green: 0.78, blue: 0.04)
-        case .critical:
-            return .red
-        }
+        ProviderToneColor.menuAmount(amountTone)
     }
 }
 

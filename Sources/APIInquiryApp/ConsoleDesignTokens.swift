@@ -47,6 +47,19 @@ enum ProviderToneColor {
         }
     }
 
+    static func menuAmount(_ tone: ProviderAmountTone) -> Color {
+        switch tone {
+        case .neutral:
+            return .primary
+        case .good:
+            return .green
+        case .warning:
+            return Color(red: 1.0, green: 0.78, blue: 0.04)
+        case .critical:
+            return .red
+        }
+    }
+
     static func feedback(_ kind: SettingsFeedbackKind) -> Color {
         switch kind {
         case .success:

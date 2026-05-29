@@ -447,16 +447,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     private func providerSummaryStatusTone(for state: BalanceState) -> ProviderStatusTone {
-        guard case .failed(_, let kind, _) = state else {
-            return ProviderDisplayFormatter.statusTone(for: state)
-        }
-
-        switch kind {
-        case .usageLimitReached, .planExpired:
-            return .warning
-        case .authenticationFailed, .rateLimited, .networkUnavailable, .serverError, .decodingFailed, .invalidResponse, .unknown:
-            return .neutral
-        }
+        ProviderToneResolver.consoleSummaryStatusTone(for: state)
     }
 
     private static func hasConfiguredCredential(in store: CredentialStore, account: String) -> Bool {
