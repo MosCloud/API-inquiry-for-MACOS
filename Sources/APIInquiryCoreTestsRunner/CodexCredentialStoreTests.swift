@@ -8,7 +8,8 @@ enum CodexCredentialStoreTests {
         testDeletingCodexCredentialDoesNotDeleteAuthFile(using: harness)
         testCodexConfigTargetOpensExistingAuthFile(using: harness)
         testCodexConfigTargetFallsBackToConfigDirectory(using: harness)
-        testCodexConfigTargetCreatesMissingConfigDirectory(using: harness)
+        testCodexConfigTargetDoesNotCreateMissingConfigDirectory(using: harness)
+        testCodexConfigTargetForOpeningCreatesMissingConfigDirectory(using: harness)
     }
 
     private static func testCodexAuthFileTakesPrecedenceOverFallback(using harness: TestHarness) {
@@ -86,7 +87,7 @@ enum CodexCredentialStoreTests {
         )
     }
 
-    private static func testCodexConfigTargetCreatesMissingConfigDirectory(using harness: TestHarness) {
+    private static func testCodexConfigTargetDoesNotCreateMissingConfigDirectory(using harness: TestHarness) {
         let missingDirectory = FileManager.default.temporaryDirectory
             .appending(path: "api-inquiry-codex-config-\(UUID().uuidString)")
         let missingURL = missingDirectory.appending(path: "auth.json")
@@ -94,12 +95,29 @@ enum CodexCredentialStoreTests {
 
         harness.expectEqual(
             store.codexConfigTargetURL(),
+            nil,
+            "codex config target does not create missing config directory"
+        )
+        harness.expectTrue(
+            FileManager.default.fileExists(atPath: missingDirectory.path) == false,
+            "codex config target keeps missing directory absent"
+        )
+    }
+
+    private static func testCodexConfigTargetForOpeningCreatesMissingConfigDirectory(using harness: TestHarness) {
+        let missingDirectory = FileManager.default.temporaryDirectory
+            .appending(path: "api-inquiry-codex-config-\(UUID().uuidString)")
+        let missingURL = missingDirectory.appending(path: "auth.json")
+        let store = CodexCredentialStore(delegate: RecordingCredentialStore(credentialsByAccount: [:]), authFileURLs: [missingURL])
+
+        harness.expectEqual(
+            store.codexConfigTargetURLCreatingDirectoryIfNeeded(),
             URL(fileURLWithPath: missingDirectory.path),
-            "codex config target returns created config directory"
+            "codex config target for opening returns created config directory"
         )
         harness.expectTrue(
             FileManager.default.fileExists(atPath: missingDirectory.path),
-            "codex config target creates missing config directory"
+            "codex config target for opening creates missing config directory"
         )
 
         removeTemporaryFile(missingDirectory)

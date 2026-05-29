@@ -48,6 +48,18 @@ public final class CodexCredentialStore: CredentialStore {
             return URL(fileURLWithPath: configDirectoryURL.path)
         }
 
+        return nil
+    }
+
+    public func codexConfigTargetURLCreatingDirectoryIfNeeded() -> URL? {
+        if let existingTargetURL = codexConfigTargetURL() {
+            return existingTargetURL
+        }
+
+        guard let configDirectoryURL = authFileURLs.first?.deletingLastPathComponent() else {
+            return nil
+        }
+
         do {
             try FileManager.default.createDirectory(
                 at: configDirectoryURL,
