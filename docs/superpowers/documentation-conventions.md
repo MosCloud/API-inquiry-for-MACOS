@@ -15,9 +15,18 @@ This convention applies to design specs, implementation plans, review notes, and
 
 ## Release Notes
 
+Every version's release note should be organized into these sections:
+
+- New Features
+- App Optimization
+- Bug Fixes
+
+Omit a section when that version has no corresponding content.
+
 Release notes should only include:
 
 - New features added in the released version.
+- App optimizations shipped in the released version.
 - Bug fixes for issues that existed in the previous published version.
 
 Do not list bugs that were introduced and fixed during the same unreleased development cycle.

@@ -7,6 +7,7 @@ enum CodexQuotaProviderTests {
         await testBearerTokenIsNormalized(using: harness)
         await testAuthJSONExtractsTokenAndAccountID(using: harness)
         await testResetAfterSecondsIsUsedWhenResetAtIsMissing(using: harness)
+        await testNullResetFieldsAreIgnored(using: harness)
         await testPlanNameNormalization(using: harness)
         await testAuthenticationFailureMapsToProviderError(using: harness)
         await testForbiddenMapsToAuthenticationFailure(using: harness)
@@ -131,6 +132,39 @@ enum CodexQuotaProviderTests {
             )
         } catch {
             harness.expectTrue(false, "codex reset_after_seconds should not throw: \(error)")
+        }
+    }
+
+    private static func testNullResetFieldsAreIgnored(using harness: TestHarness) async {
+        let httpClient = CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 16,
+                  "limit_window_seconds": 18000,
+                  "reset_at": null,
+                  "reset_after_seconds": null
+                },
+                "secondary_window": {
+                  "used_percent": 1,
+                  "limit_window_seconds": 604800,
+                  "reset_at": null
+                }
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        ))
+        let provider = CodexQuotaProvider(httpClient: httpClient)
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            harness.expectEqual(snapshot.lastQuotaWindow(label: "5h")?.resetAt, nil, "codex null primary reset ignored")
+            harness.expectEqual(snapshot.lastQuotaWindow(label: "Week")?.resetAt, nil, "codex null secondary reset ignored")
+        } catch {
+            harness.expectTrue(false, "codex null reset fields should not throw: \(error)")
         }
     }
 

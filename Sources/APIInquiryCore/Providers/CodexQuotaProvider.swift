@@ -272,6 +272,9 @@ private extension KeyedDecodingContainer {
         guard contains(key) else {
             return nil
         }
+        if try decodeNil(forKey: key) {
+            return nil
+        }
         return try decodeFlexibleInt(forKey: key)
     }
 }

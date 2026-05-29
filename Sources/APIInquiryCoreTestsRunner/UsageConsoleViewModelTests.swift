@@ -371,7 +371,7 @@ enum UsageConsoleViewModelTests {
 
         harness.expectEqual(viewModel.providerSummaries.first?.apiKeyStatusText, "Configured", "console invalid provider key status")
         harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "Invalid", "console invalid provider validation status")
-        harness.expectEqual(viewModel.providerSummaries.first?.statusTone, .warning, "console invalid provider status tone")
+        harness.expectEqual(viewModel.providerSummaries.first?.statusTone, .neutral, "console invalid provider status tone")
     }
 
     @MainActor
@@ -612,6 +612,7 @@ enum UsageConsoleViewModelTests {
         )
         await invalidController.refresh()
         harness.expectEqual(invalidViewModel.providerSummaries.first?.healthTone, .neutral, "auth failure summary health neutral")
+        harness.expectEqual(invalidViewModel.providerSummaries.first?.statusTone, .neutral, "auth failure summary status neutral")
 
         let unavailableController = BalanceRefreshController(
             provider: loadingProvider,
@@ -628,6 +629,46 @@ enum UsageConsoleViewModelTests {
             controller: unavailableController
         )
         harness.expectEqual(unavailableViewModel.providerSummaries.first?.healthTone, .neutral, "unavailable failure with snapshot summary health neutral")
+        harness.expectEqual(unavailableViewModel.providerSummaries.first?.statusTone, .neutral, "unavailable failure summary status neutral")
+
+        let limitReachedController = BalanceRefreshController(
+            provider: loadingProvider,
+            credentialStore: loadingStore,
+            initialState: .failed(
+                message: "Limit reached.",
+                kind: .usageLimitReached,
+                last: .planUsage(PlanUsageSnapshot(
+                    providerID: .zhipuCodingPlan,
+                    windowLabel: "5h",
+                    usagePercentage: Decimal(100),
+                    resetAt: nil,
+                    isAvailable: false,
+                    fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+                ))
+            )
+        )
+        let limitReachedViewModel = UsageConsoleViewModel(
+            provider: loadingProvider,
+            credentialStore: loadingStore,
+            controller: limitReachedController
+        )
+        harness.expectEqual(limitReachedViewModel.providerSummaries.first?.statusTone, .warning, "usage limit failure summary status warning")
+
+        let planExpiredController = BalanceRefreshController(
+            provider: loadingProvider,
+            credentialStore: loadingStore,
+            initialState: .failed(
+                message: "Plan expired.",
+                kind: .planExpired,
+                last: nil
+            )
+        )
+        let planExpiredViewModel = UsageConsoleViewModel(
+            provider: loadingProvider,
+            credentialStore: loadingStore,
+            controller: planExpiredController
+        )
+        harness.expectEqual(planExpiredViewModel.providerSummaries.first?.statusTone, .warning, "plan expired failure summary status warning")
     }
 
     @MainActor

@@ -76,7 +76,7 @@ public struct LocalizedStrings: Equatable {
     public var save: String { text(en: "Save", zh: "保存") }
     public var saveReplacement: String { text(en: "Save Replacement", zh: "保存新密钥") }
     public var configureKey: String { text(en: "Configure Key", zh: "配置密钥") }
-    public var replaceKey: String { text(en: "Replace Key", zh: "更换 API 密钥") }
+    public var replaceKey: String { text(en: "Replace Key", zh: "更换密钥") }
     public var deleteKey: String { text(en: "Delete Key", zh: "删除 API 密钥") }
     public var cancel: String { text(en: "Cancel", zh: "取消") }
     public var delete: String { text(en: "Delete", zh: "删除") }

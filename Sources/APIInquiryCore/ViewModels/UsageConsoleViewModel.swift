@@ -201,7 +201,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                     ),
                     supportsAPIKeyManagement: provider.supportsConsoleCredentialManagement,
                     codexConfigTargetURL: codexConfigTargetURL(for: provider),
-                    statusTone: ProviderDisplayFormatter.statusTone(for: state),
+                    statusTone: providerSummaryStatusTone(for: state),
                     healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                     balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
                     lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
@@ -237,7 +237,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                 ),
                 supportsAPIKeyManagement: provider.supportsConsoleCredentialManagement,
                 codexConfigTargetURL: codexConfigTargetURL(for: provider),
-                statusTone: ProviderDisplayFormatter.statusTone(for: state),
+                statusTone: providerSummaryStatusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
                 lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
@@ -522,6 +522,19 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
 
         return (credentialStore as? CodexCredentialStore)?.codexConfigTargetURL()
+    }
+
+    private func providerSummaryStatusTone(for state: BalanceState) -> ProviderStatusTone {
+        guard case .failed(_, let kind, _) = state else {
+            return ProviderDisplayFormatter.statusTone(for: state)
+        }
+
+        switch kind {
+        case .usageLimitReached, .planExpired:
+            return .warning
+        case .authenticationFailed, .rateLimited, .networkUnavailable, .serverError, .decodingFailed, .invalidResponse, .unknown:
+            return .neutral
+        }
     }
 
     private static func hasConfiguredCredential(in store: CredentialStore, account: String) -> Bool {

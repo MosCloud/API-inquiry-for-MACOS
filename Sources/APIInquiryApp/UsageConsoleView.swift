@@ -39,8 +39,13 @@ private struct ProviderMetricItem {
 
 private let providerHomepageButtonHeight: CGFloat = 40
 private let providerModuleHorizontalPadding: CGFloat = 14
-private let providerModuleVerticalPadding: CGFloat = 10
-private let providerModuleMinHeight: CGFloat = 126
+private let providerModuleVerticalPadding: CGFloat = 6
+private let providerModuleMinHeight: CGFloat = 116
+private let providerHeaderMetricsSpacing: CGFloat = 6
+private let homeProviderListSpacing: CGFloat = 10
+private let apiProviderListSpacing: CGFloat = 10
+private let apiProviderModuleVerticalPadding: CGFloat = 6
+private let apiProviderModuleMinHeight: CGFloat = 58
 private let providerRowCornerRadius: CGFloat = 8
 private let consoleNavigationHeight: CGFloat = 40
 private let consoleNavigationButtonHeight: CGFloat = 32
@@ -126,7 +131,7 @@ struct UsageConsoleView: View {
     }
 
     private var homeSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: homeProviderListSpacing) {
             ForEach(viewModel.providerSummaries, id: \.id) { summary in
                 providerStatusRow(summary)
             }
@@ -134,7 +139,7 @@ struct UsageConsoleView: View {
     }
 
     private func providerStatusRow(_ summary: APIProviderSummary) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: providerHeaderMetricsSpacing) {
             providerHeader(summary, showsMenuBarControl: true)
             providerMetrics(summary)
         }
@@ -176,7 +181,7 @@ struct UsageConsoleView: View {
     }
 
     private var apiSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: apiProviderListSpacing) {
             ForEach(viewModel.providerSummaries, id: \.id) { summary in
                 apiProviderPanel(summary)
             }
@@ -369,8 +374,8 @@ struct UsageConsoleView: View {
             feedbackText(localFeedbacksByProviderID[summary.id])
         }
         .padding(.horizontal, providerModuleHorizontalPadding)
-        .padding(.vertical, providerModuleVerticalPadding)
-        .frame(maxWidth: .infinity, minHeight: 76, alignment: .topLeading)
+        .padding(.vertical, apiProviderModuleVerticalPadding)
+        .frame(maxWidth: .infinity, minHeight: apiProviderModuleMinHeight, alignment: .leading)
         .background(Color.secondary.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: providerRowCornerRadius, style: .continuous))
     }
@@ -460,19 +465,25 @@ struct UsageConsoleView: View {
                     }
                 }
                 .disabled(viewModel.apiKeyInput(for: summary.id).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .controlSize(.small)
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .font(.system(.callout, design: .rounded).weight(.semibold))
             } else {
                 Button(viewModel.isAPIKeyConfigured(for: summary.id) ? strings.replaceKey : strings.configureKey) {
                     replacingProviderIDs.insert(summary.id)
                     viewModel.setAPIKeyInput("", for: summary.id)
                 }
-                .controlSize(.small)
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .font(.system(.callout, design: .rounded).weight(.semibold))
             }
         } else if summary.codexConfigTargetURL != nil {
             Button(strings.openConfig) {
                 openCodexConfig(summary)
             }
-            .controlSize(.small)
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .font(.system(.callout, design: .rounded).weight(.semibold))
         }
     }
 
@@ -635,7 +646,7 @@ struct UsageConsoleView: View {
         }
         .padding(.vertical, 7)
         .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
     }
 
     private func statusBadge(
