@@ -2,11 +2,6 @@ import Foundation
 
 public final class CodexQuotaProvider: BalanceProvider {
     public let id: ProviderID = .codex
-    public let displayName = "Codex"
-    public let menuPrefix = "GPT"
-    public let credentialAccount = "codex-session-token"
-    public let homepageURL = URL(string: "https://chatgpt.com/codex/settings/usage")!
-    public let supportsConsoleCredentialManagement = false
 
     private let usageURL: URL
     private let httpClient: HTTPClient

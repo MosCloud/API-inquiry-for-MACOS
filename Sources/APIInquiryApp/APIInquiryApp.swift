@@ -12,11 +12,7 @@ struct APIInquiryApp: App {
 
     init() {
         let languageStore = AppLanguageStore()
-        let providers: [BalanceProvider] = [
-            DeepSeekBalanceProvider(),
-            ZhipuCodingPlanProvider(),
-            CodexQuotaProvider()
-        ]
+        let providers = BuiltInProviderRegistry.default.makeProviders()
         let credentialStore = CodexCredentialStore(delegate: KeychainCredentialStore())
         let coordinator = MultiProviderBalanceCoordinator(
             providers: providers,

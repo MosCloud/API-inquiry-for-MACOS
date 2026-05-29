@@ -1,30 +1,3 @@
-import Foundation
-
-public struct ProviderDescriptor: Equatable {
-    public let id: ProviderID
-    public let displayName: String
-    public let menuPrefix: String
-    public let credentialAccount: String
-    public let homepageURL: URL
-    public let detailKind: ProviderDetailKind
-
-    public init(
-        id: ProviderID,
-        displayName: String,
-        menuPrefix: String,
-        credentialAccount: String,
-        homepageURL: URL,
-        detailKind: ProviderDetailKind
-    ) {
-        self.id = id
-        self.displayName = displayName
-        self.menuPrefix = menuPrefix
-        self.credentialAccount = credentialAccount
-        self.homepageURL = homepageURL
-        self.detailKind = detailKind
-    }
-}
-
 public struct ProviderCatalog: Equatable {
     public let descriptors: [ProviderDescriptor]
     public let defaultProviderID: ProviderID
@@ -41,32 +14,7 @@ public struct ProviderCatalog: Equatable {
 
 public extension ProviderCatalog {
     static let `default` = ProviderCatalog(
-        descriptors: [
-            ProviderDescriptor(
-                id: .deepseek,
-                displayName: "DeepSeek",
-                menuPrefix: "DS",
-                credentialAccount: "deepseek-api-key",
-                homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
-                detailKind: .balance
-            ),
-            ProviderDescriptor(
-                id: .zhipuCodingPlan,
-                displayName: "Zhipu GLM Coding Plan",
-                menuPrefix: "GLM",
-                credentialAccount: "zhipu-coding-plan-api-key",
-                homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
-                detailKind: .planUsage
-            ),
-            ProviderDescriptor(
-                id: .codex,
-                displayName: "Codex",
-                menuPrefix: "GPT",
-                credentialAccount: "codex-session-token",
-                homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
-                detailKind: .quotaUsage
-            )
-        ],
-        defaultProviderID: .deepseek
+        descriptors: BuiltInProviderRegistry.default.registrations.map(\.descriptor),
+        defaultProviderID: BuiltInProviderRegistry.default.defaultProviderID
     )
 }

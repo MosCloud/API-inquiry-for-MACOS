@@ -2,17 +2,25 @@ import Foundation
 
 public protocol BalanceProvider {
     var id: ProviderID { get }
-    var displayName: String { get }
-    var menuPrefix: String { get }
-    var credentialAccount: String { get }
-    var homepageURL: URL { get }
-    var supportsConsoleCredentialManagement: Bool { get }
 
     func fetchSnapshot(apiKey: String) async throws -> ProviderSnapshot
 }
 
 public extension BalanceProvider {
-    var supportsConsoleCredentialManagement: Bool { true }
+    var descriptor: ProviderDescriptor {
+        guard let descriptor = ProviderCatalog.default.descriptor(for: id) else {
+            preconditionFailure("Missing provider descriptor for \(id.rawValue)")
+        }
+        return descriptor
+    }
+
+    var displayName: String { descriptor.displayName }
+    var menuPrefix: String { descriptor.menuPrefix }
+    var credentialAccount: String { descriptor.credentialAccount }
+    var homepageURL: URL { descriptor.homepageURL }
+    var supportsConsoleCredentialManagement: Bool {
+        descriptor.credentialManagement.supportsConsoleCredentialManagement
+    }
 
     func fetchBalance(apiKey: String) async throws -> BalanceSnapshot {
         let snapshot = try await fetchSnapshot(apiKey: apiKey)

@@ -6,6 +6,8 @@ enum ProviderCatalogTests {
         testDefaultCatalogOrder(using: harness)
         testProviderDescriptorsHaveUniqueStableFields(using: harness)
         testCredentialAccountsArePreserved(using: harness)
+        testProviderDescriptorsExposeAccessPolicies(using: harness)
+        testBuiltInProviderRegistryMatchesCatalog(using: harness)
         testDeepSeekCredentialAccountIsPreserved(using: harness)
         testCodexDescriptorExposesQuotaUsage(using: harness)
         testSnapshotsCanRepresentCodexQuotaUsage(using: harness)
@@ -57,6 +59,39 @@ enum ProviderCatalogTests {
             ],
             "provider keychain accounts are preserved"
         )
+    }
+
+    private static func testProviderDescriptorsExposeAccessPolicies(using harness: TestHarness) {
+        let deepSeek = ProviderCatalog.default.descriptor(for: .deepseek)
+        let zhipu = ProviderCatalog.default.descriptor(for: .zhipuCodingPlan)
+        let codex = ProviderCatalog.default.descriptor(for: .codex)
+
+        harness.expectEqual(deepSeek?.credentialManagement, .appManagedAPIKey, "deepseek uses app-managed key")
+        harness.expectEqual(deepSeek?.accessPurpose, .prepaidBalance, "deepseek checks prepaid balance")
+        harness.expectEqual(deepSeek?.menuTitlePrefix, "DS", "deepseek menu title prefix")
+        harness.expectEqual(deepSeek?.secondaryDisplayName, "DeepSeek", "deepseek secondary display name")
+
+        harness.expectEqual(zhipu?.credentialManagement, .appManagedAPIKey, "zhipu uses app-managed key")
+        harness.expectEqual(zhipu?.accessPurpose, .planQuota, "zhipu checks plan quota")
+        harness.expectEqual(zhipu?.menuTitlePrefix, "GLM", "zhipu menu title prefix")
+        harness.expectEqual(zhipu?.secondaryDisplayName, "Zhipu GLM Coding Plan", "zhipu secondary display name")
+
+        harness.expectEqual(codex?.credentialManagement, .localExternalConfiguration, "codex uses local external config")
+        harness.expectEqual(codex?.accessPurpose, .planQuota, "codex checks plan quota")
+        harness.expectEqual(codex?.menuTitlePrefix, nil, "codex menu title omits provider prefix")
+        harness.expectEqual(codex?.secondaryDisplayName, "OpenAI", "codex secondary display name")
+    }
+
+    private static func testBuiltInProviderRegistryMatchesCatalog(using harness: TestHarness) {
+        let registry = BuiltInProviderRegistry.default
+
+        harness.expectEqual(
+            registry.registrations.map(\.descriptor),
+            ProviderCatalog.default.descriptors,
+            "built-in provider registry descriptors match catalog"
+        )
+        harness.expectEqual(registry.defaultProviderID, ProviderCatalog.default.defaultProviderID, "registry default provider matches catalog")
+        harness.expectEqual(registry.makeProviders().map(\.id), ProviderCatalog.default.descriptors.map(\.id), "registry provider factories follow catalog order")
     }
 
     private static func testCodexDescriptorExposesQuotaUsage(using harness: TestHarness) {

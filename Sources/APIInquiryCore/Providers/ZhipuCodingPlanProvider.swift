@@ -2,10 +2,6 @@ import Foundation
 
 public final class ZhipuCodingPlanProvider: BalanceProvider {
     public let id: ProviderID = .zhipuCodingPlan
-    public let displayName = "Zhipu GLM Coding Plan"
-    public let menuPrefix = "GLM"
-    public let credentialAccount = "zhipu-coding-plan-api-key"
-    public let homepageURL = URL(string: "https://bigmodel.cn/claude-code")!
 
     private let quotaURL: URL
     private let httpClient: HTTPClient
