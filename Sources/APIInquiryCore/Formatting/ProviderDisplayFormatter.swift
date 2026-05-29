@@ -127,11 +127,19 @@ public enum ProviderDisplayFormatter {
         state: BalanceState,
         strings: LocalizedStrings = LocalizedStrings(language: .en)
     ) -> PrimaryProviderDisplayParts {
+        primaryDisplayParts(descriptor: provider.descriptor, state: state, strings: strings)
+    }
+
+    public static func primaryDisplayParts(
+        descriptor: ProviderDescriptor,
+        state: BalanceState,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> PrimaryProviderDisplayParts {
         guard let snapshot = state.lastSnapshot else {
             return PrimaryProviderDisplayParts(
-                providerID: provider.id,
-                displayName: provider.displayName,
-                detailKind: .balance,
+                providerID: descriptor.id,
+                displayName: descriptor.displayName,
+                detailKind: descriptor.detailKind,
                 leadingText: "",
                 amountText: "--",
                 amountTone: .neutral,
@@ -145,8 +153,8 @@ public enum ProviderDisplayFormatter {
             let currencyCode = balance.currency.uppercased()
             let amountText = formatNumber(truncate(balance.totalBalance, scale: 2), fractionDigits: 2)
             return PrimaryProviderDisplayParts(
-                providerID: provider.id,
-                displayName: provider.displayName,
+                providerID: descriptor.id,
+                displayName: descriptor.displayName,
                 detailKind: .balance,
                 leadingText: currencyCode == "CNY" ? "¥" : "",
                 amountText: amountText,
@@ -156,8 +164,8 @@ public enum ProviderDisplayFormatter {
             )
         case .planUsage(let usage):
             return PrimaryProviderDisplayParts(
-                providerID: provider.id,
-                displayName: provider.displayName,
+                providerID: descriptor.id,
+                displayName: descriptor.displayName,
                 detailKind: .planUsage,
                 leadingText: "",
                 amountText: formatPercentage(usage.usagePercentage),
@@ -168,8 +176,8 @@ public enum ProviderDisplayFormatter {
         case .quotaUsage(let usage):
             let window = primaryQuotaWindow(in: usage)
             return PrimaryProviderDisplayParts(
-                providerID: provider.id,
-                displayName: provider.displayName,
+                providerID: descriptor.id,
+                displayName: descriptor.displayName,
                 detailKind: .quotaUsage,
                 leadingText: "",
                 amountText: formatPercentage(window?.remainingPercentage ?? 0),

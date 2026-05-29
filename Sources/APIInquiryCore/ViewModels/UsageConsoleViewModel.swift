@@ -137,7 +137,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public var providerDisplayName: String {
-        singleProvider?.displayName ?? coordinator?.provider(for: coordinator?.primaryProviderID ?? .deepseek)?.displayName ?? strings.provider
+        singleProvider?.descriptor.displayName ?? coordinator?.primaryDescriptor?.displayName ?? strings.provider
     }
 
     public var state: BalanceState {
@@ -170,8 +170,8 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func displayName(for id: ProviderID) -> String {
-        coordinator?.provider(for: id)?.displayName
-            ?? singleProvider?.displayName
+        coordinator?.descriptor(for: id)?.displayName
+            ?? singleProvider?.descriptor.displayName
             ?? id.rawValue
     }
 
@@ -189,18 +189,18 @@ public final class UsageConsoleViewModel: ObservableObject {
                     homepageURL: provider.homepageURL,
                     apiKeyStatusText: isCredentialConfigured ? strings.configured : strings.notConfigured,
                     apiAccessStatusText: apiAccessStatusText(
-                        for: provider,
+                        for: provider.descriptor,
                         isCredentialConfigured: isCredentialConfigured
                     ),
-                    apiAccessPurposeText: apiAccessPurposeText(for: provider),
+                    apiAccessPurposeText: apiAccessPurposeText(for: provider.descriptor),
                     validationStatusText: validationStatusText,
                     summaryBadgeText: ProviderDisplayFormatter.summaryBadgeText(
                         for: state,
                         fallbackText: validationStatusText,
                         strings: strings
                     ),
-                    supportsAPIKeyManagement: provider.supportsConsoleCredentialManagement,
-                    codexConfigTargetURL: codexConfigTargetURL(for: provider),
+                    supportsAPIKeyManagement: provider.descriptor.credentialManagement.supportsConsoleCredentialManagement,
+                    codexConfigTargetURL: codexConfigTargetURL(for: provider.descriptor),
                     statusTone: providerSummaryStatusTone(for: state),
                     healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                     balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
@@ -213,7 +213,7 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
 
         return coordinator.addedProviderIDs.compactMap { id in
-            guard let provider = coordinator.provider(for: id) else {
+            guard let descriptor = coordinator.descriptor(for: id) else {
                 return nil
             }
             let state = coordinator.state(for: id)
@@ -221,22 +221,22 @@ public final class UsageConsoleViewModel: ObservableObject {
             let isCredentialConfigured = coordinator.isCredentialConfigured(for: id)
             return APIProviderSummary(
                 id: id,
-                displayName: provider.displayName,
-                homepageURL: provider.homepageURL,
+                displayName: descriptor.displayName,
+                homepageURL: descriptor.homepageURL,
                 apiKeyStatusText: isCredentialConfigured ? strings.configured : strings.notConfigured,
                 apiAccessStatusText: apiAccessStatusText(
-                    for: provider,
+                    for: descriptor,
                     isCredentialConfigured: isCredentialConfigured
                 ),
-                apiAccessPurposeText: apiAccessPurposeText(for: provider),
+                apiAccessPurposeText: apiAccessPurposeText(for: descriptor),
                 validationStatusText: validationStatusText,
                 summaryBadgeText: ProviderDisplayFormatter.summaryBadgeText(
                     for: state,
                     fallbackText: validationStatusText,
                     strings: strings
                 ),
-                supportsAPIKeyManagement: provider.supportsConsoleCredentialManagement,
-                codexConfigTargetURL: codexConfigTargetURL(for: provider),
+                supportsAPIKeyManagement: descriptor.credentialManagement.supportsConsoleCredentialManagement,
+                codexConfigTargetURL: codexConfigTargetURL(for: descriptor),
                 statusTone: providerSummaryStatusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
@@ -497,27 +497,27 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     private func apiAccessStatusText(
-        for provider: BalanceProvider,
+        for descriptor: ProviderDescriptor,
         isCredentialConfigured: Bool
     ) -> String {
-        if provider.supportsConsoleCredentialManagement {
+        if descriptor.credentialManagement.supportsConsoleCredentialManagement {
             return isCredentialConfigured ? strings.configured : strings.notConfigured
         }
 
         return isCredentialConfigured ? strings.loaded : strings.notLoaded
     }
 
-    private func apiAccessPurposeText(for provider: BalanceProvider) -> String {
-        switch provider.id {
-        case .deepseek:
+    private func apiAccessPurposeText(for descriptor: ProviderDescriptor) -> String {
+        switch descriptor.accessPurpose {
+        case .prepaidBalance:
             return strings.prepaidBalanceCheckPurpose
-        case .zhipuCodingPlan, .codex:
+        case .planQuota:
             return strings.planBalanceCheckPurpose
         }
     }
 
-    private func codexConfigTargetURL(for provider: BalanceProvider) -> URL? {
-        guard provider.id == .codex else {
+    private func codexConfigTargetURL(for descriptor: ProviderDescriptor) -> URL? {
+        guard descriptor.credentialManagement == .localExternalConfiguration else {
             return nil
         }
 
@@ -572,10 +572,12 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     private func supportsConsoleCredentialManagement(for id: ProviderID) -> Bool {
         if let coordinator {
-            return coordinator.provider(for: id)?.supportsConsoleCredentialManagement ?? true
+            return coordinator.descriptor(for: id)?.credentialManagement.supportsConsoleCredentialManagement ?? true
         }
 
-        return singleProvider?.id == id ? singleProvider?.supportsConsoleCredentialManagement ?? true : true
+        return singleProvider?.id == id
+            ? singleProvider?.descriptor.credentialManagement.supportsConsoleCredentialManagement ?? true
+            : true
     }
 
     public var localizedStrings: LocalizedStrings {

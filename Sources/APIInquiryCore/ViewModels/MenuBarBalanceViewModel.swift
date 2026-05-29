@@ -99,7 +99,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var providerDisplayName: String {
-        activeProvider?.displayName ?? strings.provider
+        activeDescriptor?.displayName ?? strings.provider
     }
 
     public var state: BalanceState {
@@ -107,10 +107,11 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var menuBarTitle: String {
-        if activeProvider?.id == .codex {
+        guard let prefix = activeDescriptor?.menuTitlePrefix,
+              !prefix.isEmpty else {
             return menuBarValueText
         }
-        return "\(activeProvider?.menuPrefix ?? "") \(menuBarValueText)".trimmingCharacters(in: .whitespaces)
+        return "\(prefix) \(menuBarValueText)"
     }
 
     public var menuBarValueText: String {
@@ -122,7 +123,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var primaryDisplayParts: PrimaryProviderDisplayParts {
-        guard let provider = activeProvider else {
+        guard let descriptor = activeDescriptor else {
             return PrimaryProviderDisplayParts(
                 providerID: .deepseek,
                 displayName: strings.provider,
@@ -135,7 +136,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             )
         }
 
-        return ProviderDisplayFormatter.primaryDisplayParts(provider: provider, state: activeState, strings: strings)
+        return ProviderDisplayFormatter.primaryDisplayParts(descriptor: descriptor, state: activeState, strings: strings)
     }
 
     public var panelBalanceDisplayParts: BalanceDisplayParts {
@@ -155,13 +156,13 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         return coordinator.addedProviderIDs
             .filter { $0 != coordinator.primaryProviderID }
             .compactMap { id in
-                guard let provider = coordinator.provider(for: id) else {
+                guard let descriptor = coordinator.descriptor(for: id) else {
                     return nil
                 }
                 let state = coordinator.state(for: id)
                 return ProviderDetailRow(
                     providerID: id,
-                    displayName: providerDisplayName(for: provider),
+                    displayName: descriptor.secondaryDisplayName,
                     detailText: ProviderDisplayFormatter.secondaryDetailText(for: state.lastSnapshot, strings: strings),
                     quotaWindowRows: quotaWindowRows(for: state, suffixText: "%"),
                     statusText: ProviderDisplayFormatter.statusText(for: state, strings: strings),
@@ -210,10 +211,6 @@ public final class MenuBarBalanceViewModel: ObservableObject {
 
     private func quotaWindowDisplayLabel(for label: String) -> String {
         strings.quotaWindowLabel(label)
-    }
-
-    private func providerDisplayName(for provider: BalanceProvider) -> String {
-        provider.id == .codex ? "OpenAI" : provider.displayName
     }
 
     public var statusText: String {
@@ -308,6 +305,14 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         }
 
         return singleProvider
+    }
+
+    private var activeDescriptor: ProviderDescriptor? {
+        if let coordinator {
+            return coordinator.primaryDescriptor
+        }
+
+        return singleProvider?.descriptor
     }
 
     private var activeState: BalanceState {

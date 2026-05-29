@@ -5,6 +5,7 @@ enum MultiProviderBalanceCoordinatorTests {
     @MainActor
     static func run(using harness: TestHarness) async {
         testDefaultsToDeepSeekProvider(using: harness)
+        testCoordinatorExposesProviderDescriptors(using: harness)
         testAddSetPrimaryAndRemoveProvider(using: harness)
         testRemovingProviderCanDeleteCredential(using: harness)
         testRemovingProviderDoesNotRemoveWhenCredentialDeletionFails(using: harness)
@@ -23,6 +24,21 @@ enum MultiProviderBalanceCoordinatorTests {
         harness.expectEqual(coordinator.addedProviderIDs, [.deepseek], "coordinator default added providers")
         harness.expectEqual(coordinator.primaryProviderID, .deepseek, "coordinator default primary")
         harness.expectEqual(coordinator.availableProviderIDsToAdd, [.zhipuCodingPlan, .codex], "coordinator default available providers")
+    }
+
+    @MainActor
+    private static func testCoordinatorExposesProviderDescriptors(using harness: TestHarness) {
+        let coordinator = makeCoordinator(
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.deepseek, .codex],
+                primaryProviderID: .codex
+            )
+        )
+
+        harness.expectEqual(coordinator.descriptor(for: .deepseek)?.displayName, "DeepSeek", "coordinator exposes deepseek descriptor")
+        harness.expectEqual(coordinator.descriptor(for: .codex)?.credentialManagement, .localExternalConfiguration, "coordinator exposes codex credential policy")
+        harness.expectEqual(coordinator.primaryDescriptor?.id, .codex, "coordinator exposes primary descriptor")
+        harness.expectEqual(coordinator.primaryDescriptor?.secondaryDisplayName, "OpenAI", "coordinator primary descriptor preserves secondary display policy")
     }
 
     @MainActor

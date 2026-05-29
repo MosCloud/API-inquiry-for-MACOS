@@ -2,6 +2,7 @@ import Combine
 import Foundation
 
 public struct ProviderRuntime {
+    public let descriptor: ProviderDescriptor
     public let provider: BalanceProvider
     public let controller: BalanceRefreshController
 }
@@ -28,9 +29,11 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
         self.providerOrder = providers.map(\.id)
         self.runtimesByProviderID = Dictionary(
             uniqueKeysWithValues: providers.map { provider in
-                (
+                let descriptor = ProviderCatalog.default.descriptor(for: provider.id) ?? provider.descriptor
+                return (
                     provider.id,
                     ProviderRuntime(
+                        descriptor: descriptor,
                         provider: provider,
                         controller: BalanceRefreshController(
                             provider: provider,
@@ -70,6 +73,14 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
         runtimesByProviderID[id]?.provider
     }
 
+    public func descriptor(for id: ProviderID) -> ProviderDescriptor? {
+        runtimesByProviderID[id]?.descriptor
+    }
+
+    public var primaryDescriptor: ProviderDescriptor? {
+        descriptor(for: primaryProviderID)
+    }
+
     public func state(for id: ProviderID) -> BalanceState {
         runtimesByProviderID[id]?.controller.state ?? .notConfigured
     }
@@ -79,8 +90,8 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
     }
 
     public func isCredentialConfigured(for id: ProviderID) -> Bool {
-        guard let provider = provider(for: id),
-              let credential = try? credentialStore.credential(forAccount: provider.credentialAccount) else {
+        guard let descriptor = descriptor(for: id),
+              let credential = try? credentialStore.credential(forAccount: descriptor.credentialAccount) else {
             return false
         }
         return !credential.isEmpty
@@ -108,8 +119,8 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
             return
         }
 
-        if deletingCredential, let provider = provider(for: id) {
-            try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
+        if deletingCredential, let descriptor = descriptor(for: id) {
+            try credentialStore.deleteCredential(forAccount: descriptor.credentialAccount)
         }
 
         runtimesByProviderID[id]?.controller.stopAutoRefresh()
