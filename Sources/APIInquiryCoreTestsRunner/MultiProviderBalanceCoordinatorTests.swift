@@ -14,6 +14,7 @@ enum MultiProviderBalanceCoordinatorTests {
         await testRemovingProviderStopsRefreshAndClearsState(using: harness)
         testAutoRefreshLifecycleFollowsProviderAddAndRemove(using: harness)
         await testRefreshAddedProvidersKeepsStatesIsolated(using: harness)
+        await testRefreshAddedProvidersRunsProvidersConcurrently(using: harness)
         await testFailedRefreshPreservesLastSnapshotThroughCoordinator(using: harness)
     }
 
@@ -216,6 +217,39 @@ enum MultiProviderBalanceCoordinatorTests {
     }
 
     @MainActor
+    private static func testRefreshAddedProvidersRunsProvidersConcurrently(using harness: TestHarness) async {
+        let probe = ConcurrentRefreshProbe()
+        let deepSeekSnapshot = ProviderSnapshot.balance(makeSnapshot(providerID: .deepseek, total: "68.65"))
+        let zhipuSnapshot = ProviderSnapshot.planUsage(
+            PlanUsageSnapshot(
+                providerID: .zhipuCodingPlan,
+                windowLabel: "5h",
+                usagePercentage: Decimal(17),
+                resetAt: nil,
+                isAvailable: true,
+                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+            )
+        )
+        let coordinator = MultiProviderBalanceCoordinator(
+            providers: [
+                ConcurrentRefreshProvider(id: .deepseek, snapshot: deepSeekSnapshot, probe: probe),
+                ConcurrentRefreshProvider(id: .zhipuCodingPlan, snapshot: zhipuSnapshot, probe: probe)
+            ],
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [
+                "deepseek-api-key": "deepseek-key",
+                "zhipu-coding-plan-api-key": "zhipu-key"
+            ]),
+            preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek, .zhipuCodingPlan])
+        )
+
+        await coordinator.refreshAddedProviders()
+
+        harness.expectEqual(await probe.maximumInFlight, 2, "coordinator refreshes added providers concurrently")
+        harness.expectEqual(coordinator.state(for: .deepseek), .loaded(deepSeekSnapshot), "concurrent refresh deepseek state")
+        harness.expectEqual(coordinator.state(for: .zhipuCodingPlan), .loaded(zhipuSnapshot), "concurrent refresh zhipu state")
+    }
+
+    @MainActor
     private static func testFailedRefreshPreservesLastSnapshotThroughCoordinator(using harness: TestHarness) async {
         let snapshot = makeSnapshot(providerID: .deepseek, total: "68.65")
         let deepSeek = MockBalanceProvider(
@@ -309,5 +343,39 @@ private final class FailingDeleteCredentialStore: CredentialStore {
 
     func deleteCredential(forAccount account: String) throws {
         throw CredentialStoreError.unexpectedStatus(-1)
+    }
+}
+
+private final class ConcurrentRefreshProvider: BalanceProvider {
+    let id: ProviderID
+
+    private let snapshot: ProviderSnapshot
+    private let probe: ConcurrentRefreshProbe
+
+    init(id: ProviderID, snapshot: ProviderSnapshot, probe: ConcurrentRefreshProbe) {
+        self.id = id
+        self.snapshot = snapshot
+        self.probe = probe
+    }
+
+    func fetchSnapshot(apiKey: String) async throws -> ProviderSnapshot {
+        await probe.enter()
+        try await Task.sleep(nanoseconds: 50_000_000)
+        await probe.exit()
+        return snapshot
+    }
+}
+
+private actor ConcurrentRefreshProbe {
+    private var inFlight = 0
+    private(set) var maximumInFlight = 0
+
+    func enter() {
+        inFlight += 1
+        maximumInFlight = max(maximumInFlight, inFlight)
+    }
+
+    func exit() {
+        inFlight -= 1
     }
 }

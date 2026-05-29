@@ -148,8 +148,14 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
     }
 
     public func refreshAddedProviders() async {
-        for id in addedProviderIDs {
-            await refresh(id)
+        let controllers = addedProviderIDs.compactMap { runtimesByProviderID[$0]?.controller }
+
+        await withTaskGroup(of: Void.self) { group in
+            for controller in controllers {
+                group.addTask {
+                    await controller.refresh()
+                }
+            }
         }
     }
 
