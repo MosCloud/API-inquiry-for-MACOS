@@ -1,0 +1,3 @@
+enum AppVersion {
+    static let displayVersion = "v0.3.6-Refactor"
+}

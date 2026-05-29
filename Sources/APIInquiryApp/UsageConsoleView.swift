@@ -87,7 +87,6 @@ struct UsageConsoleView: View {
     }
 
     private var appVersionText: String {
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        return "v\(version ?? "0.3.6")"
+        AppVersion.displayVersion
     }
 }
