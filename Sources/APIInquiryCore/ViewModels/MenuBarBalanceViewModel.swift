@@ -113,6 +113,14 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         return "\(prefix) \(menuBarValueText)"
     }
 
+    public var menuBarIconFallbackText: String {
+        guard let prefix = activeDescriptor?.menuPrefix,
+              !prefix.isEmpty else {
+            return "API"
+        }
+        return prefix
+    }
+
     public var menuBarValueText: String {
         ProviderDisplayFormatter.menuValueText(for: activeState, isCredentialConfigured: isCredentialConfigured, strings: strings)
     }

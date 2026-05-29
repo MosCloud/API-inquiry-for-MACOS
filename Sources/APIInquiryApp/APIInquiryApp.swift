@@ -46,12 +46,10 @@ struct APIInquiryApp: App {
                 consoleWindowController.open(defaultSection: section)
             }
         } label: {
-            Image(nsImage: DeepSeekImages.menuBarLabelImage(
+            Image(nsImage: ProviderVisualCatalog.menuBarLabelImage(
                 text: viewModel.menuBarValueText,
                 providerID: viewModel.primaryDisplayParts.providerID,
-                providerPrefix: viewModel.primaryDisplayParts.providerID == .codex
-                    ? "GPT"
-                    : viewModel.menuBarTitle.components(separatedBy: " ").first ?? "API"
+                providerPrefix: viewModel.menuBarIconFallbackText
             ))
                 .renderingMode(.template)
                 .accessibilityLabel("\(viewModel.providerDisplayName) \(viewModel.menuBarValueText)")

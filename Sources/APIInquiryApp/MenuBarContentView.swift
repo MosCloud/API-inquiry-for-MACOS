@@ -96,8 +96,8 @@ struct MenuBarContentView: View {
     private var header: some View {
         HStack(spacing: 10) {
             let providerID = viewModel.primaryDisplayParts.providerID
-            if let headerLogo = DeepSeekImages.headerLogoTemplate(for: providerID) {
-                let logoSize = DeepSeekImages.headerLogoSize(for: providerID)
+            if let headerLogo = ProviderVisualCatalog.headerLogoTemplate(for: providerID) {
+                let logoSize = ProviderVisualCatalog.headerLogoSize(for: providerID)
                 Image(nsImage: headerLogo)
                     .resizable()
                     .renderingMode(.template)

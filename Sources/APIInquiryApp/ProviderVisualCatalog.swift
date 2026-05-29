@@ -1,8 +1,8 @@
 import APIInquiryCore
 import AppKit
 
-enum DeepSeekImages {
-    static let headerLogoTemplate: NSImage = {
+enum ProviderVisualCatalog {
+    static let deepSeekHeaderLogoTemplate: NSImage = {
         let image = loadPNG(named: "deepseek-logo-header") ?? textTemplateImage("deepseek", fontSize: 30, height: 33)
         image.isTemplate = true
         return image
@@ -23,7 +23,7 @@ enum DeepSeekImages {
     static func headerLogoTemplate(for providerID: ProviderID) -> NSImage? {
         switch providerID {
         case .deepseek:
-            return headerLogoTemplate
+            return deepSeekHeaderLogoTemplate
         case .zhipuCodingPlan:
             return zhipuHeaderLogoTemplate
         case .codex:
@@ -89,7 +89,12 @@ enum DeepSeekImages {
             let iconRect = NSRect(x: 0, y: (height - iconSize.height) / 2, width: iconSize.width, height: iconSize.height)
             icon.draw(in: iconRect, from: .zero, operation: .sourceOver, fraction: 1)
         } else {
-            drawText(providerPrefix, in: NSRect(x: 0, y: 0, width: iconSize.width, height: height), fontSize: providerPrefix.count > 2 ? 8 : 10, weight: .bold)
+            drawText(
+                providerPrefix,
+                in: NSRect(x: 0, y: 0, width: iconSize.width, height: height),
+                fontSize: providerPrefix.count > 2 ? 8 : 10,
+                weight: .bold
+            )
         }
 
         let textRect = NSRect(

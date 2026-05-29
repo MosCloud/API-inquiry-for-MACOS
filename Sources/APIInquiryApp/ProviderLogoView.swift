@@ -35,8 +35,8 @@ struct ProviderLogoView: View {
     let summary: APIProviderSummary
 
     var body: some View {
-        if let image = DeepSeekImages.headerLogoTemplate(for: summary.id) {
-            let logoSize = DeepSeekImages.consoleLogoSize(for: summary.id)
+        if let image = ProviderVisualCatalog.headerLogoTemplate(for: summary.id) {
+            let logoSize = ProviderVisualCatalog.consoleLogoSize(for: summary.id)
             Image(nsImage: image)
                 .resizable()
                 .renderingMode(.template)

@@ -99,6 +99,9 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(deepSeekViewModel.menuBarTitle, "DS ¥68.6", "deepseek primary title keeps DS prefix")
         harness.expectEqual(zhipuViewModel.menuBarTitle, "GLM 5h 17%", "zhipu primary title keeps GLM prefix")
         harness.expectEqual(codexViewModel.menuBarTitle, "5h 72%", "codex primary title omits GPT prefix")
+        harness.expectEqual(deepSeekViewModel.menuBarIconFallbackText, "DS", "deepseek menu bar image fallback uses descriptor prefix")
+        harness.expectEqual(zhipuViewModel.menuBarIconFallbackText, "GLM", "zhipu menu bar image fallback uses descriptor prefix")
+        harness.expectEqual(codexViewModel.menuBarIconFallbackText, "GPT", "codex menu bar image fallback keeps descriptor prefix")
     }
 
     @MainActor
