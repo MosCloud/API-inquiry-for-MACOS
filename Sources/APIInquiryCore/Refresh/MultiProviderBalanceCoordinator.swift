@@ -22,6 +22,8 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
         credentialStore: CredentialStore,
         preferences: ProviderPreferencesStore,
         defaultProviderID: ProviderID = ProviderCatalog.default.defaultProviderID,
+        initialStatesByProviderID: [ProviderID: BalanceState] = [:],
+        controllersByProviderID: [ProviderID: BalanceRefreshController] = [:],
         localizedStrings: @escaping () -> LocalizedStrings = { LocalizedStrings(language: .en) }
     ) {
         self.credentialStore = credentialStore
@@ -35,9 +37,10 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
                     ProviderRuntime(
                         descriptor: descriptor,
                         provider: provider,
-                        controller: BalanceRefreshController(
+                        controller: controllersByProviderID[provider.id] ?? BalanceRefreshController(
                             provider: provider,
                             credentialStore: credentialStore,
+                            initialState: initialStatesByProviderID[provider.id] ?? .notConfigured,
                             localizedStrings: localizedStrings
                         )
                     )

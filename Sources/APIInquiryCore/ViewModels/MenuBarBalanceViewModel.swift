@@ -27,10 +27,7 @@ public struct SettingsFeedback: Equatable {
 public final class MenuBarBalanceViewModel: ObservableObject {
     @Published public var displayMode: MenuBarDisplayMode
 
-    private let singleProvider: BalanceProvider?
-    private let singleCredentialStore: CredentialStore?
-    private let singleController: BalanceRefreshController?
-    private let coordinator: MultiProviderBalanceCoordinator?
+    private let coordinator: MultiProviderBalanceCoordinator
     private let lastRefreshTimeFormatter: LastRefreshTimeFormatter
     private let languageStore: AppLanguageStore?
     private var cancellables: Set<AnyCancellable> = []
@@ -38,11 +35,18 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     public convenience init() {
         let provider = DeepSeekBalanceProvider()
         let credentialStore = KeychainCredentialStore()
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
-        self.init(provider: provider, credentialStore: credentialStore, controller: controller)
+        let coordinator = MultiProviderBalanceCoordinator(
+            providers: [provider],
+            credentialStore: credentialStore,
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.deepseek],
+                primaryProviderID: .deepseek
+            )
+        )
+        self.init(coordinator: coordinator)
     }
 
-    public init(
+    public convenience init(
         provider: BalanceProvider,
         credentialStore: CredentialStore,
         controller: BalanceRefreshController,
@@ -50,25 +54,23 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
         languageStore: AppLanguageStore? = nil
     ) {
-        self.singleProvider = provider
-        self.singleCredentialStore = credentialStore
-        self.singleController = controller
-        self.coordinator = nil
-        self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
-        self.languageStore = languageStore
-        self.displayMode = displayMode
-
-        controller.objectWillChange
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
-            }
-            .store(in: &cancellables)
-
-        languageStore?.objectWillChange
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
-            }
-            .store(in: &cancellables)
+        let coordinator = MultiProviderBalanceCoordinator(
+            providers: [provider],
+            credentialStore: credentialStore,
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [provider.id],
+                primaryProviderID: provider.id
+            ),
+            defaultProviderID: provider.id,
+            initialStatesByProviderID: [provider.id: controller.state],
+            controllersByProviderID: [provider.id: controller]
+        )
+        self.init(
+            coordinator: coordinator,
+            displayMode: displayMode,
+            lastRefreshTimeFormatter: lastRefreshTimeFormatter,
+            languageStore: languageStore
+        )
     }
 
     public init(
@@ -77,9 +79,6 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
         languageStore: AppLanguageStore? = nil
     ) {
-        self.singleProvider = nil
-        self.singleCredentialStore = nil
-        self.singleController = nil
         self.coordinator = coordinator
         self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
         self.languageStore = languageStore
@@ -149,10 +148,6 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var secondaryProviderRows: [ProviderDetailRow] {
-        guard let coordinator else {
-            return []
-        }
-
         return coordinator.addedProviderIDs
             .filter { $0 != coordinator.primaryProviderID }
             .compactMap { id in
@@ -273,67 +268,31 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public func refresh() async {
-        if let coordinator {
-            await coordinator.refreshAddedProviders()
-            return
-        }
-
-        await singleController?.refresh()
+        await coordinator.refreshAddedProviders()
     }
 
     public func startAutoRefresh() {
-        if let coordinator {
-            coordinator.startAutoRefresh()
-            return
-        }
-
-        singleController?.startAutoRefresh()
+        coordinator.startAutoRefresh()
     }
 
     public func stopAutoRefresh() {
-        if let coordinator {
-            coordinator.stopAutoRefresh()
-            return
-        }
-
-        singleController?.stopAutoRefresh()
+        coordinator.stopAutoRefresh()
     }
 
     private var activeProvider: BalanceProvider? {
-        if let coordinator {
-            return coordinator.provider(for: coordinator.primaryProviderID)
-        }
-
-        return singleProvider
+        coordinator.provider(for: coordinator.primaryProviderID)
     }
 
     private var activeDescriptor: ProviderDescriptor? {
-        if let coordinator {
-            return coordinator.primaryDescriptor
-        }
-
-        return singleProvider?.descriptor
+        coordinator.primaryDescriptor
     }
 
     private var activeState: BalanceState {
-        if let coordinator {
-            return coordinator.state(for: coordinator.primaryProviderID)
-        }
-
-        return singleController?.state ?? .notConfigured
+        coordinator.state(for: coordinator.primaryProviderID)
     }
 
     private var isCredentialConfigured: Bool {
-        if let coordinator {
-            return coordinator.isCredentialConfigured(for: coordinator.primaryProviderID)
-        }
-
-        guard let store = singleCredentialStore,
-              let account = singleProvider?.credentialAccount,
-              let credential = try? store.credential(forAccount: account) else {
-            return false
-        }
-        return !credential.isEmpty
+        coordinator.isCredentialConfigured(for: coordinator.primaryProviderID)
     }
 
     public var localizedStrings: LocalizedStrings {

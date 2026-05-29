@@ -68,45 +68,36 @@ public final class UsageConsoleViewModel: ObservableObject {
     @Published public private(set) var settingsFeedbacksByProviderID: [ProviderID: SettingsFeedback] = [:]
     @Published public private(set) var apiKeyDeleteConfirmationProviderID: ProviderID?
 
-    private var singleIsCredentialConfigured: Bool
-
-    private let singleProvider: BalanceProvider?
-    private let singleController: BalanceRefreshController?
-    private let coordinator: MultiProviderBalanceCoordinator?
+    private let coordinator: MultiProviderBalanceCoordinator
     private let credentialStore: CredentialStore
     private let lastRefreshTimeFormatter: LastRefreshTimeFormatter
     private let languageStore: AppLanguageStore?
     private var cancellables: Set<AnyCancellable> = []
 
-    public init(
+    public convenience init(
         provider: BalanceProvider,
         credentialStore: CredentialStore,
         controller: BalanceRefreshController,
         lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
         languageStore: AppLanguageStore? = nil
     ) {
-        self.singleProvider = provider
-        self.singleController = controller
-        self.coordinator = nil
-        self.credentialStore = credentialStore
-        self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
-        self.languageStore = languageStore
-        self.singleIsCredentialConfigured = Self.hasConfiguredCredential(
-            in: credentialStore,
-            account: provider.credentialAccount
+        let coordinator = MultiProviderBalanceCoordinator(
+            providers: [provider],
+            credentialStore: credentialStore,
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [provider.id],
+                primaryProviderID: provider.id
+            ),
+            defaultProviderID: provider.id,
+            initialStatesByProviderID: [provider.id: controller.state],
+            controllersByProviderID: [provider.id: controller]
         )
-
-        controller.objectWillChange
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
-            }
-            .store(in: &cancellables)
-
-        languageStore?.objectWillChange
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
-            }
-            .store(in: &cancellables)
+        self.init(
+            coordinator: coordinator,
+            credentialStore: credentialStore,
+            lastRefreshTimeFormatter: lastRefreshTimeFormatter,
+            languageStore: languageStore
+        )
     }
 
     public init(
@@ -115,13 +106,10 @@ public final class UsageConsoleViewModel: ObservableObject {
         lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
         languageStore: AppLanguageStore? = nil
     ) {
-        self.singleProvider = nil
-        self.singleController = nil
         self.coordinator = coordinator
         self.credentialStore = credentialStore
         self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
         self.languageStore = languageStore
-        self.singleIsCredentialConfigured = false
 
         coordinator.objectWillChange
             .sink { [weak self] _ in
@@ -137,11 +125,11 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public var providerDisplayName: String {
-        singleProvider?.descriptor.displayName ?? coordinator?.primaryDescriptor?.displayName ?? strings.provider
+        coordinator.primaryDescriptor?.displayName ?? strings.provider
     }
 
     public var state: BalanceState {
-        singleController?.state ?? .notConfigured
+        coordinator.state(for: coordinator.primaryProviderID)
     }
 
     public var credentialStatusText: String {
@@ -149,15 +137,11 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public var isAPIKeyConfigured: Bool {
-        if let coordinator {
-            return coordinator.isCredentialConfigured(for: coordinator.primaryProviderID)
-        }
-
-        return singleIsCredentialConfigured
+        coordinator.isCredentialConfigured(for: coordinator.primaryProviderID)
     }
 
     public var availableProviderIDsToAdd: [ProviderID] {
-        coordinator?.availableProviderIDsToAdd ?? []
+        coordinator.availableProviderIDsToAdd
     }
 
     public var languageSelection: AppLanguage {
@@ -170,48 +154,10 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func displayName(for id: ProviderID) -> String {
-        coordinator?.descriptor(for: id)?.displayName
-            ?? singleProvider?.descriptor.displayName
-            ?? id.rawValue
+        coordinator.descriptor(for: id)?.displayName ?? id.rawValue
     }
 
     public var providerSummaries: [APIProviderSummary] {
-        guard let coordinator else {
-            guard let provider = singleProvider else {
-                return []
-            }
-            let validationStatusText = validationStatusText(for: state)
-            let isCredentialConfigured = isAPIKeyConfigured
-            return [
-                APIProviderSummary(
-                    id: provider.id,
-                    displayName: providerDisplayName,
-                    homepageURL: provider.homepageURL,
-                    apiKeyStatusText: isCredentialConfigured ? strings.configured : strings.notConfigured,
-                    apiAccessStatusText: apiAccessStatusText(
-                        for: provider.descriptor,
-                        isCredentialConfigured: isCredentialConfigured
-                    ),
-                    apiAccessPurposeText: apiAccessPurposeText(for: provider.descriptor),
-                    validationStatusText: validationStatusText,
-                    summaryBadgeText: ProviderDisplayFormatter.summaryBadgeText(
-                        for: state,
-                        fallbackText: validationStatusText,
-                        strings: strings
-                    ),
-                    supportsAPIKeyManagement: provider.descriptor.credentialManagement.supportsConsoleCredentialManagement,
-                    codexConfigTargetURL: codexConfigTargetURL(for: provider.descriptor),
-                    statusTone: providerSummaryStatusTone(for: state),
-                    healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
-                    balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
-                    lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
-                    planNextResetText: timeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
-                    planNameText: state.lastQuotaUsageSnapshot?.planName,
-                    isPrimary: true
-                )
-            ]
-        }
-
         return coordinator.addedProviderIDs.compactMap { id in
             guard let descriptor = coordinator.descriptor(for: id) else {
                 return nil
@@ -249,21 +195,16 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func refresh() async {
-        if let coordinator {
-            await coordinator.refreshAddedProviders()
-            return
-        }
-
-        await singleController?.refresh()
+        await coordinator.refreshAddedProviders()
     }
 
     public func addProvider(_ id: ProviderID) {
-        coordinator?.addProvider(id)
+        coordinator.addProvider(id)
     }
 
     public func removeProvider(_ id: ProviderID, deletingCredential: Bool = true) {
         do {
-            try coordinator?.removeProvider(
+            try coordinator.removeProvider(
                 id,
                 deletingCredential: deletingCredential && supportsConsoleCredentialManagement(for: id)
             )
@@ -278,7 +219,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func setPrimaryProvider(_ id: ProviderID) {
-        coordinator?.setPrimaryProvider(id)
+        coordinator.setPrimaryProvider(id)
     }
 
     public func apiKeyInput(for id: ProviderID) -> String {
@@ -294,11 +235,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func isAPIKeyConfigured(for id: ProviderID) -> Bool {
-        if let coordinator {
-            return coordinator.isCredentialConfigured(for: id)
-        }
-
-        return singleProvider?.id == id && singleIsCredentialConfigured
+        coordinator.isCredentialConfigured(for: id)
     }
 
     public func beginReplacingAPIKey() {
@@ -308,8 +245,9 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func requestAPIKeyDeletion() {
-        guard singleIsCredentialConfigured,
-              singleProvider?.supportsConsoleCredentialManagement == true else {
+        let id = coordinator.primaryProviderID
+        guard isAPIKeyConfigured(for: id),
+              supportsConsoleCredentialManagement(for: id) else {
             return
         }
 
@@ -346,35 +284,34 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func saveAPIKey() async {
-        guard let provider = singleProvider,
-              provider.supportsConsoleCredentialManagement,
-              let controller = singleController else {
+        let id = coordinator.primaryProviderID
+        guard let descriptor = coordinator.descriptor(for: id),
+              descriptor.credentialManagement.supportsConsoleCredentialManagement else {
             return
         }
 
         let apiKey = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
         await saveAPIKey(
             apiKey,
-            for: provider,
-            refresh: { await controller.refresh() },
-            state: { controller.state },
+            for: descriptor,
+            refresh: { await self.coordinator.refresh(id) },
+            state: { self.coordinator.state(for: id) },
             clearInput: { self.apiKeyInput = "" },
             setFeedback: { self.settingsFeedback = $0 },
-            setConfigured: { self.singleIsCredentialConfigured = $0 }
+            setConfigured: { _ in }
         )
     }
 
     public func saveAPIKey(for id: ProviderID) async {
-        guard let coordinator,
-              let provider = coordinator.provider(for: id),
-              provider.supportsConsoleCredentialManagement else {
+        guard let descriptor = coordinator.descriptor(for: id),
+              descriptor.credentialManagement.supportsConsoleCredentialManagement else {
             return
         }
 
         let apiKey = apiKeyInput(for: id).trimmingCharacters(in: .whitespacesAndNewlines)
         await saveAPIKey(
             apiKey,
-            for: provider,
+            for: descriptor,
             refresh: { await coordinator.refresh(id) },
             state: { coordinator.state(for: id) },
             clearInput: { self.apiKeyInputsByProviderID[id] = "" },
@@ -384,38 +321,23 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     public func deleteAPIKey() async {
-        guard let provider = singleProvider,
-              provider.supportsConsoleCredentialManagement,
-              let controller = singleController else {
-            return
-        }
-
-        do {
-            try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
-            apiKeyInput = ""
-            isAPIKeyDeleteConfirmationPresented = false
-            settingsFeedback = SettingsFeedback(kind: .success, message: strings.apiKeyDeleted)
-            singleIsCredentialConfigured = false
-            controller.markNotConfigured()
-        } catch {
-            isAPIKeyDeleteConfirmationPresented = false
-            settingsFeedback = SettingsFeedback(
-                kind: .error,
-                message: settingsMessage(for: error, fallback: strings.apiKeyCouldNotBeDeleted)
-            )
-        }
+        await deleteAPIKey(for: coordinator.primaryProviderID)
     }
 
     public func deleteAPIKey(for id: ProviderID) async {
-        guard let coordinator,
-              let provider = coordinator.provider(for: id),
-              provider.supportsConsoleCredentialManagement else {
+        guard let descriptor = coordinator.descriptor(for: id),
+              descriptor.credentialManagement.supportsConsoleCredentialManagement else {
             return
         }
 
         do {
-            try credentialStore.deleteCredential(forAccount: provider.credentialAccount)
+            try credentialStore.deleteCredential(forAccount: descriptor.credentialAccount)
             apiKeyInputsByProviderID[id] = ""
+            if id == coordinator.primaryProviderID {
+                apiKeyInput = ""
+                isAPIKeyDeleteConfirmationPresented = false
+                settingsFeedback = SettingsFeedback(kind: .success, message: strings.apiKeyDeleted)
+            }
             settingsFeedbacksByProviderID[id] = SettingsFeedback(kind: .success, message: strings.apiKeyDeleted)
             coordinator.controller(for: id)?.markNotConfigured()
         } catch {
@@ -428,7 +350,7 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     private func saveAPIKey(
         _ apiKey: String,
-        for provider: BalanceProvider,
+        for descriptor: ProviderDescriptor,
         refresh: () async -> Void,
         state: () -> BalanceState,
         clearInput: () -> Void,
@@ -441,7 +363,7 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
 
         do {
-            try credentialStore.saveCredential(apiKey, forAccount: provider.credentialAccount)
+            try credentialStore.saveCredential(apiKey, forAccount: descriptor.credentialAccount)
             setConfigured(true)
             await refresh()
 
@@ -571,13 +493,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     private func supportsConsoleCredentialManagement(for id: ProviderID) -> Bool {
-        if let coordinator {
-            return coordinator.descriptor(for: id)?.credentialManagement.supportsConsoleCredentialManagement ?? true
-        }
-
-        return singleProvider?.id == id
-            ? singleProvider?.descriptor.credentialManagement.supportsConsoleCredentialManagement ?? true
-            : true
+        coordinator.descriptor(for: id)?.credentialManagement.supportsConsoleCredentialManagement ?? true
     }
 
     public var localizedStrings: LocalizedStrings {
