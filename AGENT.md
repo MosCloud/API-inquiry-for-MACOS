@@ -81,7 +81,10 @@ First release excludes:
 - Every version must update `Scripts/version.env` so app metadata, release tag, DMG basename, and volume name match the release version.
 - Every version must verify the generated app's `CFBundleShortVersionString` before release, because the Settings page displays this value as the app version.
 - Do not close a release until Settings shows the intended version number.
-- Release notes must use these sections when applicable: New Features, App Optimization, and Bug Fixes. Omit sections that have no content for that version.
+- Release notes are for ordinary users first. Write them so a non-technical user can quickly understand what changed, what they will notice, why it matters, and whether upgrading affects their existing settings or keys.
+- Do not write release notes as an architecture report, implementation summary, commit digest, or internal refactor checklist.
+- Avoid internal type names, file names, protocol names, test details, and engineering jargon unless they directly explain a user-visible behavior.
+- Prefer sections such as "What You Will Notice", "Why This Update Matters", "Upgrade Notes", and "Verify Download". Use feature/bug/optimization sections only when they make the user-facing story clearer.
 
 ## Local Commands
 
