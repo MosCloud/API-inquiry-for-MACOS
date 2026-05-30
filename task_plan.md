@@ -2,7 +2,7 @@
 
 ## Goal
 
-在 `v0.3.6-Refactor` 分支上，对本轮重构审阅中指出的低风险 runtime 边界问题做最小范围收口，保持现有功能和 UI 不变。
+在 `v0.3.6-Refactor` 分支上，对本轮重构审阅中指出的低风险 runtime 边界问题做最小范围收口，保持现有功能和 UI 不变，并按正式流程覆盖 `release/v0.3.6-Refactor` tag 和 GitHub Release。
 
 ## Status
 
@@ -16,6 +16,12 @@
 - [x] Run `swift run APIInquiryCoreTestsRunner`, `swift build`, and `git diff --check`.
 - [x] Run agent code review and address blocking findings only.
 - [x] Prepare the branch for commit and push.
+- [x] Commit and push runtime hardening changes.
+- [x] Update release notes for runtime hardening.
+- [ ] Run final release verification and package DMG.
+- [ ] Move `release/v0.3.6-Refactor` tag to the final release commit.
+- [ ] Overwrite GitHub Release notes and assets.
+- [ ] Verify remote tag, release assets, checksum, and branch state.
 
 ## Decisions
 

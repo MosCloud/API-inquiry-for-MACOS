@@ -25,3 +25,6 @@
   - `swift build`: `Build complete!`
   - `git diff --check`: no output
 - Branch is ready for commit and push.
+- Committed and pushed runtime hardening as `e63bac6 refactor: harden provider runtime defaults`.
+- User accepted the app review and requested formal release coverage for `v0.3.6-Refactor`.
+- Updated release notes to include the runtime default hardening, defensive credential-management fallback, and provider factory contract.
