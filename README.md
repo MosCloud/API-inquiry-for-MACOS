@@ -5,11 +5,23 @@
 ## 效果展示
 
 <p>
-  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.3/menu-panel.png" alt="API Inquiry 菜单栏详情面板" width="360">
+  <strong>MenuBar</strong><br>
+  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/menu-bar.png" alt="API Inquiry 菜单栏详情面板" width="420">
 </p>
 
 <p>
-  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.3/console-home.png" alt="API Inquiry 控制台首页" width="720">
+  <strong>Console Home</strong><br>
+  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/console-home.png" alt="API Inquiry 控制台首页" width="860">
+</p>
+
+<p>
+  <strong>Console API</strong><br>
+  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/console-api.png" alt="API Inquiry 控制台 API 页面" width="860">
+</p>
+
+<p>
+  <strong>Console Setting</strong><br>
+  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/console-setting.png" alt="API Inquiry 控制台设置页面" width="860">
 </p>
 
 API Inquiry 是一个原生 macOS 菜单栏应用，用于查看 API 供应商状态并管理供应商 API 密钥。它支持 DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询和 Codex/ChatGPT 会话额度查询，会将供应商 API 密钥保存到 macOS 密钥串，每 5 分钟刷新已配置供应商，在菜单栏显示 Primary Provider，并提供一个轻量本地控制台用于供应商管理。
