@@ -2,33 +2,35 @@
 
 ## Goal
 
-Keep the root planning files aligned with the current `main` branch so future sessions restore accurate context instead of the old v0.3.2 planning state.
+Prepare the `v0.3.7` branch from `main` and record the version plan for restrained UI polish before the v0.4.0 provider expansion.
 
 ## Current Status
 
-- [x] Confirm root planning files were stale and still described v0.3.2.
-- [x] Inspect current `main`, release tag, roadmap, plans, release notes, and recent commits.
-- [x] Refresh `findings.md` with the current repository, architecture, release, and verification state.
-- [x] Refresh `progress.md` with the completed v0.3.6-Refactor work and README screenshot update.
-- [x] Refresh this `task_plan.md` so it describes the current housekeeping task instead of v0.3.2 implementation planning.
-- [x] Synchronize README and `docs/roadmap.md` latest released version to `v0.3.6-Refactor`.
-- [x] Review and commit the planning file refresh.
+- [x] Create isolated worktree branch `v0.3.7` from current `main`.
+- [x] Review existing planning files, roadmap, UI guidance, and current UI code shape.
+- [x] Record the v0.3.7 UI polish plan in paired English and Chinese plan docs.
+- [x] Update `docs/roadmap.md` so `v0.3.7` is the next planned version before `v0.4.0`.
+- [x] Refresh root `task_plan.md`, `findings.md`, and `progress.md` for the new branch context.
+- [ ] Review the recorded plan with the user before implementation starts.
+- [ ] Implement v0.3.7 UI polish in small, reviewable steps.
+- [ ] Verify with `swift run APIInquiryCoreTestsRunner`, `swift build`, and manual UI review.
 
 ## Decisions
 
-- Root planning files should be a current workspace snapshot, not a historical v0.3.2 plan.
-- Detailed historical implementation plans remain under `docs/superpowers/plans/`.
-- Current latest released version should be represented as `v0.3.6-Refactor`.
-- Next feature planning should start from `v0.4.0`, focused on more providers and generic provider capability.
-- The untracked `.superpowers/` directory is left untouched.
+- `v0.3.7` is a UI polish release, not a provider expansion release.
+- The UI style boundary is strict: minimal, restrained, efficient, lightly technical, and content-first.
+- Any UI element that does not improve content scanning, feedback, or accessibility should be removed or rejected.
+- `v0.4.0` remains the version for more providers and generic provider capabilities.
+- The untracked `.superpowers/` directory in the main worktree remains untouched.
 
 ## Errors Encountered
 
 | Error | Attempt | Resolution |
 | --- | --- | --- |
-| Root planning files were stale | User noticed they still referenced v0.3.2 | Refresh files with current mainline and release state |
+| Sandbox blocked initial branch creation | `git worktree add .worktrees/v0.3.7 -b v0.3.7 main` could not create a ref lock | Re-ran the same command with approved escalation and created the worktree successfully |
 
 ## Next Suggested Work
 
-- If starting v0.4.0, create a fresh branch/worktree and a dedicated plan under `docs/superpowers/plans/`.
-- Keep root planning files updated after major releases, merges, and release-note/documentation updates.
+- Ask the user to review `docs/superpowers/plans/2026-05-30-v0.3.7-ui-polish_zh.md`.
+- After approval, start with low-risk microinteractions and semantic UI fixes.
+- Keep visual changes conservative and verify each UI step manually.

@@ -37,16 +37,22 @@
 - Pushed README screenshot update to `main` as `c48a22b`.
 - Refreshed root planning files (`findings.md`, `progress.md`, `task_plan.md`) so they reflect current `main` instead of v0.3.2.
 - Synchronized README and `docs/roadmap.md` so the latest released version is explicitly `v0.3.6-Refactor`.
+- Created a new isolated `v0.3.7` worktree branch from `main`.
+- Recorded the v0.3.7 UI polish plan:
+  - `docs/superpowers/plans/2026-05-30-v0.3.7-ui-polish.md`
+  - `docs/superpowers/plans/2026-05-30-v0.3.7-ui-polish_zh.md`
+- Updated `docs/roadmap.md` so `v0.3.7` is the next planned release before `v0.4.0`.
+- Refreshed root planning files in the `v0.3.7` worktree to describe the active UI polish branch.
 
 ## Current State
 
-- `main` and `origin/main` are synchronized after the README screenshot and planning refresh work.
+- Active worktree branch for the current task is `v0.3.7`.
+- `v0.3.7` was created from `main` commit `c6b521c`.
 - Latest released version is `v0.3.6-Refactor`.
-- `release/v0.3.6-Refactor` is at `9947bde`.
 - Latest `v0.3.6-Refactor` release assets are available on GitHub Release `release/v0.3.6-Refactor`.
-- Root planning files have been refreshed from the obsolete v0.3.2 snapshot to the current mainline state.
+- Root planning files in this worktree now point to the v0.3.7 UI polish planning task.
 
 ## Open Notes
 
-- `.superpowers/` remains an untracked local directory and has not been modified.
-- Next substantial implementation should start from a fresh v0.4.0 plan.
+- The main worktree `.superpowers/` directory remains untracked and has not been modified.
+- Before implementation, review the Chinese v0.3.7 plan with the user.
