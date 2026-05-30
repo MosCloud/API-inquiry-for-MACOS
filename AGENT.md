@@ -82,6 +82,9 @@ First release excludes:
 - Every version must verify the generated app's `CFBundleShortVersionString` before release, because the Settings page displays this value as the app version.
 - Do not close a release until Settings shows the intended version number.
 - Release notes must use these sections when applicable: New Features, App Optimization, and Bug Fixes. Omit sections that have no content for that version.
+- Release notes are user-facing copy, not a technical report or internal change summary. Write them so ordinary users can quickly understand what they will notice, what became easier or smoother, what was fixed, and what limitations remain.
+- Avoid implementation jargon, internal type names, file paths, test counts, framework/API names, and refactor-only wording in release notes unless the user explicitly asks for a technical changelog. When a technical change matters, translate it into concrete user impact.
+- Keep release note bullets concise, direct, and perceptible. Prefer wording such as "refresh feels steadier" or "status is easier to read" over "changed the state model" or "added a helper API".
 
 ## Local Commands
 
