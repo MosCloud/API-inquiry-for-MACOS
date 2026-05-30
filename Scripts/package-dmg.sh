@@ -80,13 +80,19 @@ with timeout of 20 seconds
         open stagingFolder
         set stagingWindow to container window of stagingFolder
         set current view of stagingWindow to icon view
-        set toolbar visible of stagingWindow to false
-        set statusbar visible of stagingWindow to false
+        try
+            set toolbar visible of stagingWindow to false
+        end try
+        try
+            set statusbar visible of stagingWindow to false
+        end try
         set bounds of stagingWindow to {160, 160, 920, 580}
         set viewOptions to the icon view options of stagingWindow
         set arrangement of viewOptions to not arranged
         set icon size of viewOptions to 152
-        set background picture of viewOptions to POSIX file "$STAGING_MOUNT/.background/dmg-background.png"
+        try
+            set background picture of viewOptions to POSIX file "$STAGING_MOUNT/.background/dmg-background.png"
+        end try
         set position of item "$APP_NAME" of stagingFolder to {210, 180}
         set position of item "Applications" of stagingFolder to {550, 180}
         delay 1
