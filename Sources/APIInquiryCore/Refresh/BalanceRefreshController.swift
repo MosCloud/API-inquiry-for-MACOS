@@ -12,6 +12,7 @@ public final class BalanceRefreshController: ObservableObject {
 
     private let provider: BalanceProvider
     private let credentialStore: CredentialStore
+    private let credentialAccount: String
     private let localizedStrings: () -> LocalizedStrings
     private var autoRefreshTask: Task<Void, Never>?
     private var isRefreshing = false
@@ -20,12 +21,14 @@ public final class BalanceRefreshController: ObservableObject {
     public init(
         provider: BalanceProvider,
         credentialStore: CredentialStore,
+        credentialAccount: String,
         initialState: BalanceState = .notConfigured,
         refreshInterval: TimeInterval = 300,
         localizedStrings: @escaping () -> LocalizedStrings = { LocalizedStrings(language: .en) }
     ) {
         self.provider = provider
         self.credentialStore = credentialStore
+        self.credentialAccount = credentialAccount
         self.state = initialState
         self.refreshInterval = refreshInterval
         self.localizedStrings = localizedStrings
@@ -46,7 +49,7 @@ public final class BalanceRefreshController: ObservableObject {
         let refreshRevision = stateRevision
 
         do {
-            guard let apiKey = try credentialStore.credential(forAccount: provider.credentialAccount),
+            guard let apiKey = try credentialStore.credential(forAccount: credentialAccount),
                   !apiKey.isEmpty else {
                 state = .notConfigured
                 return

@@ -74,32 +74,6 @@ public final class UsageConsoleViewModel: ObservableObject {
     private let languageStore: AppLanguageStore?
     private var cancellables: Set<AnyCancellable> = []
 
-    public convenience init(
-        provider: BalanceProvider,
-        credentialStore: CredentialStore,
-        controller: BalanceRefreshController,
-        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
-        languageStore: AppLanguageStore? = nil
-    ) {
-        let coordinator = MultiProviderBalanceCoordinator(
-            providers: [provider],
-            credentialStore: credentialStore,
-            preferences: InMemoryProviderPreferencesStore(
-                addedProviderIDs: [provider.id],
-                primaryProviderID: provider.id
-            ),
-            defaultProviderID: provider.id,
-            initialStatesByProviderID: [provider.id: controller.state],
-            controllersByProviderID: [provider.id: controller]
-        )
-        self.init(
-            coordinator: coordinator,
-            credentialStore: credentialStore,
-            lastRefreshTimeFormatter: lastRefreshTimeFormatter,
-            languageStore: languageStore
-        )
-    }
-
     public init(
         coordinator: MultiProviderBalanceCoordinator,
         credentialStore: CredentialStore,
@@ -448,13 +422,6 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     private func providerSummaryStatusTone(for state: BalanceState) -> ProviderStatusTone {
         ProviderToneResolver.consoleSummaryStatusTone(for: state)
-    }
-
-    private static func hasConfiguredCredential(in store: CredentialStore, account: String) -> Bool {
-        guard let credential = try? store.credential(forAccount: account) else {
-            return false
-        }
-        return !credential.isEmpty
     }
 
     private static func settingsMessage(for error: Error, fallback: String) -> String {

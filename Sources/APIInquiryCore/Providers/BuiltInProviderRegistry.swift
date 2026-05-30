@@ -8,10 +8,6 @@ public struct BuiltInProviderRegistry {
         self.registrations = registrations
         self.defaultProviderID = defaultProviderID
     }
-
-    public func makeProviders() -> [BalanceProvider] {
-        registrations.map { $0.makeProvider() }
-    }
 }
 
 public extension BuiltInProviderRegistry {

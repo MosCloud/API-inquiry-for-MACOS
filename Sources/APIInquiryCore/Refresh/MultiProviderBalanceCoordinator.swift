@@ -18,29 +18,35 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
     private var isAutoRefreshStarted = false
 
     public init(
-        providers: [BalanceProvider],
+        registrations: [ProviderRegistration],
         credentialStore: CredentialStore,
         preferences: ProviderPreferencesStore,
-        defaultProviderID: ProviderID = ProviderCatalog.default.defaultProviderID,
+        defaultProviderID: ProviderID = BuiltInProviderRegistry.default.defaultProviderID,
         initialStatesByProviderID: [ProviderID: BalanceState] = [:],
         controllersByProviderID: [ProviderID: BalanceRefreshController] = [:],
         localizedStrings: @escaping () -> LocalizedStrings = { LocalizedStrings(language: .en) }
     ) {
         self.credentialStore = credentialStore
         self.preferences = preferences
-        self.providerOrder = providers.map(\.id)
+        self.providerOrder = registrations.map(\.descriptor.id)
         self.runtimesByProviderID = Dictionary(
-            uniqueKeysWithValues: providers.map { provider in
-                let descriptor = ProviderCatalog.default.descriptor(for: provider.id) ?? provider.descriptor
+            uniqueKeysWithValues: registrations.map { registration in
+                let descriptor = registration.descriptor
+                let provider = registration.makeProvider()
+                precondition(
+                    provider.id == descriptor.id,
+                    "Provider registration mismatch: descriptor \(descriptor.id.rawValue), provider \(provider.id.rawValue)"
+                )
                 return (
-                    provider.id,
+                    descriptor.id,
                     ProviderRuntime(
                         descriptor: descriptor,
                         provider: provider,
-                        controller: controllersByProviderID[provider.id] ?? BalanceRefreshController(
+                        controller: controllersByProviderID[descriptor.id] ?? BalanceRefreshController(
                             provider: provider,
                             credentialStore: credentialStore,
-                            initialState: initialStatesByProviderID[provider.id] ?? .notConfigured,
+                            credentialAccount: descriptor.credentialAccount,
+                            initialState: initialStatesByProviderID[descriptor.id] ?? .notConfigured,
                             localizedStrings: localizedStrings
                         )
                     )

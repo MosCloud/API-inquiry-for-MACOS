@@ -7,21 +7,6 @@ public protocol BalanceProvider {
 }
 
 public extension BalanceProvider {
-    var descriptor: ProviderDescriptor {
-        guard let descriptor = ProviderCatalog.default.descriptor(for: id) else {
-            preconditionFailure("Missing provider descriptor for \(id.rawValue)")
-        }
-        return descriptor
-    }
-
-    var displayName: String { descriptor.displayName }
-    var menuPrefix: String { descriptor.menuPrefix }
-    var credentialAccount: String { descriptor.credentialAccount }
-    var homepageURL: URL { descriptor.homepageURL }
-    var supportsConsoleCredentialManagement: Bool {
-        descriptor.credentialManagement.supportsConsoleCredentialManagement
-    }
-
     func fetchBalance(apiKey: String) async throws -> BalanceSnapshot {
         let snapshot = try await fetchSnapshot(apiKey: apiKey)
         guard case .balance(let balanceSnapshot) = snapshot else {

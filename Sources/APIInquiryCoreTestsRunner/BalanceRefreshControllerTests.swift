@@ -6,6 +6,7 @@ enum BalanceRefreshControllerTests {
     static func run(using harness: TestHarness) async {
         await testMissingCredentialSetsNotConfigured(using: harness)
         await testSuccessfulRefreshLoadsSnapshot(using: harness)
+        await testRefreshUsesInjectedCredentialAccount(using: harness)
         await testFailurePreservesLastSnapshot(using: harness)
         await testAuthenticationFailureUsesTypedFailureKind(using: harness)
         await testAuthenticationFailureCanUseChineseMessage(using: harness)
@@ -19,7 +20,7 @@ enum BalanceRefreshControllerTests {
     @MainActor
     private static func testMissingCredentialSetsNotConfigured(using harness: TestHarness) async {
         let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: "68.65")))])
-        let controller = BalanceRefreshController(
+        let controller = makeTestRefreshController(
             provider: provider,
             credentialStore: InMemoryCredentialStore()
         )
@@ -34,12 +35,27 @@ enum BalanceRefreshControllerTests {
     private static func testSuccessfulRefreshLoadsSnapshot(using harness: TestHarness) async {
         let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: "68.65")))])
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: store)
 
         await controller.refresh()
 
         harness.expectEqual(controller.state, .loaded(.balance(makeSnapshot(total: "68.65"))), "successful refresh state")
         harness.expectEqual(provider.lastAPIKey, "test-key", "successful refresh api key")
+    }
+
+    @MainActor
+    private static func testRefreshUsesInjectedCredentialAccount(using harness: TestHarness) async {
+        let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: "68.65")))])
+        let store = InMemoryCredentialStore(credentialsByAccount: ["custom-account": "custom-key"])
+        let controller = makeTestRefreshController(
+            provider: provider,
+            credentialStore: store,
+            credentialAccount: "custom-account"
+        )
+
+        await controller.refresh()
+
+        harness.expectEqual(provider.lastAPIKey, "custom-key", "refresh uses injected credential account")
     }
 
     @MainActor
@@ -50,7 +66,7 @@ enum BalanceRefreshControllerTests {
             .failure(BalanceProviderError.rateLimited)
         ])
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: store)
 
         await controller.refresh()
         await controller.refresh()
@@ -71,7 +87,7 @@ enum BalanceRefreshControllerTests {
     private static func testAuthenticationFailureUsesTypedFailureKind(using harness: TestHarness) async {
         let provider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: store)
 
         await controller.refresh()
 
@@ -90,7 +106,7 @@ enum BalanceRefreshControllerTests {
     private static func testAuthenticationFailureCanUseChineseMessage(using harness: TestHarness) async {
         let provider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
-        let controller = BalanceRefreshController(
+        let controller = makeTestRefreshController(
             provider: provider,
             credentialStore: store,
             localizedStrings: { LocalizedStrings(language: .zh) }
@@ -115,7 +131,7 @@ enum BalanceRefreshControllerTests {
         let probe = SuspendedRefreshProbe()
         let provider = SuspendedBalanceProvider(probe: probe)
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: store)
 
         let firstRefresh = Task { await controller.refresh() }
         await waitForFetchCount(1, probe: probe)
@@ -138,7 +154,7 @@ enum BalanceRefreshControllerTests {
         let probe = SuspendedRefreshProbe()
         let provider = SuspendedBalanceProvider(probe: probe)
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: store)
 
         let refresh = Task { await controller.refresh() }
         await waitForFetchCount(1, probe: probe)
@@ -158,7 +174,7 @@ enum BalanceRefreshControllerTests {
             .failure(CancellationError())
         ])
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: store)
 
         await controller.refresh()
         await controller.refresh()
@@ -174,7 +190,7 @@ enum BalanceRefreshControllerTests {
             .failure(URLError(.cancelled))
         ])
         let store = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: store)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: store)
 
         await controller.refresh()
         await controller.refresh()
@@ -185,7 +201,7 @@ enum BalanceRefreshControllerTests {
     @MainActor
     private static func testDefaultRefreshIntervalIsFiveMinutes(using harness: TestHarness) {
         let provider = MockBalanceProvider(results: [])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: InMemoryCredentialStore())
+        let controller = makeTestRefreshController(provider: provider, credentialStore: InMemoryCredentialStore())
 
         harness.expectEqual(controller.refreshInterval, 300, "default refresh interval")
     }
@@ -193,10 +209,6 @@ enum BalanceRefreshControllerTests {
 
 private final class SuspendedBalanceProvider: BalanceProvider {
     let id: ProviderID = .deepseek
-    let displayName = "DeepSeek"
-    let menuPrefix = "DS"
-    let credentialAccount = "deepseek-api-key"
-    let homepageURL = URL(string: "https://platform.deepseek.com/usage")!
 
     private let probe: SuspendedRefreshProbe
 
@@ -241,11 +253,6 @@ private func waitForFetchCount(_ expected: Int, probe: SuspendedRefreshProbe) as
 
 final class MockBalanceProvider: BalanceProvider {
     let id: ProviderID
-    let displayName: String
-    let menuPrefix: String
-    let credentialAccount: String
-    let homepageURL: URL
-    let supportsConsoleCredentialManagement: Bool
 
     private var results: [Result<ProviderSnapshot, Error>]
     private(set) var fetchCount = 0
@@ -253,19 +260,9 @@ final class MockBalanceProvider: BalanceProvider {
 
     init(
         id: ProviderID = .deepseek,
-        displayName: String = "DeepSeek",
-        menuPrefix: String = "DS",
-        credentialAccount: String = "deepseek-api-key",
-        homepageURL: URL = URL(string: "https://platform.deepseek.com/usage")!,
-        supportsConsoleCredentialManagement: Bool = true,
         results: [Result<ProviderSnapshot, Error>]
     ) {
         self.id = id
-        self.displayName = displayName
-        self.menuPrefix = menuPrefix
-        self.credentialAccount = credentialAccount
-        self.homepageURL = homepageURL
-        self.supportsConsoleCredentialManagement = supportsConsoleCredentialManagement
         self.results = results
     }
 

@@ -91,7 +91,11 @@ enum ProviderCatalogTests {
             "built-in provider registry descriptors match catalog"
         )
         harness.expectEqual(registry.defaultProviderID, ProviderCatalog.default.defaultProviderID, "registry default provider matches catalog")
-        harness.expectEqual(registry.makeProviders().map(\.id), ProviderCatalog.default.descriptors.map(\.id), "registry provider factories follow catalog order")
+        harness.expectEqual(
+            registry.registrations.map { $0.makeProvider().id },
+            ProviderCatalog.default.descriptors.map(\.id),
+            "registry provider factories follow catalog order"
+        )
     }
 
     private static func testCodexDescriptorExposesQuotaUsage(using harness: TestHarness) {

@@ -33,44 +33,18 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
 
     public convenience init() {
-        let provider = DeepSeekBalanceProvider()
+        let registry = BuiltInProviderRegistry.default
         let credentialStore = KeychainCredentialStore()
         let coordinator = MultiProviderBalanceCoordinator(
-            providers: [provider],
+            registrations: registry.registrations,
             credentialStore: credentialStore,
             preferences: InMemoryProviderPreferencesStore(
                 addedProviderIDs: [.deepseek],
                 primaryProviderID: .deepseek
-            )
+            ),
+            defaultProviderID: registry.defaultProviderID
         )
         self.init(coordinator: coordinator)
-    }
-
-    public convenience init(
-        provider: BalanceProvider,
-        credentialStore: CredentialStore,
-        controller: BalanceRefreshController,
-        displayMode: MenuBarDisplayMode = .text,
-        lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
-        languageStore: AppLanguageStore? = nil
-    ) {
-        let coordinator = MultiProviderBalanceCoordinator(
-            providers: [provider],
-            credentialStore: credentialStore,
-            preferences: InMemoryProviderPreferencesStore(
-                addedProviderIDs: [provider.id],
-                primaryProviderID: provider.id
-            ),
-            defaultProviderID: provider.id,
-            initialStatesByProviderID: [provider.id: controller.state],
-            controllersByProviderID: [provider.id: controller]
-        )
-        self.init(
-            coordinator: coordinator,
-            displayMode: displayMode,
-            lastRefreshTimeFormatter: lastRefreshTimeFormatter,
-            languageStore: languageStore
-        )
     }
 
     public init(

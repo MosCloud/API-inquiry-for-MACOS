@@ -177,7 +177,7 @@ enum UsageConsoleViewModelTests {
         let snapshot = makeSnapshot(total: "68.65")
         let provider = MockBalanceProvider(results: [.success(.balance(snapshot))])
         let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(
             provider: provider,
             credentialStore: credentialStore,
@@ -248,23 +248,14 @@ enum UsageConsoleViewModelTests {
         let store = FailingDeleteCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
         let deepSeek = MockBalanceProvider(
             id: .deepseek,
-            displayName: "DeepSeek",
-            menuPrefix: "DS",
-            credentialAccount: "deepseek-api-key",
-            homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
             results: []
         )
         let codex = MockBalanceProvider(
             id: .codex,
-            displayName: "Codex",
-            menuPrefix: "GPT",
-            credentialAccount: "codex-session-token",
-            homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
-            supportsConsoleCredentialManagement: false,
             results: []
         )
         let coordinator = MultiProviderBalanceCoordinator(
-            providers: [deepSeek, codex],
+            registrations: testRegistrations(for: [deepSeek, codex]),
             credentialStore: store,
             preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek, .codex])
         )
@@ -280,18 +271,10 @@ enum UsageConsoleViewModelTests {
     private static func testSavingProviderScopedAPIKeyRefreshesOnlyThatProvider(using harness: TestHarness) async {
         let deepSeek = MockBalanceProvider(
             id: .deepseek,
-            displayName: "DeepSeek",
-            menuPrefix: "DS",
-            credentialAccount: "deepseek-api-key",
-            homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
             results: [.success(.balance(makeSnapshot(providerID: .deepseek, total: "68.65")))]
         )
         let zhipu = MockBalanceProvider(
             id: .zhipuCodingPlan,
-            displayName: "Zhipu GLM Coding Plan",
-            menuPrefix: "GLM",
-            credentialAccount: "zhipu-coding-plan-api-key",
-            homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
             results: [.success(.planUsage(PlanUsageSnapshot(
                 providerID: .zhipuCodingPlan,
                 windowLabel: "5h",
@@ -303,7 +286,7 @@ enum UsageConsoleViewModelTests {
         )
         let store = InMemoryCredentialStore()
         let coordinator = MultiProviderBalanceCoordinator(
-            providers: [deepSeek, zhipu],
+            registrations: testRegistrations(for: [deepSeek, zhipu]),
             credentialStore: store,
             preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek, .zhipuCodingPlan])
         )
@@ -341,7 +324,7 @@ enum UsageConsoleViewModelTests {
         let snapshot = makeSnapshot(total: "68.65")
         let provider = MockBalanceProvider(results: [.success(.balance(snapshot))])
         let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(
             provider: provider,
             credentialStore: credentialStore,
@@ -360,7 +343,7 @@ enum UsageConsoleViewModelTests {
     private static func testProviderSummariesExposeInvalidProvider(using harness: TestHarness) async {
         let provider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
         let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(
             provider: provider,
             credentialStore: credentialStore,
@@ -386,7 +369,7 @@ enum UsageConsoleViewModelTests {
         for item in cases {
             let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: item.0)))])
             let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-            let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+            let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
             let viewModel = UsageConsoleViewModel(
                 provider: provider,
                 credentialStore: credentialStore,
@@ -411,10 +394,6 @@ enum UsageConsoleViewModelTests {
         for item in cases {
             let provider = MockBalanceProvider(
                 id: .zhipuCodingPlan,
-                displayName: "Zhipu GLM Coding Plan",
-                menuPrefix: "GLM",
-                credentialAccount: "zhipu-coding-plan-api-key",
-                homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
                 results: [.success(.planUsage(PlanUsageSnapshot(
                     providerID: .zhipuCodingPlan,
                     windowLabel: "5h",
@@ -425,7 +404,7 @@ enum UsageConsoleViewModelTests {
                 )))]
             )
             let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["zhipu-coding-plan-api-key": "test-key"])
-            let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+            let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
             let viewModel = UsageConsoleViewModel(
                 provider: provider,
                 credentialStore: credentialStore,
@@ -442,10 +421,6 @@ enum UsageConsoleViewModelTests {
     private static func testProviderSummariesAggregateQuotaHealthTone(using harness: TestHarness) async {
         let provider = MockBalanceProvider(
             id: .codex,
-            displayName: "Codex",
-            menuPrefix: "GPT",
-            credentialAccount: "codex-session-token",
-            homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
             results: [.success(.quotaUsage(QuotaUsageSnapshot(
                 providerID: .codex,
                 planName: "Plus",
@@ -457,7 +432,7 @@ enum UsageConsoleViewModelTests {
             )))]
         )
         let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "test-token"])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(provider: provider, credentialStore: credentialStore, controller: controller)
 
         await controller.refresh()
@@ -466,10 +441,6 @@ enum UsageConsoleViewModelTests {
 
         let boundaryProvider = MockBalanceProvider(
             id: .codex,
-            displayName: "Codex",
-            menuPrefix: "GPT",
-            credentialAccount: "codex-session-token",
-            homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
             results: [.success(.quotaUsage(QuotaUsageSnapshot(
                 providerID: .codex,
                 planName: "Plus",
@@ -483,7 +454,7 @@ enum UsageConsoleViewModelTests {
             )))]
         )
         let boundaryStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "test-token"])
-        let boundaryController = BalanceRefreshController(provider: boundaryProvider, credentialStore: boundaryStore)
+        let boundaryController = makeTestRefreshController(provider: boundaryProvider, credentialStore: boundaryStore)
         let boundaryViewModel = UsageConsoleViewModel(provider: boundaryProvider, credentialStore: boundaryStore, controller: boundaryController)
 
         await boundaryController.refresh()
@@ -502,7 +473,7 @@ enum UsageConsoleViewModelTests {
         for item in balanceCases {
             let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: item.0)))])
             let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-            let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+            let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
             let englishViewModel = UsageConsoleViewModel(
                 provider: provider,
                 credentialStore: credentialStore,
@@ -531,10 +502,6 @@ enum UsageConsoleViewModelTests {
         for item in planCases {
             let provider = MockBalanceProvider(
                 id: .zhipuCodingPlan,
-                displayName: "Zhipu GLM Coding Plan",
-                menuPrefix: "GLM",
-                credentialAccount: "zhipu-coding-plan-api-key",
-                homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
                 results: [.success(.planUsage(PlanUsageSnapshot(
                     providerID: .zhipuCodingPlan,
                     windowLabel: "5h",
@@ -545,7 +512,7 @@ enum UsageConsoleViewModelTests {
                 )))]
             )
             let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["zhipu-coding-plan-api-key": "test-key"])
-            let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+            let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
             let viewModel = UsageConsoleViewModel(
                 provider: provider,
                 credentialStore: credentialStore,
@@ -578,7 +545,7 @@ enum UsageConsoleViewModelTests {
 
         let loadingProvider = MockBalanceProvider(results: [])
         let loadingStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
-        let loadingController = BalanceRefreshController(
+        let loadingController = makeTestRefreshController(
             provider: loadingProvider,
             credentialStore: loadingStore,
             initialState: .loading(last: nil)
@@ -590,7 +557,7 @@ enum UsageConsoleViewModelTests {
         )
         harness.expectEqual(loadingViewModel.providerSummaries.first?.healthTone, .neutral, "loading without snapshot summary health neutral")
 
-        let loadingWithLastController = BalanceRefreshController(
+        let loadingWithLastController = makeTestRefreshController(
             provider: loadingProvider,
             credentialStore: loadingStore,
             initialState: .loading(last: .balance(makeSnapshot(total: "68.65")))
@@ -604,7 +571,7 @@ enum UsageConsoleViewModelTests {
 
         let invalidProvider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
         let invalidStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
-        let invalidController = BalanceRefreshController(provider: invalidProvider, credentialStore: invalidStore)
+        let invalidController = makeTestRefreshController(provider: invalidProvider, credentialStore: invalidStore)
         let invalidViewModel = UsageConsoleViewModel(
             provider: invalidProvider,
             credentialStore: invalidStore,
@@ -614,7 +581,7 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(invalidViewModel.providerSummaries.first?.healthTone, .neutral, "auth failure summary health neutral")
         harness.expectEqual(invalidViewModel.providerSummaries.first?.statusTone, .neutral, "auth failure summary status neutral")
 
-        let unavailableController = BalanceRefreshController(
+        let unavailableController = makeTestRefreshController(
             provider: loadingProvider,
             credentialStore: loadingStore,
             initialState: .failed(
@@ -631,7 +598,7 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(unavailableViewModel.providerSummaries.first?.healthTone, .neutral, "unavailable failure with snapshot summary health neutral")
         harness.expectEqual(unavailableViewModel.providerSummaries.first?.statusTone, .neutral, "unavailable failure summary status neutral")
 
-        let limitReachedController = BalanceRefreshController(
+        let limitReachedController = makeTestRefreshController(
             provider: loadingProvider,
             credentialStore: loadingStore,
             initialState: .failed(
@@ -654,7 +621,7 @@ enum UsageConsoleViewModelTests {
         )
         harness.expectEqual(limitReachedViewModel.providerSummaries.first?.statusTone, .warning, "usage limit failure summary status warning")
 
-        let planExpiredController = BalanceRefreshController(
+        let planExpiredController = makeTestRefreshController(
             provider: loadingProvider,
             credentialStore: loadingStore,
             initialState: .failed(
@@ -676,7 +643,7 @@ enum UsageConsoleViewModelTests {
         let snapshot = makeSnapshot(total: "68.65")
         let provider = MockBalanceProvider(results: [.success(.balance(snapshot))])
         let credentialStore = InMemoryCredentialStore()
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(
             provider: provider,
             credentialStore: credentialStore,
@@ -698,7 +665,7 @@ enum UsageConsoleViewModelTests {
         let snapshot = makeSnapshot(total: "68.65")
         let provider = MockBalanceProvider(results: [.success(.balance(snapshot))])
         let credentialStore = InMemoryCredentialStore()
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(
             provider: provider,
             credentialStore: credentialStore,
@@ -717,7 +684,7 @@ enum UsageConsoleViewModelTests {
     private static func testSaveFailureKeepsInputAndDoesNotExposeKey(using harness: TestHarness) async {
         let provider = MockBalanceProvider(results: [.failure(BalanceProviderError.authenticationFailed)])
         let credentialStore = InMemoryCredentialStore()
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(
             provider: provider,
             credentialStore: credentialStore,
@@ -739,7 +706,7 @@ enum UsageConsoleViewModelTests {
     private static func testConfirmingAPIKeyDeletionReturnsBalanceToSetup(using harness: TestHarness) async {
         let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
         let provider = MockBalanceProvider(results: [.success(.balance(makeSnapshot(total: "68.65")))])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
         let viewModel = UsageConsoleViewModel(
             provider: provider,
             credentialStore: credentialStore,
@@ -761,7 +728,7 @@ enum UsageConsoleViewModelTests {
         languageSelection: AppLanguage = .en
     ) -> UsageConsoleViewModel {
         let provider = MockBalanceProvider(results: [])
-        let controller = BalanceRefreshController(provider: provider, credentialStore: credentialStore)
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
         return UsageConsoleViewModel(
             provider: provider,
             credentialStore: credentialStore,
@@ -797,24 +764,16 @@ enum UsageConsoleViewModelTests {
             fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
         )
         return MultiProviderBalanceCoordinator(
-            providers: [
+            registrations: testRegistrations(for: [
                 MockBalanceProvider(
                     id: .deepseek,
-                    displayName: "DeepSeek",
-                    menuPrefix: "DS",
-                    credentialAccount: "deepseek-api-key",
-                    homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
                     results: [.success(.balance(deepSeekSnapshot))]
                 ),
                 MockBalanceProvider(
                     id: .zhipuCodingPlan,
-                    displayName: "Zhipu GLM Coding Plan",
-                    menuPrefix: "GLM",
-                    credentialAccount: "zhipu-coding-plan-api-key",
-                    homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
                     results: [.success(.planUsage(zhipuSnapshot))]
                 )
-            ],
+            ]),
             credentialStore: credentialStore,
             preferences: InMemoryProviderPreferencesStore(
                 addedProviderIDs: addedProviderIDs,
@@ -826,14 +785,9 @@ enum UsageConsoleViewModelTests {
     @MainActor
     private static func makeCodexCoordinator(primaryProviderID: ProviderID) -> MultiProviderBalanceCoordinator {
         MultiProviderBalanceCoordinator(
-            providers: [
+            registrations: testRegistrations(for: [
                 MockBalanceProvider(
                     id: .codex,
-                    displayName: "Codex",
-                    menuPrefix: "GPT",
-                    credentialAccount: "codex-session-token",
-                    homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
-                    supportsConsoleCredentialManagement: false,
                     results: [.success(.quotaUsage(QuotaUsageSnapshot(
                         providerID: .codex,
                         planName: "Plus",
@@ -854,7 +808,7 @@ enum UsageConsoleViewModelTests {
                         fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
                     )))]
                 )
-            ],
+            ]),
             credentialStore: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"]),
             preferences: InMemoryProviderPreferencesStore(
                 addedProviderIDs: [.codex],
@@ -866,33 +820,20 @@ enum UsageConsoleViewModelTests {
     @MainActor
     private static func makeAPIAccessCoordinator(credentialStore: CredentialStore) -> MultiProviderBalanceCoordinator {
         MultiProviderBalanceCoordinator(
-            providers: [
+            registrations: testRegistrations(for: [
                 MockBalanceProvider(
                     id: .deepseek,
-                    displayName: "DeepSeek",
-                    menuPrefix: "DS",
-                    credentialAccount: "deepseek-api-key",
-                    homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
                     results: []
                 ),
                 MockBalanceProvider(
                     id: .zhipuCodingPlan,
-                    displayName: "Zhipu GLM Coding Plan",
-                    menuPrefix: "GLM",
-                    credentialAccount: "zhipu-coding-plan-api-key",
-                    homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
                     results: []
                 ),
                 MockBalanceProvider(
                     id: .codex,
-                    displayName: "Codex",
-                    menuPrefix: "GPT",
-                    credentialAccount: "codex-session-token",
-                    homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
-                    supportsConsoleCredentialManagement: false,
                     results: []
                 )
-            ],
+            ]),
             credentialStore: credentialStore,
             preferences: InMemoryProviderPreferencesStore(
                 addedProviderIDs: [.deepseek, .zhipuCodingPlan, .codex],

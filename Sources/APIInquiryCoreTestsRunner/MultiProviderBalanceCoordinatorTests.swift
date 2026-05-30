@@ -6,6 +6,7 @@ enum MultiProviderBalanceCoordinatorTests {
     static func run(using harness: TestHarness) async {
         testDefaultsToDeepSeekProvider(using: harness)
         testCoordinatorExposesProviderDescriptors(using: harness)
+        testCoordinatorUsesRegistrationDescriptorInsteadOfGlobalCatalog(using: harness)
         testAddSetPrimaryAndRemoveProvider(using: harness)
         testRemovingProviderCanDeleteCredential(using: harness)
         testRemovingProviderDoesNotRemoveWhenCredentialDeletionFails(using: harness)
@@ -40,6 +41,34 @@ enum MultiProviderBalanceCoordinatorTests {
         harness.expectEqual(coordinator.descriptor(for: .codex)?.credentialManagement, .localExternalConfiguration, "coordinator exposes codex credential policy")
         harness.expectEqual(coordinator.primaryDescriptor?.id, .codex, "coordinator exposes primary descriptor")
         harness.expectEqual(coordinator.primaryDescriptor?.secondaryDisplayName, "OpenAI", "coordinator primary descriptor preserves secondary display policy")
+    }
+
+    @MainActor
+    private static func testCoordinatorUsesRegistrationDescriptorInsteadOfGlobalCatalog(using harness: TestHarness) {
+        let descriptor = ProviderDescriptor(
+            id: .deepseek,
+            displayName: "Registration DeepSeek",
+            menuPrefix: "REG",
+            credentialAccount: "registration-deepseek-key",
+            homepageURL: URL(string: "https://example.com/registration")!,
+            detailKind: .balance,
+            credentialManagement: .appManagedAPIKey,
+            accessPurpose: .prepaidBalance,
+            menuTitlePrefix: "REG"
+        )
+        let coordinator = MultiProviderBalanceCoordinator(
+            registrations: [
+                ProviderRegistration(
+                    descriptor: descriptor,
+                    makeProvider: { MockBalanceProvider(id: .deepseek, results: []) }
+                )
+            ],
+            credentialStore: InMemoryCredentialStore(),
+            preferences: InMemoryProviderPreferencesStore()
+        )
+
+        harness.expectEqual(coordinator.descriptor(for: .deepseek), descriptor, "coordinator descriptor comes from registration")
+        harness.expectEqual(coordinator.primaryDescriptor, descriptor, "coordinator primary descriptor comes from registration")
     }
 
     @MainActor
@@ -133,17 +162,13 @@ enum MultiProviderBalanceCoordinatorTests {
         )
         let zhipu = MockBalanceProvider(
             id: .zhipuCodingPlan,
-            displayName: "Zhipu GLM Coding Plan",
-            menuPrefix: "GLM",
-            credentialAccount: "zhipu-coding-plan-api-key",
-            homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
             results: [.success(.planUsage(zhipuSnapshot))]
         )
         let coordinator = MultiProviderBalanceCoordinator(
-            providers: [
+            registrations: testRegistrations(for: [
                 MockBalanceProvider(results: []),
                 zhipu
-            ],
+            ]),
             credentialStore: InMemoryCredentialStore(credentialsByAccount: ["zhipu-coding-plan-api-key": "zhipu-key"]),
             preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek, .zhipuCodingPlan])
         )
@@ -184,18 +209,10 @@ enum MultiProviderBalanceCoordinatorTests {
         )
         let deepSeek = MockBalanceProvider(
             id: .deepseek,
-            displayName: "DeepSeek",
-            menuPrefix: "DS",
-            credentialAccount: "deepseek-api-key",
-            homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
             results: [.success(.balance(deepSeekSnapshot))]
         )
         let zhipu = MockBalanceProvider(
             id: .zhipuCodingPlan,
-            displayName: "Zhipu GLM Coding Plan",
-            menuPrefix: "GLM",
-            credentialAccount: "zhipu-coding-plan-api-key",
-            homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
             results: [.success(.planUsage(zhipuSnapshot))]
         )
         let store = InMemoryCredentialStore(credentialsByAccount: [
@@ -203,7 +220,7 @@ enum MultiProviderBalanceCoordinatorTests {
             "zhipu-coding-plan-api-key": "zhipu-key"
         ])
         let coordinator = MultiProviderBalanceCoordinator(
-            providers: [deepSeek, zhipu],
+            registrations: testRegistrations(for: [deepSeek, zhipu]),
             credentialStore: store,
             preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek, .zhipuCodingPlan])
         )
@@ -231,10 +248,10 @@ enum MultiProviderBalanceCoordinatorTests {
             )
         )
         let coordinator = MultiProviderBalanceCoordinator(
-            providers: [
+            registrations: testRegistrations(for: [
                 ConcurrentRefreshProvider(id: .deepseek, snapshot: deepSeekSnapshot, probe: probe),
                 ConcurrentRefreshProvider(id: .zhipuCodingPlan, snapshot: zhipuSnapshot, probe: probe)
-            ],
+            ]),
             credentialStore: InMemoryCredentialStore(credentialsByAccount: [
                 "deepseek-api-key": "deepseek-key",
                 "zhipu-coding-plan-api-key": "zhipu-key"
@@ -254,17 +271,13 @@ enum MultiProviderBalanceCoordinatorTests {
         let snapshot = makeSnapshot(providerID: .deepseek, total: "68.65")
         let deepSeek = MockBalanceProvider(
             id: .deepseek,
-            displayName: "DeepSeek",
-            menuPrefix: "DS",
-            credentialAccount: "deepseek-api-key",
-            homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
             results: [
                 .success(.balance(snapshot)),
                 .failure(BalanceProviderError.rateLimited)
             ]
         )
         let coordinator = MultiProviderBalanceCoordinator(
-            providers: [deepSeek],
+            registrations: testRegistrations(for: [deepSeek]),
             credentialStore: InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "deepseek-key"]),
             preferences: InMemoryProviderPreferencesStore(
                 addedProviderIDs: [.deepseek],
@@ -294,32 +307,20 @@ enum MultiProviderBalanceCoordinatorTests {
         preferences: ProviderPreferencesStore = InMemoryProviderPreferencesStore()
     ) -> MultiProviderBalanceCoordinator {
         MultiProviderBalanceCoordinator(
-            providers: [
+            registrations: testRegistrations(for: [
                 MockBalanceProvider(
                     id: .deepseek,
-                    displayName: "DeepSeek",
-                    menuPrefix: "DS",
-                    credentialAccount: "deepseek-api-key",
-                    homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
                     results: []
                 ),
                 MockBalanceProvider(
                     id: .zhipuCodingPlan,
-                    displayName: "Zhipu GLM Coding Plan",
-                    menuPrefix: "GLM",
-                    credentialAccount: "zhipu-coding-plan-api-key",
-                    homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
                     results: []
                 ),
                 MockBalanceProvider(
                     id: .codex,
-                    displayName: "Codex",
-                    menuPrefix: "GPT",
-                    credentialAccount: "codex-session-token",
-                    homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
                     results: []
                 )
-            ],
+            ]),
             credentialStore: credentialStore,
             preferences: preferences
         )

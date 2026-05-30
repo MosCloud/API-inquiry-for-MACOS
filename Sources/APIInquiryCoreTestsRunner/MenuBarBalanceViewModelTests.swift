@@ -237,18 +237,10 @@ enum MenuBarBalanceViewModelTests {
     private static func testRefreshUpdatesAllAddedProviders(using harness: TestHarness) async {
         let deepSeek = MockBalanceProvider(
             id: .deepseek,
-            displayName: "DeepSeek",
-            menuPrefix: "DS",
-            credentialAccount: "deepseek-api-key",
-            homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
             results: [.success(.balance(makeSnapshot(providerID: .deepseek, total: "68.65")))]
         )
         let zhipu = MockBalanceProvider(
             id: .zhipuCodingPlan,
-            displayName: "Zhipu GLM Coding Plan",
-            menuPrefix: "GLM",
-            credentialAccount: "zhipu-coding-plan-api-key",
-            homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
             results: [.success(.planUsage(PlanUsageSnapshot(
                 providerID: .zhipuCodingPlan,
                 windowLabel: "5h",
@@ -259,7 +251,7 @@ enum MenuBarBalanceViewModelTests {
             )))]
         )
         let coordinator = MultiProviderBalanceCoordinator(
-            providers: [deepSeek, zhipu],
+            registrations: testRegistrations(for: [deepSeek, zhipu]),
             credentialStore: InMemoryCredentialStore(credentialsByAccount: [
                 "deepseek-api-key": "deepseek-key",
                 "zhipu-coding-plan-api-key": "zhipu-key"
@@ -422,7 +414,7 @@ enum MenuBarBalanceViewModelTests {
         languageSelection: AppLanguage = .en
     ) -> MenuBarBalanceViewModel {
         let provider = MockBalanceProvider(results: [])
-        let controller = BalanceRefreshController(
+        let controller = makeTestRefreshController(
             provider: provider,
             credentialStore: credentialStore,
             initialState: state
@@ -457,24 +449,16 @@ enum MenuBarBalanceViewModelTests {
             fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
         )
         return MultiProviderBalanceCoordinator(
-            providers: [
+            registrations: testRegistrations(for: [
                 MockBalanceProvider(
                     id: .deepseek,
-                    displayName: "DeepSeek",
-                    menuPrefix: "DS",
-                    credentialAccount: "deepseek-api-key",
-                    homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
                     results: [.success(.balance(deepSeekSnapshot))]
                 ),
                 MockBalanceProvider(
                     id: .zhipuCodingPlan,
-                    displayName: "Zhipu GLM Coding Plan",
-                    menuPrefix: "GLM",
-                    credentialAccount: "zhipu-coding-plan-api-key",
-                    homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
                     results: [.success(.planUsage(zhipuSnapshot))]
                 )
-            ],
+            ]),
             credentialStore: InMemoryCredentialStore(credentialsByAccount: [
                 "deepseek-api-key": "deepseek-key",
                 "zhipu-coding-plan-api-key": "zhipu-key"
@@ -489,24 +473,16 @@ enum MenuBarBalanceViewModelTests {
     @MainActor
     private static func makeCodexCoordinator(primaryProviderID: ProviderID) -> MultiProviderBalanceCoordinator {
         MultiProviderBalanceCoordinator(
-            providers: [
+            registrations: testRegistrations(for: [
                 MockBalanceProvider(
                     id: .deepseek,
-                    displayName: "DeepSeek",
-                    menuPrefix: "DS",
-                    credentialAccount: "deepseek-api-key",
-                    homepageURL: URL(string: "https://platform.deepseek.com/usage")!,
                     results: [.success(.balance(makeSnapshot(providerID: .deepseek, total: "68.65")))]
                 ),
                 MockBalanceProvider(
                     id: .codex,
-                    displayName: "Codex",
-                    menuPrefix: "GPT",
-                    credentialAccount: "codex-session-token",
-                    homepageURL: URL(string: "https://chatgpt.com/codex/settings/usage")!,
                     results: [.success(.quotaUsage(makeCodexSnapshot()))]
                 )
-            ],
+            ]),
             credentialStore: InMemoryCredentialStore(credentialsByAccount: [
                 "deepseek-api-key": "deepseek-key",
                 "codex-session-token": "codex-token"

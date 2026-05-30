@@ -12,12 +12,13 @@ struct APIInquiryApp: App {
 
     init() {
         let languageStore = AppLanguageStore()
-        let providers = BuiltInProviderRegistry.default.makeProviders()
+        let registry = BuiltInProviderRegistry.default
         let credentialStore = CodexCredentialStore(delegate: KeychainCredentialStore())
         let coordinator = MultiProviderBalanceCoordinator(
-            providers: providers,
+            registrations: registry.registrations,
             credentialStore: credentialStore,
             preferences: UserDefaultsProviderPreferencesStore(),
+            defaultProviderID: registry.defaultProviderID,
             localizedStrings: { LocalizedStrings(language: languageStore.resolvedLanguage) }
         )
         let viewModel = MenuBarBalanceViewModel(coordinator: coordinator, languageStore: languageStore)

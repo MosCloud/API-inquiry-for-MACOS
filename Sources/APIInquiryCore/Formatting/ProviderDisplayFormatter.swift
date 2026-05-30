@@ -35,14 +35,6 @@ public enum ProviderDisplayFormatter {
     }
 
     public static func primaryDisplayParts(
-        provider: BalanceProvider,
-        state: BalanceState,
-        strings: LocalizedStrings = LocalizedStrings(language: .en)
-    ) -> PrimaryProviderDisplayParts {
-        ProviderValueFormatter.primaryDisplayParts(provider: provider, state: state, strings: strings)
-    }
-
-    public static func primaryDisplayParts(
         descriptor: ProviderDescriptor,
         state: BalanceState,
         strings: LocalizedStrings = LocalizedStrings(language: .en)
