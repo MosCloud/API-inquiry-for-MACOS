@@ -21,15 +21,21 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
         registrations: [ProviderRegistration],
         credentialStore: CredentialStore,
         preferences: ProviderPreferencesStore,
-        defaultProviderID: ProviderID = BuiltInProviderRegistry.default.defaultProviderID,
+        defaultProviderID: ProviderID? = nil,
         initialStatesByProviderID: [ProviderID: BalanceState] = [:],
         controllersByProviderID: [ProviderID: BalanceRefreshController] = [:],
         localizedStrings: @escaping () -> LocalizedStrings = { LocalizedStrings(language: .en) }
     ) {
-        self.credentialStore = credentialStore
-        self.preferences = preferences
-        self.providerOrder = registrations.map(\.descriptor.id)
-        self.runtimesByProviderID = Dictionary(
+        guard let resolvedDefaultProviderID = defaultProviderID ?? registrations.first?.descriptor.id else {
+            preconditionFailure("At least one provider registration is required.")
+        }
+
+        let providerOrder = registrations.map(\.descriptor.id)
+        precondition(
+            providerOrder.contains(resolvedDefaultProviderID),
+            "Default provider ID \(resolvedDefaultProviderID.rawValue) must be registered."
+        )
+        let runtimesByProviderID = Dictionary(
             uniqueKeysWithValues: registrations.map { registration in
                 let descriptor = registration.descriptor
                 let provider = registration.makeProvider()
@@ -53,7 +59,12 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
                 )
             }
         )
-        self.defaultProviderID = defaultProviderID
+
+        self.credentialStore = credentialStore
+        self.preferences = preferences
+        self.providerOrder = providerOrder
+        self.runtimesByProviderID = runtimesByProviderID
+        self.defaultProviderID = resolvedDefaultProviderID
 
         for runtime in runtimesByProviderID.values {
             runtime.controller.objectWillChange

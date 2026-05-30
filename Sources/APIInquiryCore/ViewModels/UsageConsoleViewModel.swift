@@ -451,7 +451,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     private func supportsConsoleCredentialManagement(for id: ProviderID) -> Bool {
-        coordinator.descriptor(for: id)?.credentialManagement.supportsConsoleCredentialManagement ?? true
+        coordinator.descriptor(for: id)?.credentialManagement.supportsConsoleCredentialManagement ?? false
     }
 
     public var localizedStrings: LocalizedStrings {

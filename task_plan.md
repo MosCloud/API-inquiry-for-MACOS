@@ -1,29 +1,33 @@
-# v0.3.2 Planning Session
+# v0.3.6-Refactor Runtime Hardening
 
 ## Goal
 
-Plan API Inquiry v0.3.2 development for Chinese localization and manual language switching.
+在 `v0.3.6-Refactor` 分支上，对本轮重构审阅中指出的低风险 runtime 边界问题做最小范围收口，保持现有功能和 UI 不变。
 
 ## Status
 
-- [x] Create and push `v0.3.2` branch from `main`.
-- [x] Read relevant skills: brainstorming, planning-with-files, writing-plans.
-- [x] Inspect roadmap, package layout, previous release plan, source text hotspots, and test runner.
-- [x] Draft v0.3.2 development plan in English and Chinese.
-- [ ] User reviews and approves the plan.
-- [ ] After approval, create/confirm implementation worktree if needed.
-- [ ] Execute implementation task-by-task with TDD and review checkpoints.
+- [x] Confirm `v0.3.6-Refactor` is already checked out in `.worktrees/v0.3.6-Refactor`.
+- [x] Read current stale root planning files and identify they still described v0.3.2.
+- [x] Create focused implementation plan: `docs/superpowers/plans/2026-05-30-v0.3.6-refactor-hardening_zh.md`.
+- [x] Add RED test for inferred default provider semantics.
+- [x] Implement optional default provider resolution and registration validation.
+- [x] Change Console credential-management fallback from permissive to defensive.
+- [x] Document lightweight provider factory expectations.
+- [x] Run `swift run APIInquiryCoreTestsRunner`, `swift build`, and `git diff --check`.
+- [x] Run agent code review and address blocking findings only.
+- [x] Prepare the branch for commit and push.
 
 ## Decisions
 
-- v0.3.2 scope follows `docs/roadmap.md`: Chinese localization plus `Auto / 中文 / English` language selection.
-- Provider brand names remain untranslated.
-- Provider fetching, credential handling, quota/balance parsing, and history data are out of scope unless localization requires display-only changes.
-- Planning docs are maintained in both English and Chinese according to `AGENT_zh.md`.
+- Keep UI, user-visible behavior, Keychain storage, provider list, and provider IDs unchanged.
+- Use `ProviderRegistration` as the runtime metadata source; do not reintroduce `ProviderCatalog.default` into production runtime paths.
+- If `defaultProviderID` is omitted, infer it from the first registration instead of silently depending on the built-in registry default.
+- If descriptor metadata is unexpectedly unavailable, Console credential-management actions should fail closed.
+- Leave `MenuBarBalanceViewModel` default convenience init in place unless tests or review show it is actively harmful.
 
 ## Errors Encountered
 
 | Error | Attempt | Resolution |
 | --- | --- | --- |
-| None | Planning | N/A |
-
+| `git switch v0.3.6-Refactor` failed in main worktree | Branch was already attached to `.worktrees/v0.3.6-Refactor` | Continue work in the existing branch worktree |
+| `swift run APIInquiryCoreTestsRunner` failed in sandbox | SwiftPM needed to write user-level clang/Swift caches | Reran with approved `swift run` escalation |

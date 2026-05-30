@@ -10,6 +10,7 @@ public struct ProviderRegistration {
         self.makeProviderClosure = makeProvider
     }
 
+    /// Provider factories should be lightweight and avoid credential, network, or persistent storage side effects.
     public func makeProvider() -> BalanceProvider {
         makeProviderClosure()
     }

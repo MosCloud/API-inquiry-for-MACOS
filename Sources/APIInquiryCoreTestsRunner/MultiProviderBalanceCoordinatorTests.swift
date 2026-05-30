@@ -5,6 +5,7 @@ enum MultiProviderBalanceCoordinatorTests {
     @MainActor
     static func run(using harness: TestHarness) async {
         testDefaultsToDeepSeekProvider(using: harness)
+        testCoordinatorCanInferDefaultProviderFromRegistrations(using: harness)
         testCoordinatorExposesProviderDescriptors(using: harness)
         testCoordinatorUsesRegistrationDescriptorInsteadOfGlobalCatalog(using: harness)
         testAddSetPrimaryAndRemoveProvider(using: harness)
@@ -26,6 +27,24 @@ enum MultiProviderBalanceCoordinatorTests {
         harness.expectEqual(coordinator.addedProviderIDs, [.deepseek], "coordinator default added providers")
         harness.expectEqual(coordinator.primaryProviderID, .deepseek, "coordinator default primary")
         harness.expectEqual(coordinator.availableProviderIDsToAdd, [.zhipuCodingPlan, .codex], "coordinator default available providers")
+    }
+
+    @MainActor
+    private static func testCoordinatorCanInferDefaultProviderFromRegistrations(using harness: TestHarness) {
+        let zhipu = MockBalanceProvider(id: .zhipuCodingPlan, results: [])
+        let coordinator = MultiProviderBalanceCoordinator(
+            registrations: [testRegistration(for: zhipu)],
+            credentialStore: InMemoryCredentialStore(),
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [],
+                primaryProviderID: nil
+            ),
+            defaultProviderID: nil
+        )
+
+        harness.expectEqual(coordinator.addedProviderIDs, [.zhipuCodingPlan], "coordinator infers added provider from registrations")
+        harness.expectEqual(coordinator.primaryProviderID, .zhipuCodingPlan, "coordinator infers default provider from registrations")
+        harness.expectEqual(coordinator.availableProviderIDsToAdd, [], "coordinator has no providers left to add")
     }
 
     @MainActor
