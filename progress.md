@@ -33,5 +33,6 @@
 - Initial Desktop worktree DMG packaging failed because macOS attached FileProvider/provenance extended attributes to the app bundle before signing.
 - Created a detached release worktree under `/private/tmp`, packaged the DMG there, and verified it with `hdiutil verify` and `shasum -a 256 -c`.
 - Covered GitHub Release `release/v0.3.6-Refactor` with refreshed release notes and replacement assets.
-- New DMG checksum: `4b581d00463ce159ac40811f672e21c00323c660a762c0b45bddc5f632fab231`.
+- New DMG checksum: `53d16e3e6b825afe124b6afb18c93fcb33d61be5b10c87973350170614301d9b`.
 - Remote `release/v0.3.6-Refactor` tag and `v0.3.6-Refactor` branch were verified after upload.
+- Rewrote the v0.3.6-Refactor release notes to be user-facing: what users will notice, why the update matters, upgrade notes, and download verification.

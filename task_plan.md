@@ -22,6 +22,7 @@
 - [x] Move `release/v0.3.6-Refactor` tag to the final release commit.
 - [x] Overwrite GitHub Release notes and assets.
 - [x] Verify remote tag, release assets, checksum, and branch state.
+- [x] Rewrite release notes for ordinary users instead of a technical changelog.
 
 ## Decisions
 
@@ -30,6 +31,7 @@
 - If `defaultProviderID` is omitted, infer it from the first registration instead of silently depending on the built-in registry default.
 - If descriptor metadata is unexpectedly unavailable, Console credential-management actions should fail closed.
 - Leave `MenuBarBalanceViewModel` default convenience init in place unless tests or review show it is actively harmful.
+- Release notes should describe what users can notice and understand directly, not read like an architecture report.
 
 ## Errors Encountered
 
