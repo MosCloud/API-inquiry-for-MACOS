@@ -28,3 +28,10 @@
 - Committed and pushed runtime hardening as `e63bac6 refactor: harden provider runtime defaults`.
 - User accepted the app review and requested formal release coverage for `v0.3.6-Refactor`.
 - Updated release notes to include the runtime default hardening, defensive credential-management fallback, and provider factory contract.
+- Verified release readiness with `swift run APIInquiryCoreTestsRunner`: `PASS: 481 expectations`.
+- Verified `swift build`: `Build complete!`.
+- Initial Desktop worktree DMG packaging failed because macOS attached FileProvider/provenance extended attributes to the app bundle before signing.
+- Created a detached release worktree under `/private/tmp`, packaged the DMG there, and verified it with `hdiutil verify` and `shasum -a 256 -c`.
+- Covered GitHub Release `release/v0.3.6-Refactor` with refreshed release notes and replacement assets.
+- New DMG checksum: `4b581d00463ce159ac40811f672e21c00323c660a762c0b45bddc5f632fab231`.
+- Remote `release/v0.3.6-Refactor` tag and `v0.3.6-Refactor` branch were verified after upload.

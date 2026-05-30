@@ -18,10 +18,10 @@
 - [x] Prepare the branch for commit and push.
 - [x] Commit and push runtime hardening changes.
 - [x] Update release notes for runtime hardening.
-- [ ] Run final release verification and package DMG.
-- [ ] Move `release/v0.3.6-Refactor` tag to the final release commit.
-- [ ] Overwrite GitHub Release notes and assets.
-- [ ] Verify remote tag, release assets, checksum, and branch state.
+- [x] Run final release verification and package DMG.
+- [x] Move `release/v0.3.6-Refactor` tag to the final release commit.
+- [x] Overwrite GitHub Release notes and assets.
+- [x] Verify remote tag, release assets, checksum, and branch state.
 
 ## Decisions
 
@@ -37,3 +37,4 @@
 | --- | --- | --- |
 | `git switch v0.3.6-Refactor` failed in main worktree | Branch was already attached to `.worktrees/v0.3.6-Refactor` | Continue work in the existing branch worktree |
 | `swift run APIInquiryCoreTestsRunner` failed in sandbox | SwiftPM needed to write user-level clang/Swift caches | Reran with approved `swift run` escalation |
+| `Scripts/package-dmg.sh` failed in Desktop worktree | Desktop/FileProvider added `com.apple.provenance` attributes that `xattr -cr` could not remove before signing | Created a detached release worktree under `/private/tmp` and packaged there |
