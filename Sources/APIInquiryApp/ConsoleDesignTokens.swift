@@ -16,6 +16,8 @@ enum ConsoleMetrics {
     static let navigationHeight: CGFloat = 40
     static let navigationButtonHeight: CGFloat = 32
     static let navigationIconSize: CGFloat = 18
+    static let navigationCornerRadius: CGFloat = 14
+    static let navigationSelectionCornerRadius: CGFloat = 11
     static let sectionHeaderHeight: CGFloat = 28
     static let projectHomepageURL = URL(string: "https://github.com/MosCloud/API-inquiry-for-MACOS")!
 }

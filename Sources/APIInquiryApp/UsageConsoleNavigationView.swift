@@ -26,16 +26,13 @@ struct UsageConsoleNavigationView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: ConsoleMetrics.navigationButtonHeight)
                     .foregroundStyle(section == selectedSection ? Color.white : Color.secondary)
-                    .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .contentShape(
+                        RoundedRectangle(cornerRadius: ConsoleMetrics.navigationCornerRadius, style: .continuous)
+                    )
                 }
                 .buttonStyle(.plain)
                 .background {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(section == selectedSection ? Color.accentColor : Color.clear)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(section == selectedSection ? Color.white.opacity(0.12) : Color.clear)
+                    ConsoleNavigationSelectionBackground(isSelected: section == selectedSection)
                 }
                 .help(section.displayName(strings: strings))
                 .accessibilityLabel(section.displayName(strings: strings))
@@ -44,7 +41,11 @@ struct UsageConsoleNavigationView: View {
         .padding(4)
         .frame(maxWidth: .infinity)
         .frame(height: ConsoleMetrics.navigationHeight)
-        .background(Color.secondary.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background {
+            ConsoleNavigationBackground()
+        }
+        .clipShape(
+            RoundedRectangle(cornerRadius: ConsoleMetrics.navigationCornerRadius, style: .continuous)
+        )
     }
 }

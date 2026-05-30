@@ -134,15 +134,73 @@
   - `hdiutil verify dist/API-Inquiry-v0.3.7.dmg`
   - `(cd dist && shasum -a 256 -c API-Inquiry-v0.3.7.dmg.sha256)`
   - DMG SHA-256: `91ac2cd7e1a528ab88c5e2c38cc3b984b84b025c610eb40f22cb462d329fa6fb`
+- Forked a new exploration worktree branch `v0.3.7-liquidGlass` from the current v0.3.7 branch state.
+- Started the Liquid Glass-style UI exploration with separated agents for UI boundary review, implementation feasibility, and QA risk review.
+- Selected the shell-only material approach for the first pass:
+  - keep Console root/background materialized
+  - lightly materialize the top navigation container
+  - keep Provider cards, quota/status/badges/API key controls, menu bar UI, provider logic, credentials, and refresh behavior unchanged
+- Implemented the first exploration patch:
+  - added `ConsoleMaterialSurfaces.swift`
+  - replaced the Console root background with `ConsoleWindowBackground`
+  - replaced the navigation container background with `ConsoleNavigationBackground`
+  - centralized the navigation corner radius through `ConsoleMetrics.navigationCornerRadius`
+- Fixed the initial macOS 13 target build issue by replacing SwiftUI `accessibilityContrast` usage with AppKit `NSWorkspace.accessibilityDisplayShouldIncreaseContrast` while keeping Reduce Transparency handling.
+- Verified the exploration patch with:
+  - `git diff --check`
+  - `swift build`
+  - `swift run APIInquiryCoreTestsRunner` (`PASS: 507 expectations`)
+- User review said the first pass was too subtle and asked for a more obvious Apple-style `glassEffect` exploration on the MenuBar details page and Console page backgrounds.
+- Implemented the more explicit glassEffect pass:
+  - the first version of `ConsoleWindowBackground` used macOS 26+ `glassEffect` / `GlassEffectContainer` when available.
+  - `MenuBarContentView` now applies `MenuBarGlassBackground` to the details panel and window container background.
+  - `ConsoleNavigationBackground` now uses the same glass surface system.
+  - `ConsoleNavigationSelectionBackground` replaces the earlier solid selected-tab fill to fix the navigation background layering issue.
+  - macOS 13 fallback remains SwiftUI material/solid surfaces.
+- Verified the explicit glassEffect patch with:
+  - `git diff --check`
+  - `swift build`
+  - `swift run APIInquiryCoreTestsRunner` (`PASS: 507 expectations`)
+- User review then found two issues:
+  - MenuBar details and Console glass still did not look Dock-like enough.
+  - Console title/titlebar had a visible layering bug.
+- Reworked the large background surfaces to be AppKit-backed instead of decorative SwiftUI-only glass:
+  - macOS 26+ uses `NSGlassEffectView` through `APIInquiryNativeGlassBackdrop`.
+  - macOS 13-25 uses `NSVisualEffectView` with semantic materials as fallback.
+  - MenuBar details uses `containerBackground(for: .window)` on macOS 15+ instead of stacking another content background.
+  - Console hides the visible AppKit title, removes the titlebar separator, and extends the glass background into the titlebar region.
+- Verified the native glass/titlebar repair with:
+  - `git diff --check`
+  - `swift build`
+  - `swift run APIInquiryCoreTestsRunner` (`PASS: 507 expectations`)
+- User review then found the Console page still looked like two layers.
+- Fixed the Console double-layer root cause:
+  - removed the SwiftUI page-level `UsageConsoleView.background`
+  - added `UsageConsoleGlassHostingController` so the real `NSWindow.contentViewController.view` is the single AppKit glass/visual-effect surface
+  - embedded the SwiftUI hosting view transparently inside that native surface
+  - kept local navigation and selected-tab glass surfaces as smaller foreground controls
+- Verified the single-layer Console repair with:
+  - `git diff --check`
+  - `swift build`
+  - `swift run APIInquiryCoreTestsRunner` (`PASS: 507 expectations`)
+- Analyzed the MenuBar details screenshot for the same class of issue.
+- Found a related MenuBar double-boundary issue:
+  - `MenuBarExtra.window` owns the outer panel shell
+  - the previous `containerBackground(for: .window)` content was itself a rounded, stroked, shadowed glass surface
+- Fixed the MenuBar details background so macOS 15+ uses a flat `MenuBarWindowGlassBackground` inside the window container, with no extra custom rim or shadow.
+- Verified the MenuBar details background fix with:
+  - `git diff --check`
+  - `swift build`
+  - `swift run APIInquiryCoreTestsRunner` (`PASS: 507 expectations`)
 
 ## Current State
 
-- Active worktree branch for the current task is `v0.3.7`.
-- `v0.3.7` was created from `main` commit `c6b521c`.
-- The v0.3.7 release candidate is verified locally and ready for commit, tag, push, and GitHub Release creation.
-- Latest published GitHub Release before this release flow is still `release/v0.3.6-Refactor`.
+- Active worktree branch for the current task is `v0.3.7-liquidGlass`.
+- `v0.3.7-liquidGlass` was created from the current v0.3.7 branch state for visual exploration after the user approved the v0.3.7 release build.
+- The current exploration patch now intentionally tests native AppKit-backed Apple-style glass surfaces for the Console page background, Console navigation, selected navigation tab, and MenuBar details panel background.
+- The app still needs manual visual review before deciding whether to keep, tune, or discard this more explicit Liquid Glass-style direction.
 
 ## Open Notes
 
 - The main worktree `.superpowers/` directory remains untracked and has not been modified.
-- Push/tag/GitHub Release publication remains to be completed after the release commit.
+- Manual review should cover light/dark appearances, Reduce Transparency, Increase Contrast, and normal Provider/API workflows.

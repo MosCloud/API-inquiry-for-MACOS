@@ -46,7 +46,6 @@ struct UsageConsoleView: View {
             maxHeight: .infinity,
             alignment: .topLeading
         )
-        .background(.regularMaterial)
     }
 
     @ViewBuilder

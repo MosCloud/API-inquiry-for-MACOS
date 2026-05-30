@@ -26,6 +26,15 @@ Prepare the `v0.3.7` branch from `main` and record the version plan for restrain
 - [x] Update release metadata, Settings version display, README, roadmap, and v0.3.7 release notes.
 - [x] Address release QA feedback for Reduce Motion coverage, Console Home accessibility grouping, and release note section format.
 - [x] Verify release candidate with `git diff --check`, `swift run APIInquiryCoreTestsRunner`, `swift build`, local app launch, DMG packaging, Info.plist version checks, codesign verification, `hdiutil verify`, and checksum verification.
+- [x] Fork `v0.3.7-liquidGlass` from the v0.3.7 branch state for visual exploration.
+- [x] Run separated read-only agent reviews for project acceptance, UI boundary management, implementation feasibility, and QA risk.
+- [x] Implement the first Liquid Glass-style experiment on the Console shell/root background and navigation background.
+- [x] Respond to user feedback by making the exploration more visually explicit with macOS 26+ `glassEffect` for Console and MenuBar details backgrounds.
+- [x] Fix the Console top navigation background layering by moving selection rendering into its own glass surface instead of a solid fill over the container.
+- [x] Address user feedback that the glass still looked unlike Dock and the Console titlebar was visually broken.
+- [x] Move large glass backgrounds to native AppKit-backed `NSGlassEffectView` / `NSVisualEffectView` surfaces and hide the AppKit Console title while preserving the window title string.
+- [x] Analyze MenuBar details for the same double-layer class and remove the extra rounded/stroked surface from its window container background.
+- [x] Verify the exploration patch with `git diff --check`, `swift build`, and `swift run APIInquiryCoreTestsRunner`.
 
 ## Decisions
 
@@ -39,6 +48,13 @@ Prepare the `v0.3.7` branch from `main` and record the version plan for restrain
 - Round 3 should make higher-version API value perceptible by exposing real numeric values, adding deterministic refresh click feedback, and making result feedback easier to scan; it must not become a redesign.
 - The untracked `.superpowers/` directory in the main worktree remains untouched.
 - Release notes use the repository release sections when applicable: `App Optimization` and `Bug Fixes`.
+- `v0.3.7-liquidGlass` is an exploration branch, not a formal redesign branch.
+- The first safe pass was limited to Console shell/root and top navigation material; the second exploration pass intentionally uses macOS 26+ `glassEffect` / `GlassEffectContainer` for a more obvious Apple-style glass direction.
+- Provider cards, quota values, badges, status text, API key controls, provider architecture, credential handling, and refresh logic remain untouched.
+- macOS 13+ fallback support remains in place through material/solid surfaces, even though the exploration branch now exercises macOS 26+ glass APIs when available.
+- Dock-like large-surface glass should be AppKit-backed in this exploration: macOS 26+ uses `NSGlassEffectView`, while macOS 13-25 uses `NSVisualEffectView` with semantic materials.
+- The Console system title is hidden to avoid titlebar/content glass layer separation; the `NSWindow.title` remains set for window management and accessibility.
+- In `MenuBarExtra.window`, the outer rounded window shell belongs to the system. Custom content supplied through `containerBackground(for: .window)` must be flat and rimless to avoid drawing a second panel inside the system panel.
 
 ## Errors Encountered
 
@@ -52,7 +68,11 @@ Prepare the `v0.3.7` branch from `main` and record the version plan for restrain
 | User review found refresh animation stuttered/backtracked and exceeded the claimed 550ms | Active/hold state drove system/fallback rotation, so deactivation could reset the symbol independently from the intended hold duration | Replaced active/hold refresh animation with a cumulative forward-only turn loop using a fixed 0.8s linear animation |
 | Release QA found Reduce Motion and Console Home accessibility gaps | Newly added non-refresh transitions and provider row accessibility grouping were not fully gated or could flatten child controls | Added centralized motion helpers, passed Reduce Motion into numeric/top-change/subtle animations, and removed row-level accessibility flattening |
 | Root-level checksum verification failed from the repository root | The `.sha256` file stores the DMG basename, so `shasum -c dist/API-Inquiry-v0.3.7.dmg.sha256` from repo root could not find the file | Re-ran checksum verification from `dist/`, matching the install/download directory workflow |
+| First Liquid Glass build failed on macOS 13 target | Used SwiftUI `accessibilityContrast` environment key in the new material surface views | Replaced it with macOS AppKit `NSWorkspace.accessibilityDisplayShouldIncreaseContrast` and kept SwiftUI `accessibilityReduceTransparency` for reduce-transparency fallback |
+| First Liquid Glass pass was too subtle and navigation looked visually wrong | The navigation selected state used a solid accent fill over a weak material container, while MenuBar details had no glass surface | Added macOS 26+ `glassEffect` surfaces for Console/MenuBar backgrounds and moved selected navigation rendering into `ConsoleNavigationSelectionBackground` |
+| User review found the glass still lacked Dock-like texture and the Console titlebar was broken | Large backgrounds were decorative SwiftUI surfaces and AppKit still drew a visible system title/titlebar over the content glass | Replaced large backgrounds with native AppKit glass/visual-effect backdrops, hid the visible Console title, removed the titlebar separator, and extended the background into the titlebar safe area |
+| MenuBar details showed a related double-layer feel | `MenuBarExtra.window` supplied the system panel shell while custom `containerBackground` content drew another rounded/stroked/shadowed surface | Replaced the macOS 15+ MenuBar window background content with a flat native glass backdrop and left shape/rim/shadow to the system panel |
 
 ## Next Suggested Work
 
-- Commit the release candidate, push the branch, tag `release/v0.3.7`, and create the GitHub Release with the generated DMG assets.
+- Manually review the `v0.3.7-liquidGlass` Console visual effect in light/dark appearances, Reduce Transparency, Increase Contrast, and normal Provider/API workflows before deciding whether to keep, tune, or discard the exploration patch.

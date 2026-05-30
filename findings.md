@@ -130,8 +130,40 @@
   - `docs/assets/v0.3.6-refactor/console-api.png`
   - `docs/assets/v0.3.6-refactor/console-setting.png`
 
+## v0.3.7 Liquid Glass Exploration Findings
+
+- The safest Liquid Glass-style entry point is the existing Console shell: `UsageConsoleWindowController` already uses a transparent titlebar, clear window background, and full-size content view, while `UsageConsoleView` already had a root `.regularMaterial`.
+- The first exploration patch was intentionally subtle and only used SwiftUI `Material`; user review found it was not visibly Liquid Glass enough and the Console top navigation background looked wrong.
+- The second exploration patch used SwiftUI macOS 26+ `glassEffect` / `GlassEffectContainer`, but user review still found the large surfaces too much like dark panels and not enough like the Dock.
+- The third exploration patch moves large surfaces to native AppKit glass/material backing:
+  - `UsageConsoleGlassHostingController` owns the Console page glass background as the real `NSWindow.contentViewController` view.
+  - `MenuBarGlassBackground` gives the MenuBar details panel an explicit glass background.
+  - `ConsoleNavigationBackground` owns the navigation container glass.
+  - `ConsoleNavigationSelectionBackground` owns the selected tab glass, replacing the earlier solid accent fill layered directly over the container.
+  - `ConsoleMetrics.navigationCornerRadius` and `navigationSelectionCornerRadius` keep the navigation geometry centralized.
+- On macOS 26+, large surfaces use `NSGlassEffectView`; on macOS 13-25, they fall back to `NSVisualEffectView` with semantic materials such as `underWindowBackground`, `popover`, and `hudWindow`.
+- The Console title bug was caused by AppKit drawing the visible `NSWindow` title/titlebar over a separate SwiftUI content glass background. The fix hides the visible title, removes the titlebar separator, and lets the background ignore the top safe area while keeping the `NSWindow.title` value set.
+- A later Console review found the page still looked like two layers. Root cause: `UsageConsoleView.background` still painted an inner rounded native glass surface inside the AppKit window. The fix removes the SwiftUI page background entirely and embeds the SwiftUI hosting view inside a single AppKit glass/visual-effect content view.
+- MenuBar details had a related but different double-layer source: `MenuBarExtra.window` already supplies the outer system window/panel shell, while the first `containerBackground(for: .window)` implementation inserted a second rounded, stroked, shadowed `APIInquiryGlassSurface` inside that shell. The fix keeps `containerBackground(for: .window)` but uses a flat `MenuBarWindowGlassBackground` with no custom corner radius, stroke, or shadow, leaving the outer panel shape to the system.
+- Provider rows, metric boxes, semantic badges, status labels, quota numbers, API key controls, settings panels, provider display models, credential handling, and refresh logic were intentionally left unchanged.
+- macOS 13+ compatibility is preserved by falling back to AppKit `NSVisualEffectView` and solid surfaces when macOS 26 glass APIs are unavailable or accessibility settings request less transparency.
+- Reduce Transparency and Increase Contrast both fall back to stable solid surfaces rather than a transparent/glass effect.
+- `accessibilityContrast` was not safe in the current macOS 13 target compilation path; AppKit `NSWorkspace.accessibilityDisplayShouldIncreaseContrast` is the compatible fallback source.
+
 ## Verification Evidence
 
+- During `v0.3.7-liquidGlass` initial exploration:
+  - `git diff --check` passed.
+  - `swift build` passed.
+  - `swift run APIInquiryCoreTestsRunner` passed with `PASS: 507 expectations`.
+- During `v0.3.7-liquidGlass` explicit glassEffect exploration:
+  - `git diff --check` passed.
+  - `swift build` passed.
+  - `swift run APIInquiryCoreTestsRunner` passed with `PASS: 507 expectations`.
+- During `v0.3.7-liquidGlass` native glass/titlebar repair:
+  - `git diff --check` passed.
+  - `swift build` passed.
+  - `swift run APIInquiryCoreTestsRunner` passed with `PASS: 507 expectations`.
 - During v0.3.7 Round 3 perceptible versioned UI effects:
   - `git diff --check` passed.
   - `swift run APIInquiryCoreTestsRunner` passed with `PASS: 507 expectations`.

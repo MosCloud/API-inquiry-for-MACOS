@@ -77,6 +77,7 @@ struct MenuBarContentView: View {
         }
         .padding(16)
         .frame(width: 320)
+        .apiInquiryMenuBarGlassPanelBackground()
         .onAppear {
             launchAtLoginController.refreshStatus()
             if viewModel.isRefreshDisabled {
