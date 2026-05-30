@@ -2,6 +2,8 @@ import APIInquiryCore
 import SwiftUI
 
 struct ProviderStatusBadge: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+
     let text: String
     let healthTone: ProviderAmountTone
     let fallbackTone: ProviderStatusTone
@@ -19,6 +21,9 @@ struct ProviderStatusBadge: View {
             .background(color.opacity(0.14))
             .clipShape(Capsule())
             .accessibilityLabel(text)
+            .apiInquirySubtleAnimation(value: healthTone, reduceMotion: accessibilityReduceMotion)
+            .apiInquirySubtleAnimation(value: fallbackTone, reduceMotion: accessibilityReduceMotion)
+            .transition(.opacity)
     }
 }
 
@@ -38,17 +43,18 @@ struct MenuBarBadge: View {
             )
             .clipShape(Capsule())
             .accessibilityLabel(text)
+            .transition(.opacity)
     }
 }
 
 struct APIAccessBadge: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+
     let summary: APIProviderSummary
     let strings: LocalizedStrings
 
     var body: some View {
-        let isLoaded = summary.apiAccessStatusText == strings.configured
-            || summary.apiAccessStatusText == strings.loaded
-        let color = ProviderToneColor.apiAccess(isLoaded: isLoaded)
+        let color = ProviderToneColor.apiAccess(summary.apiAccessState)
 
         Text(summary.apiAccessStatusText)
             .font(.caption.weight(.semibold))
@@ -60,18 +66,45 @@ struct APIAccessBadge: View {
             .lineLimit(1)
             .fixedSize()
             .accessibilityLabel(summary.apiAccessStatusText)
+            .apiInquirySubtleAnimation(value: summary.apiAccessState, reduceMotion: accessibilityReduceMotion)
+            .transition(.opacity)
     }
 }
 
 struct FeedbackText: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+
     let feedback: SettingsFeedback?
 
     var body: some View {
-        if let feedback {
-            Text(feedback.message)
-                .font(.caption)
-                .foregroundStyle(ProviderToneColor.feedback(feedback.kind))
-                .fixedSize(horizontal: false, vertical: true)
+        Group {
+            if let feedback {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Image(systemName: iconName(for: feedback.kind))
+                        .font(.caption)
+                        .foregroundStyle(ProviderToneColor.feedback(feedback.kind))
+                        .accessibilityHidden(true)
+
+                    Text(feedback.message)
+                        .font(.caption)
+                        .foregroundStyle(ProviderToneColor.feedback(feedback.kind))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .apiInquiryTopChangeTransition(reduceMotion: accessibilityReduceMotion)
+            }
+        }
+        .apiInquirySettingsFeedback(feedback)
+        .apiInquirySubtleAnimation(value: feedback, reduceMotion: accessibilityReduceMotion)
+    }
+
+    private func iconName(for kind: SettingsFeedbackKind) -> String {
+        switch kind {
+        case .success:
+            return "checkmark.circle.fill"
+        case .warning:
+            return "exclamationmark.triangle.fill"
+        case .error:
+            return "xmark.octagon.fill"
         }
     }
 }

@@ -6,9 +6,9 @@ Last updated: 2026-05-30
 
 ### 当前状态
 
-- 最新已发布版本：`v0.3.6-Refactor`
-- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、多供应商菜单栏展示、Console 管理、详情页额度健康色彩提示、DMG 打包发布。
-- 下一计划版本：`v0.3.7`，在 v0.4.0 多供应商扩展前进行 UI 体验优化。
+- 最新已发布版本：`v0.3.7`
+- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、多供应商菜单栏展示、Console 管理、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、DMG 打包发布。
+- 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
 
 ### v0.3.2：中文本地化与语言切换
 
@@ -59,7 +59,7 @@ Last updated: 2026-05-30
 - 不引入本地历史数据存储。
 - 不实现历史趋势图表。
 
-### v0.3.7：UI 体验优化
+### v0.3.7：UI 体验优化（已发布）
 
 目标：保持 API Inquiry 极简、克制、高效、轻科技的整体风格，在不改变核心功能和 Provider 架构的前提下，提升菜单栏与 Console 的顺滑度、扫读效率和可访问性。
 
@@ -69,14 +69,16 @@ Last updated: 2026-05-30
 - 修复 UI 中依赖本地化字符串判断状态的脆弱逻辑。
 - 统一 warning、success、critical 等状态色在深色/浅色模式下的表达。
 - 补充 provider row、quota row、状态 badge、图标按钮的无障碍语义。
-- 拆分 `MenuBarContentView`，降低后续 UI 维护成本。
-- 轻量优化 Console Home 和 Console API 的信息层级与操作细节。
+- 轻量优化 Console Home 和 Console API 的操作反馈、状态表达和可访问性细节。
+- 在 macOS 14+ 使用真实数值驱动的数字变化过渡和设置反馈增强，并保留 macOS 13 fallback。
+- 刷新反馈使用 0.8s 前进式旋转循环，刷新结束后自然停止，并尊重 Reduce Motion。
 
 设计边界：
 
 - UI 必须为内容服务；不服务内容的视觉元素应删除或拒绝。
 - 不做 dashboard 化、不做重动效、不引入复杂设计系统。
 - 不新增供应商，不修改凭据存储或 provider 查询逻辑。
+- `MenuBarContentView` 更大范围拆分继续延后，避免在 UI 收尾版本里放大风险。
 
 ### v0.4.0：更多供应商与通用 Provider 能力
 
@@ -100,9 +102,9 @@ Last updated: 2026-05-30
 
 ### Current Status
 
-- Latest released version: `v0.3.6-Refactor`
-- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, multi-provider menu bar display, Console management, detail-panel quota health colors, and DMG release packaging.
-- Next planned version: `v0.3.7`, focused on UI polish before the v0.4.0 provider expansion.
+- Latest released version: `v0.3.7`
+- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, multi-provider menu bar display, Console management, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, and DMG release packaging.
+- Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
 
 ### v0.3.2: Chinese Localization and Language Switching
 
@@ -153,7 +155,7 @@ Out of scope for `v0.3.2`:
 - No local history data storage.
 - No historical trend charts.
 
-### v0.3.7: UI Experience Polish
+### v0.3.7: UI Experience Polish (Released)
 
 Goal: keep API Inquiry minimal, restrained, efficient, and lightly technical while improving the menu bar and Console smoothness, scanability, and accessibility without changing core features or provider architecture.
 
@@ -163,14 +165,16 @@ Core directions:
 - Remove fragile UI logic that depends on localized string comparison.
 - Unify warning, success, and critical state colors for dark and light modes.
 - Add accessibility semantics for provider rows, quota rows, status badges, and icon buttons.
-- Split `MenuBarContentView` to reduce future UI maintenance cost.
-- Lightly improve Console Home and Console API hierarchy and interaction details.
+- Lightly improve Console Home and Console API operation feedback, state expression, and accessibility details.
+- Use real numeric values for macOS 14+ numeric transitions and settings feedback enhancements while preserving the macOS 13 fallback.
+- Make refresh feedback a 0.8s forward-only rotation loop that stops when refresh ends and respects Reduce Motion.
 
 Design boundaries:
 
 - UI must serve the content; visual elements that do not serve content should be removed or rejected.
 - No dashboard-style Console, heavy motion, or complex design system.
 - No new providers, credential storage changes, or provider query changes.
+- Larger `MenuBarContentView` splitting stays deferred to avoid expanding release risk.
 
 ### v0.4.0: More Providers and Generic Provider Capabilities
 

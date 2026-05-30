@@ -1,12 +1,18 @@
 import Combine
 import Foundation
 
+public enum APIAccessState: Equatable {
+    case unavailable
+    case available
+}
+
 public struct APIProviderSummary: Equatable {
     public let id: ProviderID
     public let displayName: String
     public let homepageURL: URL
     public let apiKeyStatusText: String
     public let apiAccessStatusText: String
+    public let apiAccessState: APIAccessState
     public let apiAccessPurposeText: String
     public let validationStatusText: String
     public let summaryBadgeText: String
@@ -26,6 +32,7 @@ public struct APIProviderSummary: Equatable {
         homepageURL: URL,
         apiKeyStatusText: String,
         apiAccessStatusText: String? = nil,
+        apiAccessState: APIAccessState = .unavailable,
         apiAccessPurposeText: String = "",
         validationStatusText: String,
         summaryBadgeText: String? = nil,
@@ -44,6 +51,7 @@ public struct APIProviderSummary: Equatable {
         self.homepageURL = homepageURL
         self.apiKeyStatusText = apiKeyStatusText
         self.apiAccessStatusText = apiAccessStatusText ?? apiKeyStatusText
+        self.apiAccessState = apiAccessState
         self.apiAccessPurposeText = apiAccessPurposeText
         self.validationStatusText = validationStatusText
         self.summaryBadgeText = summaryBadgeText ?? validationStatusText
@@ -148,6 +156,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                     for: descriptor,
                     isCredentialConfigured: isCredentialConfigured
                 ),
+                apiAccessState: isCredentialConfigured ? .available : .unavailable,
                 apiAccessPurposeText: apiAccessPurposeText(for: descriptor),
                 validationStatusText: validationStatusText,
                 summaryBadgeText: ProviderDisplayFormatter.summaryBadgeText(

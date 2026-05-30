@@ -5,11 +5,23 @@
 ## 效果展示
 
 <p>
-  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.3/menu-panel.png" alt="API Inquiry 菜单栏详情面板" width="360">
+  <strong>MenuBar</strong><br>
+  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/menu-bar.png" alt="API Inquiry 菜单栏详情面板" width="280">
 </p>
 
 <p>
-  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.3/console-home.png" alt="API Inquiry 控制台首页" width="720">
+  <strong>Console Home</strong><br>
+  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/console-home.png" alt="API Inquiry 控制台首页" width="573">
+</p>
+
+<p>
+  <strong>Console API</strong><br>
+  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/console-api.png" alt="API Inquiry 控制台 API 页面" width="573">
+</p>
+
+<p>
+  <strong>Console Setting</strong><br>
+  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/console-setting.png" alt="API Inquiry 控制台设置页面" width="573">
 </p>
 
 API Inquiry 是一个原生 macOS 菜单栏应用，用于查看 API 供应商状态并管理供应商 API 密钥。它支持 DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询和 Codex/ChatGPT 会话额度查询，会将供应商 API 密钥保存到 macOS 密钥串，每 5 分钟刷新已配置供应商，在菜单栏显示 Primary Provider，并提供一个轻量本地控制台用于供应商管理。
@@ -40,7 +52,7 @@ swift run APIInquiryCoreTestsRunner
 预期结果：
 
 ```text
-PASS: 341 expectations
+PASS: 507 expectations
 ```
 
 ## 构建
@@ -101,8 +113,8 @@ Scripts/package-dmg.sh
 脚本会生成：
 
 ```text
-dist/API-Inquiry-v0.3.6.dmg
-dist/API-Inquiry-v0.3.6.dmg.sha256
+dist/API-Inquiry-v0.3.7.dmg
+dist/API-Inquiry-v0.3.7.dmg.sha256
 ```
 
 完成发布验证和上传后，删除本机开发态 app bundle，避免 Launchpad 将非正式副本索引成重复图标：
@@ -115,11 +127,11 @@ Scripts/clean-development-apps.sh
 
 本项目采用免费的 GitHub Releases 发布策略。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。
 
-1. 从 GitHub Releases 下载 `API-Inquiry-v0.3.6.dmg` 和 `API-Inquiry-v0.3.6.dmg.sha256`。
+1. 从 GitHub Releases 下载 `API-Inquiry-v0.3.7.dmg` 和 `API-Inquiry-v0.3.7.dmg.sha256`。
 2. 校验下载文件：
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.3.6.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.3.7.dmg.sha256
    ```
 
 3. 打开 DMG。
@@ -223,6 +235,9 @@ Scripts/restart-installed-app.sh
 - 本地 `.app` bundle 生成
 - 自定义 macOS 应用图标生成与打包
 - 详情面板中的开机自启控制
+- 克制的刷新、错误、状态和设置反馈微交互
+- macOS 14+ 数值变化过渡与设置反馈增强，并保留 macOS 13 fallback
+- 菜单栏、供应商行、额度行、状态 badge 和图标按钮的可访问性语义补充
 - 不使用 Apple 公证的免费 GitHub DMG 打包
 
 延后处理：
@@ -232,7 +247,7 @@ Scripts/restart-installed-app.sh
 
 ## 路线图
 
-- 最新已发布版本：`v0.3.6`
+- 最新已发布版本：`v0.3.7`
 - 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
 - 后续方向：更多供应商、供应商显示控制、自动更新和更完善的安装/升级体验。
 

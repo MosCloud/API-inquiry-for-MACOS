@@ -8,6 +8,7 @@ enum MenuBarBalanceViewModelTests {
         testLoadedMenuBarValueFormatting(using: harness)
         testFailedStatePreservesMenuTitle(using: harness)
         await testPrimaryProviderMenuTitlesUseCurrentPrefixes(using: harness)
+        testPrimaryDisplayAmountValues(using: harness)
         testPanelBalanceTextFormatting(using: harness)
         testPanelBalanceDisplayParts(using: harness)
         testStatusText(using: harness)
@@ -45,16 +46,19 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryDisplayParts.providerID, .codex, "codex primary display id")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5h", "codex primary display caption")
         harness.expectEqual(viewModel.primaryDisplayParts.amountText, "72", "codex primary display amount")
+        harness.expectEqual(viewModel.primaryDisplayParts.amountValue, 72, "codex primary display amount value")
         harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% remaining", "codex primary display trailing")
         harness.expectEqual(viewModel.statusText, "Quota available", "codex primary status")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.count, 2, "codex quota row count")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "5h", "codex primary quota row label")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.amountText, "72", "codex primary quota row amount")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.amountValue, 72, "codex primary quota row amount value")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.suffixText, "% remg", "codex primary quota row suffix")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.detailText, "72% remg", "codex primary quota row detail")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.resetText, "Resets: 23:05", "codex primary quota reset")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.label, "7d", "codex weekly quota row label")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.amountText, "48", "codex weekly quota row amount")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.amountValue, 48, "codex weekly quota row amount value")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.suffixText, "% remg", "codex weekly quota row suffix")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.detailText, "48% remg", "codex weekly quota row detail")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.resetText, "Resets: 05/18", "codex weekly quota reset")
@@ -141,6 +145,7 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryDisplayParts.providerID, .zhipuCodingPlan, "zhipu primary display id")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5h", "zhipu primary display caption")
         harness.expectEqual(viewModel.primaryDisplayParts.amountText, "17", "zhipu primary display amount")
+        harness.expectEqual(viewModel.primaryDisplayParts.amountValue, 17, "zhipu primary display amount value")
         harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% used", "zhipu primary display trailing")
         harness.expectEqual(viewModel.resetText, "Resets: 23:05", "zhipu reset text")
         harness.expectEqual(viewModel.statusText, "Plan available", "zhipu primary status")
@@ -281,6 +286,29 @@ enum MenuBarBalanceViewModelTests {
         let viewModel = makeViewModel(state: .loaded(.balance(makeSnapshot(total: "68.65"))))
 
         harness.expectEqual(viewModel.menuBarValueText, "¥68.6", "loaded menu bar value")
+    }
+
+    @MainActor
+    private static func testPrimaryDisplayAmountValues(using harness: TestHarness) {
+        let balanceViewModel = makeViewModel(state: .loaded(.balance(makeSnapshot(total: "68.65"))))
+        let truncatedBalanceViewModel = makeViewModel(state: .loaded(.balance(makeSnapshot(total: "68.659"))))
+        let planUsageParts = primaryPlanUsageParts(usagePercentage: Decimal(string: "17.9")!)
+        let quotaViewModel = makeQuotaToneViewModel(remainingPercentages: [
+            Decimal(string: "72.9")!,
+            Decimal(string: "48.8")!
+        ])
+        let placeholderViewModel = makeViewModel(state: .notConfigured)
+
+        harness.expectEqual(balanceViewModel.primaryDisplayParts.amountText, "68.65", "deepseek balance amount text")
+        harness.expectEqual(balanceViewModel.primaryDisplayParts.amountValue, 68.65, "deepseek balance amount value")
+        harness.expectEqual(truncatedBalanceViewModel.primaryDisplayParts.amountText, "68.65", "deepseek truncated balance amount text")
+        harness.expectEqual(truncatedBalanceViewModel.primaryDisplayParts.amountValue, 68.65, "deepseek truncated balance amount value")
+        harness.expectEqual(planUsageParts.amountText, "17", "plan usage truncated amount text")
+        harness.expectEqual(planUsageParts.amountValue, 17, "plan usage truncated amount value")
+        harness.expectEqual(quotaViewModel.primaryQuotaWindowRows.map(\.amountText), ["72", "48"], "quota truncated amount text")
+        harness.expectEqual(quotaViewModel.primaryQuotaWindowRows.map(\.amountValue), [72, 48], "quota truncated amount values")
+        harness.expectEqual(placeholderViewModel.primaryDisplayParts.amountText, "--", "placeholder amount text")
+        harness.expectEqual(placeholderViewModel.primaryDisplayParts.amountValue, nil, "placeholder amount value")
     }
 
     @MainActor

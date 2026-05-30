@@ -4,6 +4,7 @@ public struct PrimaryProviderDisplayParts: Equatable {
     public let detailKind: ProviderDetailKind
     public let leadingText: String
     public let amountText: String
+    public let amountValue: Double?
     public let amountTone: ProviderAmountTone
     public let trailingText: String
     public let captionText: String
@@ -23,6 +24,7 @@ public struct ProviderDetailRow: Equatable {
 public struct QuotaWindowDisplayRow: Equatable {
     public let label: String
     public let amountText: String
+    public let amountValue: Double?
     public let amountTone: ProviderAmountTone
     public let suffixText: String
     public let detailText: String

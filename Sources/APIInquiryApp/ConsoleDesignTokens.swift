@@ -21,6 +21,8 @@ enum ConsoleMetrics {
 }
 
 enum ProviderToneColor {
+    private static let warningAmber = Color(red: 0.94, green: 0.62, blue: 0.12)
+
     static func status(_ tone: ProviderStatusTone) -> Color {
         switch tone {
         case .success:
@@ -41,7 +43,7 @@ enum ProviderToneColor {
         case .good:
             return .green
         case .warning:
-            return Color(red: 1.0, green: 0.78, blue: 0.04)
+            return warningAmber
         case .critical:
             return .red
         }
@@ -54,7 +56,7 @@ enum ProviderToneColor {
         case .good:
             return .green
         case .warning:
-            return Color(red: 1.0, green: 0.78, blue: 0.04)
+            return warningAmber
         case .critical:
             return .red
         }
@@ -71,7 +73,12 @@ enum ProviderToneColor {
         }
     }
 
-    static func apiAccess(isLoaded: Bool) -> Color {
-        isLoaded ? .green : .secondary
+    static func apiAccess(_ state: APIAccessState) -> Color {
+        switch state {
+        case .available:
+            return .green
+        case .unavailable:
+            return .secondary
+        }
     }
 }

@@ -111,6 +111,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                 detailKind: .balance,
                 leadingText: "",
                 amountText: "--",
+                amountValue: nil,
                 amountTone: .neutral,
                 trailingText: "",
                 captionText: ""
@@ -171,6 +172,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             return QuotaWindowDisplayRow(
                 label: quotaWindowDisplayLabel(for: window.label),
                 amountText: amountText,
+                amountValue: ProviderValueFormatter.quotaWindowAmountValue(for: window),
                 amountTone: ProviderDisplayFormatter.quotaWindowAmountTone(for: window),
                 suffixText: suffixText,
                 detailText: "\(amountText)\(suffixText)",

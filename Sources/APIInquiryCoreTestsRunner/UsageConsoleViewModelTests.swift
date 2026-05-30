@@ -62,10 +62,13 @@ enum UsageConsoleViewModelTests {
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
 
         harness.expectEqual(deepSeekSummary?.apiAccessStatusText, "Configured", "deepseek api access status")
+        harness.expectEqual(deepSeekSummary?.apiAccessState, .available, "deepseek configured api access state")
         harness.expectEqual(deepSeekSummary?.apiAccessPurposeText, "Available for prepaid balance checks", "deepseek api access purpose")
         harness.expectEqual(zhipuSummary?.apiAccessStatusText, "Configured", "zhipu api access status")
+        harness.expectEqual(zhipuSummary?.apiAccessState, .available, "zhipu configured api access state")
         harness.expectEqual(zhipuSummary?.apiAccessPurposeText, "Available for plan balance checks", "zhipu api access purpose")
         harness.expectEqual(codexSummary?.apiAccessStatusText, "Loaded", "codex api access status")
+        harness.expectEqual(codexSummary?.apiAccessState, .available, "codex loaded api access state")
         harness.expectEqual(codexSummary?.apiAccessPurposeText, "Available for plan balance checks", "codex api access purpose")
     }
 
@@ -88,10 +91,13 @@ enum UsageConsoleViewModelTests {
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
 
         harness.expectEqual(deepSeekSummary?.apiAccessStatusText, "已配置", "chinese deepseek api access status")
+        harness.expectEqual(deepSeekSummary?.apiAccessState, .available, "chinese deepseek api access state")
         harness.expectEqual(deepSeekSummary?.apiAccessPurposeText, "可用于充值余额查询", "chinese deepseek api access purpose")
         harness.expectEqual(zhipuSummary?.apiAccessStatusText, "已配置", "chinese zhipu api access status")
+        harness.expectEqual(zhipuSummary?.apiAccessState, .available, "chinese zhipu api access state")
         harness.expectEqual(zhipuSummary?.apiAccessPurposeText, "可用于套餐余额查询", "chinese zhipu api access purpose")
         harness.expectEqual(codexSummary?.apiAccessStatusText, "已加载", "chinese codex api access status")
+        harness.expectEqual(codexSummary?.apiAccessState, .available, "chinese codex api access state")
         harness.expectEqual(codexSummary?.apiAccessPurposeText, "可用于套餐余额查询", "chinese codex api access purpose")
     }
 
@@ -105,10 +111,13 @@ enum UsageConsoleViewModelTests {
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
 
         harness.expectEqual(deepSeekSummary?.apiAccessStatusText, "Not configured", "deepseek unconfigured api access status")
+        harness.expectEqual(deepSeekSummary?.apiAccessState, .unavailable, "deepseek unconfigured api access state")
         harness.expectEqual(deepSeekSummary?.apiAccessPurposeText, "Available for prepaid balance checks", "deepseek unconfigured api access purpose")
         harness.expectEqual(zhipuSummary?.apiAccessStatusText, "Not configured", "zhipu unconfigured api access status")
+        harness.expectEqual(zhipuSummary?.apiAccessState, .unavailable, "zhipu unconfigured api access state")
         harness.expectEqual(zhipuSummary?.apiAccessPurposeText, "Available for plan balance checks", "zhipu unconfigured api access purpose")
         harness.expectEqual(codexSummary?.apiAccessStatusText, "Not loaded", "codex unloaded api access status")
+        harness.expectEqual(codexSummary?.apiAccessState, .unavailable, "codex unloaded api access state")
         harness.expectEqual(codexSummary?.apiAccessPurposeText, "Available for plan balance checks", "codex unloaded api access purpose")
     }
 

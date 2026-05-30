@@ -20,6 +20,8 @@ struct UsageConsoleHomeSection: View {
 }
 
 struct ProviderStatusRow: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+
     let summary: APIProviderSummary
     let strings: LocalizedStrings
     let setPrimaryProvider: (ProviderID) -> Void
@@ -36,7 +38,9 @@ struct ProviderStatusRow: View {
             providerRowBackground
         }
         .clipShape(RoundedRectangle(cornerRadius: ConsoleMetrics.providerRowCornerRadius, style: .continuous))
-        .accessibilityElement(children: .combine)
+        .apiInquirySubtleAnimation(value: summary.healthTone, reduceMotion: accessibilityReduceMotion)
+        .apiInquirySubtleAnimation(value: summary.statusTone, reduceMotion: accessibilityReduceMotion)
+        .apiInquirySubtleAnimation(value: summary.isPrimary, reduceMotion: accessibilityReduceMotion)
     }
 
     private var header: some View {

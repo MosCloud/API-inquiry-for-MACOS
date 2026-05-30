@@ -5,10 +5,13 @@ import SwiftUI
 @MainActor
 struct MenuBarContentView: View {
     @Environment(\.dismiss) private var dismissMenu
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     @ObservedObject var viewModel: MenuBarBalanceViewModel
     @ObservedObject var languageStore: AppLanguageStore
     @StateObject private var launchAtLoginController: LaunchAtLoginController
+    @State private var refreshAnimationTurn = 0
+    @State private var refreshAnimationTask: Task<Void, Never>?
     private let openConsole: (UsageConsoleSection) -> Void
 
     init(
@@ -47,6 +50,7 @@ struct MenuBarContentView: View {
                         }
                     }
                 }
+                .apiInquiryTopChangeTransition(reduceMotion: accessibilityReduceMotion)
             }
 
             Divider()
@@ -66,6 +70,7 @@ struct MenuBarContentView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
+                    .apiInquiryTopChangeTransition(reduceMotion: accessibilityReduceMotion)
             }
 
             footer
@@ -74,7 +79,29 @@ struct MenuBarContentView: View {
         .frame(width: 320)
         .onAppear {
             launchAtLoginController.refreshStatus()
+            if viewModel.isRefreshDisabled {
+                startRefreshAnimationLoop()
+            }
         }
+        .onDisappear {
+            stopRefreshAnimationLoop()
+        }
+        .onChange(of: accessibilityReduceMotion) { reduceMotion in
+            if reduceMotion {
+                stopRefreshAnimationLoop()
+            } else if viewModel.isRefreshDisabled {
+                startRefreshAnimationLoop()
+            }
+        }
+        .onChange(of: viewModel.isRefreshDisabled) { isRefreshing in
+            if isRefreshing {
+                startRefreshAnimationLoop()
+            } else {
+                stopRefreshAnimationLoop()
+            }
+        }
+        .apiInquirySubtleAnimation(value: viewModel.errorText, reduceMotion: accessibilityReduceMotion)
+        .apiInquirySubtleAnimation(value: launchAtLoginController.message, reduceMotion: accessibilityReduceMotion)
     }
 
     private var consolePrompt: some View {
@@ -120,9 +147,14 @@ struct MenuBarContentView: View {
                 }
 
                 headerIconButton(
-                    systemImage: viewModel.isRefreshDisabled ? "arrow.clockwise.circle" : "arrow.clockwise",
-                    help: viewModel.isRefreshDisabled ? strings.refreshing : strings.refresh
+                    systemImage: "arrow.clockwise",
+                    help: viewModel.isRefreshDisabled ? strings.refreshing : strings.refresh,
+                    accessibilityLabel: strings.refresh,
+                    accessibilityValue: viewModel.isRefreshDisabled ? strings.refreshing : nil,
+                    refreshTurn: refreshAnimationTurn,
+                    reduceMotion: accessibilityReduceMotion
                 ) {
+                    startRefreshAnimationLoop()
                     Task { await viewModel.refresh() }
                 }
                 .disabled(viewModel.isRefreshDisabled)
@@ -184,7 +216,10 @@ struct MenuBarContentView: View {
                 .font(.system(size: amountSize, weight: .medium, design: .rounded))
                 .foregroundStyle(amountColor(for: parts.amountTone))
                 .monospacedDigit()
+                .apiInquiryNumericTextTransition(value: parts.amountValue, reduceMotion: accessibilityReduceMotion)
                 .fixedSize(horizontal: true, vertical: false)
+                .apiInquirySubtleAnimation(value: parts.amountText, reduceMotion: accessibilityReduceMotion)
+                .apiInquirySubtleAnimation(value: parts.amountTone, reduceMotion: accessibilityReduceMotion)
 
             if !parts.trailingText.isEmpty {
                 Text(parts.trailingText)
@@ -205,6 +240,7 @@ struct MenuBarContentView: View {
             Text(viewModel.statusText)
                 .font(.caption)
                 .foregroundStyle(statusColor)
+                .apiInquirySubtleAnimation(value: viewModel.statusTone, reduceMotion: accessibilityReduceMotion)
 
             Spacer()
 
@@ -215,6 +251,9 @@ struct MenuBarContentView: View {
                 .lineLimit(1)
                 .frame(minWidth: 108, alignment: .trailing)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(strings.currentStatus), \(viewModel.statusText)")
+        .accessibilityValue(viewModel.lastRefreshText)
     }
 
     private var quotaHeroRows: some View {
@@ -232,9 +271,12 @@ struct MenuBarContentView: View {
                         .font(.system(size: 36, weight: .medium, design: .rounded))
                         .foregroundStyle(amountColor(for: row.amountTone))
                         .monospacedDigit()
+                        .apiInquiryNumericTextTransition(value: row.amountValue, reduceMotion: accessibilityReduceMotion)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .frame(minWidth: 42, alignment: .trailing)
+                        .apiInquirySubtleAnimation(value: row.amountText, reduceMotion: accessibilityReduceMotion)
+                        .apiInquirySubtleAnimation(value: row.amountTone, reduceMotion: accessibilityReduceMotion)
 
                     Text(row.suffixText)
                         .font(.system(size: 20, weight: .regular, design: .rounded))
@@ -254,6 +296,8 @@ struct MenuBarContentView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(quotaWindowAccessibilityLabel(for: row))
             }
         }
         .padding(.top, 2)
@@ -366,16 +410,27 @@ struct MenuBarContentView: View {
     private func headerIconButton(
         systemImage: String,
         help: String,
+        accessibilityLabel: String? = nil,
+        accessibilityValue: String? = nil,
+        refreshTurn: Int = 0,
+        reduceMotion: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .imageScale(.medium)
+                .apiInquiryRefreshTurnEffect(
+                    turn: refreshTurn,
+                    duration: RefreshAnimation.turnDuration,
+                    reduceMotion: reduceMotion
+                )
                 .frame(width: 24, height: 24)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
         .help(help)
+        .accessibilityLabel(accessibilityLabel ?? help)
+        .accessibilityValue(accessibilityValue ?? "")
     }
 
     private func footerAction(
@@ -409,6 +464,46 @@ struct MenuBarContentView: View {
         dismissMenu()
     }
 
+    private func startRefreshAnimationLoop() {
+        guard !accessibilityReduceMotion else {
+            stopRefreshAnimationLoop()
+            return
+        }
+
+        guard refreshAnimationTask == nil else {
+            return
+        }
+
+        refreshAnimationTurn += 1
+        refreshAnimationTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: RefreshAnimation.turnDurationNanoseconds)
+                guard !Task.isCancelled else {
+                    return
+                }
+
+                let shouldContinue = await MainActor.run {
+                    !accessibilityReduceMotion && viewModel.isRefreshDisabled
+                }
+                guard shouldContinue else {
+                    await MainActor.run {
+                        refreshAnimationTask = nil
+                    }
+                    return
+                }
+
+                await MainActor.run {
+                    refreshAnimationTurn += 1
+                }
+            }
+        }
+    }
+
+    private func stopRefreshAnimationLoop() {
+        refreshAnimationTask?.cancel()
+        refreshAnimationTask = nil
+    }
+
     private var statusColor: Color {
         ProviderToneColor.status(viewModel.statusTone)
     }
@@ -424,6 +519,27 @@ struct MenuBarContentView: View {
     private func amountColor(for amountTone: ProviderAmountTone) -> Color {
         ProviderToneColor.menuAmount(amountTone)
     }
+
+    private func quotaWindowAccessibilityLabel(for row: QuotaWindowDisplayRow) -> String {
+        [
+            strings.quotaWindow,
+            row.label,
+            "\(row.amountText)\(row.suffixText)",
+            row.resetText
+        ]
+        .compactMap { text in
+            guard let text, !text.isEmpty else {
+                return nil
+            }
+            return text
+        }
+        .joined(separator: ", ")
+    }
+}
+
+private enum RefreshAnimation {
+    static let turnDuration = 0.8
+    static let turnDurationNanoseconds: UInt64 = 800_000_000
 }
 
 private enum FooterActionRole {

@@ -88,6 +88,7 @@ public enum ProviderValueFormatter {
                 detailKind: descriptor.detailKind,
                 leadingText: "",
                 amountText: "--",
+                amountValue: nil,
                 amountTone: .neutral,
                 trailingText: "",
                 captionText: ""
@@ -104,29 +105,34 @@ public enum ProviderValueFormatter {
                 detailKind: .balance,
                 leadingText: currencyCode == "CNY" ? "¥" : "",
                 amountText: amountText,
+                amountValue: amountValue(balance.totalBalance, scale: 2),
                 amountTone: ProviderToneResolver.balanceAmountTone(for: balance.totalBalance),
                 trailingText: currencyCode,
                 captionText: ""
             )
         case .planUsage(let usage):
+            let usagePercentage = truncate(usage.usagePercentage, scale: 0)
             return PrimaryProviderDisplayParts(
                 providerID: descriptor.id,
                 displayName: descriptor.displayName,
                 detailKind: .planUsage,
                 leadingText: "",
-                amountText: formatPercentage(usage.usagePercentage),
+                amountText: formatNumber(usagePercentage, fractionDigits: 0),
+                amountValue: doubleValue(usagePercentage),
                 amountTone: ProviderToneResolver.planUsageAmountTone(for: usage.usagePercentage),
                 trailingText: "% \(strings.usedSuffix)",
                 captionText: strings.quotaWindowLabel(usage.windowLabel)
             )
         case .quotaUsage(let usage):
             let window = primaryQuotaWindow(in: usage)
+            let remainingPercentage = window.map { truncate($0.remainingPercentage, scale: 0) }
             return PrimaryProviderDisplayParts(
                 providerID: descriptor.id,
                 displayName: descriptor.displayName,
                 detailKind: .quotaUsage,
                 leadingText: "",
-                amountText: formatPercentage(window?.remainingPercentage ?? 0),
+                amountText: remainingPercentage.map { formatNumber($0, fractionDigits: 0) } ?? "0",
+                amountValue: remainingPercentage.map(doubleValue),
                 amountTone: window.map { ProviderToneResolver.remainingQuotaAmountTone(for: $0.remainingPercentage) } ?? .neutral,
                 trailingText: "% \(strings.remainingSuffix)",
                 captionText: window.map { strings.quotaWindowLabel($0.label) } ?? ""
@@ -149,6 +155,10 @@ public enum ProviderValueFormatter {
 
     public static func quotaWindowAmountText(for window: QuotaWindowSnapshot) -> String {
         formatPercentage(window.remainingPercentage)
+    }
+
+    public static func quotaWindowAmountValue(for window: QuotaWindowSnapshot) -> Double {
+        amountValue(window.remainingPercentage, scale: 0)
     }
 
     static func primaryQuotaWindow(in usage: QuotaUsageSnapshot) -> QuotaWindowSnapshot? {
@@ -200,6 +210,14 @@ public enum ProviderValueFormatter {
         formatter.maximumFractionDigits = fractionDigits
 
         return formatter.string(from: NSDecimalNumber(decimal: amount)) ?? "--"
+    }
+
+    private static func amountValue(_ amount: Decimal, scale: Int) -> Double {
+        doubleValue(truncate(amount, scale: scale))
+    }
+
+    private static func doubleValue(_ amount: Decimal) -> Double {
+        NSDecimalNumber(decimal: amount).doubleValue
     }
 
     private static func truncate(_ amount: Decimal, scale: Int) -> Decimal {

@@ -183,8 +183,8 @@ struct UsageConsoleAPISection: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .controlSize(.small)
-        .help(strings.removeProvider)
-        .accessibilityLabel(strings.removeProvider)
+        .help(strings.moreActions)
+        .accessibilityLabel(strings.moreActions)
     }
 
     private func openCodexConfig(_ summary: APIProviderSummary) {

@@ -27,6 +27,9 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.apiKeyMetricTitle, "API Key", "english api key metric")
         harness.expectEqual(strings.deleteAPIKeyConfirmation, "Delete the saved API key?", "english delete api key confirmation")
         harness.expectEqual(strings.keychainName, "Keychain", "english keychain")
+        harness.expectEqual(strings.moreActions, "More Actions", "english more actions")
+        harness.expectEqual(strings.currentStatus, "Current Status", "english current status")
+        harness.expectEqual(strings.quotaWindow, "Quota Window", "english quota window")
     }
 
     private static func testChineseStringsUseReviewedTerminology(using harness: TestHarness) {
@@ -48,6 +51,9 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.replaceKey, "更换密钥", "chinese replace key")
         harness.expectEqual(strings.deleteAPIKeyConfirmation, "删除已保存的 API 密钥？", "chinese delete api key confirmation")
         harness.expectEqual(strings.keychainName, "密钥串", "chinese keychain")
+        harness.expectEqual(strings.moreActions, "更多操作", "chinese more actions")
+        harness.expectEqual(strings.currentStatus, "当前状态", "chinese current status")
+        harness.expectEqual(strings.quotaWindow, "额度窗口", "chinese quota window")
     }
 
     private static func testProviderNamesRemainUntranslated(using harness: TestHarness) {

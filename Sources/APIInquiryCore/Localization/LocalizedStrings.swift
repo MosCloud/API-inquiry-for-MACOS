@@ -82,6 +82,9 @@ public struct LocalizedStrings: Equatable {
     public var delete: String { text(en: "Delete", zh: "删除") }
     public var remove: String { text(en: "Remove", zh: "移除") }
     public var removeProvider: String { text(en: "Remove Provider", zh: "移除供应商") }
+    public var moreActions: String { text(en: "More Actions", zh: "更多操作") }
+    public var currentStatus: String { text(en: "Current Status", zh: "当前状态") }
+    public var quotaWindow: String { text(en: "Quota Window", zh: "额度窗口") }
     public var prepaidBalanceCheckPurpose: String {
         text(en: "Available for prepaid balance checks", zh: "可用于充值余额查询")
     }

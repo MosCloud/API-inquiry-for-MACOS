@@ -43,16 +43,106 @@
   - `docs/superpowers/plans/2026-05-30-v0.3.7-ui-polish_zh.md`
 - Updated `docs/roadmap.md` so `v0.3.7` is the next planned release before `v0.4.0`.
 - Refreshed root planning files in the `v0.3.7` worktree to describe the active UI polish branch.
+- Added a concrete Round 1 UI polish implementation plan:
+  - `docs/superpowers/plans/2026-05-30-v0.3.7-ui-polish-round1.md`
+  - `docs/superpowers/plans/2026-05-30-v0.3.7-ui-polish-round1_zh.md`
+- Completed Round 1 low-risk UI polish:
+  - repaired `APIAccessBadge` semantics with explicit `APIAccessState`
+  - added API access state and helper localization tests
+  - adjusted API more-menu help/accessibility text to "More Actions"
+  - added restrained refresh/error/status/feedback microinteractions
+  - added concise accessibility labels/values for menu status, quota rows, provider rows, and icon controls
+  - centralized warning amount color through a quieter amber token
+- Used separated agents for:
+  - project-level acceptance checklist
+  - UI design and boundary management
+  - code implementation
+  - code review, rework guidance, and QA
+- Addressed QA feedback around refresh button accessibility, refresh loading motion, and quota row accessibility wording.
+- Verified Round 1 with `swift run APIInquiryCoreTestsRunner` (`PASS: 493 expectations`) and `swift build`.
+- Launched the current worktree app for manual review with `Scripts/run-local-app.sh`; it started `/Users/zbw/Desktop/API-inquiry/.worktrees/v0.3.7/.build/APIInquiry.app`.
+- Added a concrete Round 2 plan for macOS-versioned SwiftUI effects:
+  - `docs/superpowers/plans/2026-05-30-v0.3.7-versioned-ui-effects.md`
+  - `docs/superpowers/plans/2026-05-30-v0.3.7-versioned-ui-effects_zh.md`
+- Split Round 2 review responsibilities across agents:
+  - project-level acceptance checklist
+  - UI design and boundary management
+  - bounded code implementation
+  - planned QA/rework review after integration
+- Captured the key Round 2 boundary that numeric text effects must not parse formatted display strings; use a macOS 13+ safe numeric text transition unless a real numeric value is already available.
+- Completed Round 2 versioned UI effects:
+  - added centralized App-target `VersionedUIEffects.swift`
+  - applied safe numeric text transitions to primary and quota amount text
+  - routed refresh icon effects through macOS-versioned symbol/fallback handling
+  - added sensory feedback only to settings/result feedback text
+- Completed Round 2 QA and verification:
+  - `git diff --check` passed
+  - `swift run APIInquiryCoreTestsRunner` passed with `PASS: 493 expectations`
+  - `swift build` passed
+  - QA agent found no Critical or Important blocking issues after the documentation wording fix
+  - `Scripts/run-local-app.sh` started `/Users/zbw/Desktop/API-inquiry/.worktrees/v0.3.7/.build/APIInquiry.app`
+- Started Round 3 after user feedback that Round 2 high-version API changes were not perceptible enough.
+- Added a concrete Round 3 plan for more perceptible versioned UI effects:
+  - `docs/superpowers/plans/2026-05-30-v0.3.7-perceptible-versioned-ui-effects.md`
+  - `docs/superpowers/plans/2026-05-30-v0.3.7-perceptible-versioned-ui-effects_zh.md`
+- Recorded Liquid Glass / macOS material exploration prompts for a separate future review, explicitly scoped as exploration rather than v0.3.7 implementation:
+  - `docs/superpowers/specs/2026-05-30-v0.3.7-liquid-glass-ui-exploration-prompt.md`
+  - `docs/superpowers/specs/2026-05-30-v0.3.7-liquid-glass-ui-exploration-prompt_zh.md`
+- Round 3 planned scope is intentionally narrow:
+  - expose real numeric values from Core display models so macOS 14+ `numericText(value:)` can actually run
+  - add a deterministic refresh turn trigger so click response is visible during fast refreshes
+  - add a tiny tone-colored feedback icon next to settings/result feedback text
+- Completed Round 3 perceptible versioned UI effects:
+  - added `amountValue` to primary and quota display models, derived from real Decimal snapshots rather than formatted strings
+  - passed those values into the App numeric transition helper so macOS 14+ `numericText(value:)` can run
+  - added a 0.8s refresh turn loop that does not affect real disabled/help/accessibility state and respects Reduce Motion
+  - added inline tone-colored result feedback icons while keeping VoiceOver focused on the message text
+- Addressed Round 3 QA feedback:
+  - first fixed visual hold cleanup, then removed the hold-based animation entirely after user visual review
+  - added truncation tests for balance, plan usage, and quota display numeric values
+- Addressed user-reported refresh animation bug:
+  - replaced active/hold-driven refresh animation with a cumulative one-turn trigger
+  - removed the visual hold task/state and the active `symbolEffect(.rotate...)` path that could desync from the intended turn timing
+  - added a structural regression check proving the old active/hold refresh pattern is gone
+- Tuned the refresh turn duration to 0.8s per turn and kept the loop running while `viewModel.isRefreshDisabled` reports real loading.
+- Verified Round 3 with:
+  - `git diff --check`
+  - `swift run APIInquiryCoreTestsRunner` (`PASS: 507 expectations`)
+  - `swift build`
+  - QA agent re-review with no Critical or Important blocking issues
+  - `Scripts/run-local-app.sh`, which started `/Users/zbw/Desktop/API-inquiry/.worktrees/v0.3.7/.build/APIInquiry.app`
+- User approved the current v0.3.7 build for the formal release process.
+- Prepared v0.3.7 release metadata and documentation:
+  - `Scripts/version.env` now points to app version `0.3.7`, build `12`, tag `release/v0.3.7`, and `API-Inquiry-v0.3.7` DMG naming
+  - Settings version display now uses `v0.3.7`
+  - README, README_zh, README_en, and roadmap now identify `v0.3.7` as the latest release and `v0.4.0` as the next planned version
+  - added `docs/releases/v0.3.7.md`, `docs/releases/v0.3.7_zh.md`, and `docs/releases/v0.3.7_github.md`
+- Addressed release QA feedback:
+  - centralized Reduce Motion handling for numeric transitions, top-change transitions, and subtle state animations
+  - removed Console Home provider row accessibility flattening so child controls remain individually available
+  - updated release notes to the repository's `App Optimization` and `Bug Fixes` section format
+  - synchronized `README_zh.md` after QA found it still referenced v0.3.6 artifacts and `PASS: 341 expectations`
+- Verified the v0.3.7 release candidate with:
+  - `git diff --check`
+  - `swift run APIInquiryCoreTestsRunner` (`PASS: 507 expectations`)
+  - `swift build`
+  - `Scripts/run-local-app.sh`, which started `/Users/zbw/Desktop/API-inquiry/.worktrees/v0.3.7/.build/APIInquiry.app`
+  - `Scripts/package-dmg.sh`, which produced `dist/API-Inquiry-v0.3.7.dmg` and `dist/API-Inquiry-v0.3.7.dmg.sha256`
+  - `CFBundleShortVersionString` = `0.3.7`
+  - `CFBundleVersion` = `12`
+  - `codesign --verify --deep "dist/API Inquiry.app"`
+  - `hdiutil verify dist/API-Inquiry-v0.3.7.dmg`
+  - `(cd dist && shasum -a 256 -c API-Inquiry-v0.3.7.dmg.sha256)`
+  - DMG SHA-256: `91ac2cd7e1a528ab88c5e2c38cc3b984b84b025c610eb40f22cb462d329fa6fb`
 
 ## Current State
 
 - Active worktree branch for the current task is `v0.3.7`.
 - `v0.3.7` was created from `main` commit `c6b521c`.
-- Latest released version is `v0.3.6-Refactor`.
-- Latest `v0.3.6-Refactor` release assets are available on GitHub Release `release/v0.3.6-Refactor`.
-- Root planning files in this worktree now point to the v0.3.7 UI polish planning task.
+- The v0.3.7 release candidate is verified locally and ready for commit, tag, push, and GitHub Release creation.
+- Latest published GitHub Release before this release flow is still `release/v0.3.6-Refactor`.
 
 ## Open Notes
 
 - The main worktree `.superpowers/` directory remains untracked and has not been modified.
-- Before implementation, review the Chinese v0.3.7 plan with the user.
+- Push/tag/GitHub Release publication remains to be completed after the release commit.
