@@ -8,6 +8,7 @@ enum BalanceRefreshControllerTests {
         await testSuccessfulRefreshLoadsSnapshot(using: harness)
         await testRefreshUsesInjectedCredentialAccount(using: harness)
         await testFailurePreservesLastSnapshot(using: harness)
+        await testIncompleteCodexQuotaRefreshPreservesLastCompleteSnapshot(using: harness)
         await testAuthenticationFailureUsesTypedFailureKind(using: harness)
         await testAuthenticationFailureCanUseChineseMessage(using: harness)
         await testOverlappingRefreshDoesNotStartSecondProviderCall(using: harness)
@@ -81,6 +82,43 @@ enum BalanceRefreshControllerTests {
             ),
             "failed refresh state"
         )
+    }
+
+    @MainActor
+    private static func testIncompleteCodexQuotaRefreshPreservesLastCompleteSnapshot(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: SequentialCodexHTTPClient(responses: [
+            HTTPResponse(data: codexUsageData(primaryUsedPercent: "4", secondaryUsedPercent: "7"), statusCode: 200),
+            HTTPResponse(data: incompleteCodexUsageData(primaryUsedPercent: "0"), statusCode: 200),
+            HTTPResponse(data: incompleteCodexUsageData(primaryUsedPercent: "5"), statusCode: 200)
+        ]))
+        let store = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "test-token"])
+        let controller = makeTestRefreshController(provider: provider, credentialStore: store)
+
+        await controller.refresh()
+        let completeSnapshot = controller.state.lastSnapshot
+        await controller.refresh()
+
+        harness.expectEqual(
+            controller.state,
+            BalanceState.failed(
+                message: "Balance API did not return balance information.",
+                kind: .invalidResponse,
+                last: completeSnapshot
+            ),
+            "incomplete codex quota refresh preserves complete snapshot"
+        )
+
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: makeSingleProviderCoordinator(
+                provider: provider,
+                credentialStore: store,
+                controller: controller
+            )
+        )
+
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.count, 2, "incomplete codex refresh keeps two quota rows")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.amountText, "96", "incomplete codex refresh keeps primary remaining")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.amountText, "93", "incomplete codex refresh keeps weekly remaining")
     }
 
     @MainActor
@@ -275,6 +313,60 @@ final class MockBalanceProvider: BalanceProvider {
         }
         return try results.removeFirst().get()
     }
+}
+
+private final class SequentialCodexHTTPClient: HTTPClient {
+    private var responses: [HTTPResponse]
+
+    init(responses: [HTTPResponse]) {
+        self.responses = responses
+    }
+
+    func data(for request: URLRequest) async throws -> HTTPResponse {
+        if responses.count > 1 {
+            return responses.removeFirst()
+        }
+        return responses[0]
+    }
+}
+
+private func codexUsageData(
+    primaryUsedPercent: String,
+    secondaryUsedPercent: String
+) -> Data {
+    """
+    {
+      "plan_type": "plus",
+      "rate_limit": {
+        "primary_window": {
+          "used_percent": \(primaryUsedPercent),
+          "limit_window_seconds": 18000,
+          "reset_at": 1715003600
+        },
+        "secondary_window": {
+          "used_percent": \(secondaryUsedPercent),
+          "limit_window_seconds": 604800,
+          "reset_at": 1715604800
+        }
+      }
+    }
+    """.data(using: .utf8)!
+}
+
+private func incompleteCodexUsageData(primaryUsedPercent: String) -> Data {
+    """
+    {
+      "plan_type": "plus",
+      "rate_limit": {
+        "primary_window": {
+          "used_percent": \(primaryUsedPercent),
+          "limit_window_seconds": 18000,
+          "reset_at": 1715003600
+        },
+        "secondary_window": null
+      }
+    }
+    """.data(using: .utf8)!
 }
 
 func makeSnapshot(

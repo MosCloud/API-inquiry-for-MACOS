@@ -8,6 +8,11 @@ enum CodexQuotaProviderTests {
         await testAuthJSONExtractsTokenAndAccountID(using: harness)
         await testResetAfterSecondsIsUsedWhenResetAtIsMissing(using: harness)
         await testNullResetFieldsAreIgnored(using: harness)
+        await testIncompleteQuotaWindowResponseRetriesAndUsesCompleteSnapshot(using: harness)
+        await testMissingSecondaryQuotaWindowResponseRetriesAndUsesCompleteSnapshot(using: harness)
+        await testRepeatedIncompleteQuotaWindowResponsesMapToMissingBalanceInfo(using: harness)
+        await testFractionalUsedPercentPreservesRemainingPrecision(using: harness)
+        await testStringUsedPercentPreservesRemainingPrecision(using: harness)
         await testPlanNameNormalization(using: harness)
         await testAuthenticationFailureMapsToProviderError(using: harness)
         await testForbiddenMapsToAuthenticationFailure(using: harness)
@@ -168,6 +173,123 @@ enum CodexQuotaProviderTests {
         }
     }
 
+    private static func testIncompleteQuotaWindowResponseRetriesAndUsesCompleteSnapshot(using harness: TestHarness) async {
+        let httpClient = CodexMockHTTPClient(responses: [
+            HTTPResponse(
+                data: incompleteUsageResponseData(primaryUsedPercent: "0", includeSecondaryWindow: true),
+                statusCode: 200
+            ),
+            HTTPResponse(
+                data: usageResponseData(primaryUsedPercent: 4, secondaryUsedPercent: 7),
+                statusCode: 200
+            )
+        ])
+        let provider = CodexQuotaProvider(httpClient: httpClient)
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            let usage = snapshot.lastQuotaUsageSnapshot
+
+            harness.expectEqual(httpClient.requestCount, 2, "codex retries incomplete quota response once")
+            harness.expectEqual(usage?.windows.count, 2, "codex retry returns complete quota window count")
+            harness.expectEqual(usage?.windows.first?.remainingPercentage, Decimal(96), "codex retry primary remaining")
+            harness.expectEqual(usage?.windows.last?.remainingPercentage, Decimal(93), "codex retry weekly remaining")
+        } catch {
+            harness.expectTrue(false, "codex retry should use complete quota response: \(error)")
+        }
+    }
+
+    private static func testMissingSecondaryQuotaWindowResponseRetriesAndUsesCompleteSnapshot(using harness: TestHarness) async {
+        let httpClient = CodexMockHTTPClient(responses: [
+            HTTPResponse(
+                data: incompleteUsageResponseData(primaryUsedPercent: "0", includeSecondaryWindow: false),
+                statusCode: 200
+            ),
+            HTTPResponse(
+                data: usageResponseData(primaryUsedPercent: 5, secondaryUsedPercent: 8),
+                statusCode: 200
+            )
+        ])
+        let provider = CodexQuotaProvider(httpClient: httpClient)
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            let usage = snapshot.lastQuotaUsageSnapshot
+
+            harness.expectEqual(httpClient.requestCount, 2, "codex retries missing secondary quota response once")
+            harness.expectEqual(usage?.windows.count, 2, "codex missing secondary retry returns complete quota window count")
+            harness.expectEqual(usage?.windows.first?.remainingPercentage, Decimal(95), "codex missing secondary retry primary remaining")
+            harness.expectEqual(usage?.windows.last?.remainingPercentage, Decimal(92), "codex missing secondary retry weekly remaining")
+        } catch {
+            harness.expectTrue(false, "codex missing secondary retry should use complete quota response: \(error)")
+        }
+    }
+
+    private static func testRepeatedIncompleteQuotaWindowResponsesMapToMissingBalanceInfo(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(responses: [
+            HTTPResponse(
+                data: incompleteUsageResponseData(primaryUsedPercent: "0", includeSecondaryWindow: true),
+                statusCode: 200
+            ),
+            HTTPResponse(
+                data: incompleteUsageResponseData(primaryUsedPercent: "5", includeSecondaryWindow: false),
+                statusCode: 200
+            )
+        ]))
+
+        await harness.expectThrowsBalanceProviderError(.missingBalanceInfo, {
+            _ = try await provider.fetchSnapshot(apiKey: "test-token")
+        }, "codex repeated incomplete windows map to missingBalanceInfo")
+    }
+
+    private static func testFractionalUsedPercentPreservesRemainingPrecision(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(response: HTTPResponse(
+            data: rawUsageResponseData(primaryUsedPercent: "3.5", secondaryUsedPercent: "6.25"),
+            statusCode: 200
+        )))
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+
+            harness.expectEqual(
+                snapshot.lastQuotaWindow(label: "5h")?.remainingPercentage,
+                Decimal(string: "96.5", locale: Locale(identifier: "en_US_POSIX"))!,
+                "codex fractional primary remaining"
+            )
+            harness.expectEqual(
+                snapshot.lastQuotaWindow(label: "Week")?.remainingPercentage,
+                Decimal(string: "93.75", locale: Locale(identifier: "en_US_POSIX"))!,
+                "codex fractional weekly remaining"
+            )
+        } catch {
+            harness.expectTrue(false, "codex fractional used_percent should not throw: \(error)")
+        }
+    }
+
+    private static func testStringUsedPercentPreservesRemainingPrecision(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(response: HTTPResponse(
+            data: rawUsageResponseData(primaryUsedPercent: #""3.5""#, secondaryUsedPercent: #""6.25""#),
+            statusCode: 200
+        )))
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+
+            harness.expectEqual(
+                snapshot.lastQuotaWindow(label: "5h")?.remainingPercentage,
+                Decimal(string: "96.5", locale: Locale(identifier: "en_US_POSIX"))!,
+                "codex string fractional primary remaining"
+            )
+            harness.expectEqual(
+                snapshot.lastQuotaWindow(label: "Week")?.remainingPercentage,
+                Decimal(string: "93.75", locale: Locale(identifier: "en_US_POSIX"))!,
+                "codex string fractional weekly remaining"
+            )
+        } catch {
+            harness.expectTrue(false, "codex string fractional used_percent should not throw: \(error)")
+        }
+    }
+
     private static func testPlanNameNormalization(using harness: TestHarness) async {
         let cases = [
             ("free", "Free"),
@@ -274,6 +396,51 @@ enum CodexQuotaProviderTests {
         }
         """.data(using: .utf8)!
     }
+
+    private static func incompleteUsageResponseData(
+        planType: String = "plus",
+        primaryUsedPercent: String,
+        primaryResetAt: Int? = 1_715_003_600,
+        includeSecondaryWindow: Bool
+    ) -> Data {
+        let primaryResetLine = primaryResetAt.map { #","reset_at": \#($0)"# } ?? ""
+        let secondaryWindowLine = includeSecondaryWindow ? #","secondary_window": null"# : ""
+        return """
+        {
+          "plan_type": "\(planType)",
+          "rate_limit": {
+            "primary_window": {
+              "used_percent": \(primaryUsedPercent),
+              "limit_window_seconds": 18000\(primaryResetLine)
+            }\(secondaryWindowLine)
+          }
+        }
+        """.data(using: .utf8)!
+    }
+
+    private static func rawUsageResponseData(
+        planType: String = "plus",
+        primaryUsedPercent: String,
+        secondaryUsedPercent: String
+    ) -> Data {
+        """
+        {
+          "plan_type": "\(planType)",
+          "rate_limit": {
+            "primary_window": {
+              "used_percent": \(primaryUsedPercent),
+              "limit_window_seconds": 18000,
+              "reset_at": 1715003600
+            },
+            "secondary_window": {
+              "used_percent": \(secondaryUsedPercent),
+              "limit_window_seconds": 604800,
+              "reset_at": 1715604800
+            }
+          }
+        }
+        """.data(using: .utf8)!
+    }
 }
 
 private extension ProviderSnapshot {
@@ -290,15 +457,30 @@ private extension ProviderSnapshot {
 }
 
 private final class CodexMockHTTPClient: HTTPClient {
-    private let response: HTTPResponse
+    private var responses: [HTTPResponse]
     private(set) var lastRequest: URLRequest?
 
+    var requestCount: Int {
+        responsesServed
+    }
+
+    private var responsesServed = 0
+
     init(response: HTTPResponse) {
-        self.response = response
+        self.responses = [response]
+    }
+
+    init(responses: [HTTPResponse]) {
+        self.responses = responses
     }
 
     func data(for request: URLRequest) async throws -> HTTPResponse {
         lastRequest = request
-        return response
+        responsesServed += 1
+
+        if responses.count > 1 {
+            return responses.removeFirst()
+        }
+        return responses[0]
     }
 }

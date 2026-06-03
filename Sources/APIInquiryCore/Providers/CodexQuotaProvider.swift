@@ -19,6 +19,16 @@ public final class CodexQuotaProvider: BalanceProvider {
 
     public func fetchSnapshot(apiKey: String) async throws -> ProviderSnapshot {
         let credential = try parseCredential(apiKey)
+        let request = usageRequest(for: credential)
+
+        do {
+            return .quotaUsage(try await fetchUsage(with: request))
+        } catch BalanceProviderError.missingBalanceInfo {
+            return .quotaUsage(try await fetchUsage(with: request))
+        }
+    }
+
+    private func usageRequest(for credential: CodexCredential) -> URLRequest {
         var request = URLRequest(url: usageURL)
         request.httpMethod = "GET"
         request.setValue("Bearer \(credential.accessToken)", forHTTPHeaderField: "Authorization")
@@ -26,11 +36,14 @@ public final class CodexQuotaProvider: BalanceProvider {
         if let accountID = credential.accountID {
             request.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
         }
+        return request
+    }
 
+    private func fetchUsage(with request: URLRequest) async throws -> QuotaUsageSnapshot {
         let response = try await httpClient.data(for: request)
         switch response.statusCode {
         case 200:
-            return .quotaUsage(try decodeUsage(from: response.data))
+            return try decodeUsage(from: response.data)
         case 401, 403:
             throw BalanceProviderError.authenticationFailed
         case 429:
@@ -103,28 +116,24 @@ public final class CodexQuotaProvider: BalanceProvider {
             throw BalanceProviderError.decodingFailed
         }
 
-        var windows: [QuotaWindowSnapshot] = []
-        if let primary = payload.rateLimit.primaryWindow {
-            windows.append(makeWindow(label: "5h", from: primary))
-        }
-        if let secondary = payload.rateLimit.secondaryWindow {
-            windows.append(makeWindow(label: "Week", from: secondary))
-        }
-
-        guard !windows.isEmpty else {
+        guard let primary = payload.rateLimit.primaryWindow,
+              let secondary = payload.rateLimit.secondaryWindow else {
             throw BalanceProviderError.missingBalanceInfo
         }
 
         return QuotaUsageSnapshot(
             providerID: id,
             planName: normalizedPlanName(payload.planType),
-            windows: windows,
+            windows: [
+                makeWindow(label: "5h", from: primary),
+                makeWindow(label: "Week", from: secondary)
+            ],
             fetchedAt: now()
         )
     }
 
     private func makeWindow(label: String, from window: CodexRateLimitWindow) -> QuotaWindowSnapshot {
-        let remaining = clamp(Decimal(100) - Decimal(window.usedPercent), lower: 0, upper: 100)
+        let remaining = clamp(Decimal(100) - window.usedPercent, lower: 0, upper: 100)
         return QuotaWindowSnapshot(
             label: label,
             remainingPercentage: remaining,
@@ -226,7 +235,7 @@ private struct CodexRateLimit: Decodable {
 }
 
 private struct CodexRateLimitWindow: Decodable {
-    let usedPercent: Int
+    let usedPercent: Decimal
     let resetAt: Int?
     let resetAfterSeconds: Int?
 
@@ -238,13 +247,32 @@ private struct CodexRateLimitWindow: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        usedPercent = try container.decodeFlexibleInt(forKey: .usedPercent)
+        usedPercent = try container.decodeFlexibleDecimal(forKey: .usedPercent)
         resetAt = try container.decodeFlexibleOptionalInt(forKey: .resetAt)
         resetAfterSeconds = try container.decodeFlexibleOptionalInt(forKey: .resetAfterSeconds)
     }
 }
 
 private extension KeyedDecodingContainer {
+    func decodeFlexibleDecimal(forKey key: Key) throws -> Decimal {
+        if let decimalValue = try? decode(Decimal.self, forKey: key) {
+            return decimalValue
+        }
+        if let doubleValue = try? decode(Double.self, forKey: key) {
+            return Decimal(doubleValue)
+        }
+        let stringValue = try decode(String.self, forKey: key)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let decimalValue = Decimal(string: stringValue, locale: Locale(identifier: "en_US_POSIX")) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: key,
+                in: self,
+                debugDescription: "Expected a decimal number, number string, or integer string."
+            )
+        }
+        return decimalValue
+    }
+
     func decodeFlexibleInt(forKey key: Key) throws -> Int {
         if let intValue = try? decode(Int.self, forKey: key) {
             return intValue
