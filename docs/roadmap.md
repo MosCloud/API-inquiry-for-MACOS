@@ -1,13 +1,13 @@
 # API Inquiry Roadmap
 
-Last updated: 2026-05-30
+Last updated: 2026-06-03
 
 ## 中文
 
 ### 当前状态
 
-- 最新已发布版本：`v0.3.7`
-- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、多供应商菜单栏展示、Console 管理、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、DMG 打包发布。
+- 最新已发布版本：`v0.3.8`
+- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、多供应商菜单栏展示、Console 管理、详情页额度健康色彩提示、OpenAI/Codex 不完整额度响应保护、克制的 UI 微交互与可访问性补充、DMG 打包发布。
 - 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
 
 ### v0.3.2：中文本地化与语言切换
@@ -80,6 +80,23 @@ Last updated: 2026-05-30
 - 不新增供应商，不修改凭据存储或 provider 查询逻辑。
 - `MenuBarContentView` 更大范围拆分继续延后，避免在 UI 收尾版本里放大风险。
 
+### v0.3.8：OpenAI/Codex 额度刷新稳定性（已发布）
+
+目标：修复代理、网络或服务端短时缓存导致 OpenAI/Codex usage 响应不完整时，应用可能把残缺数据当作成功额度快照的问题。
+
+核心修复：
+
+- OpenAI/Codex provider 只有在 5 小时和 7 天两个额度窗口都存在时，才生成新的 quota 快照。
+- 当接口短时只返回 5 小时窗口，或 7 天窗口为 `null`/缺失时，先自动重试一次。
+- 如果重试后仍不完整，本次刷新按不可用处理，并保留上一次完整额度快照，避免界面退化成只显示 5 小时。
+- `used_percent` 改为 Decimal 解析，保留接口返回的小数精度，减少和官方 Codex 显示的差异。
+
+设计边界：
+
+- 不新增供应商。
+- 不改动菜单栏或 Console 视觉布局。
+- 不改变凭据读取、安全存储或本地 Codex auth 文件处理策略。
+
 ### v0.4.0：更多供应商与通用 Provider 能力
 
 - 增加更多内置供应商。
@@ -102,8 +119,8 @@ Last updated: 2026-05-30
 
 ### Current Status
 
-- Latest released version: `v0.3.7`
-- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, multi-provider menu bar display, Console management, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, and DMG release packaging.
+- Latest released version: `v0.3.8`
+- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, multi-provider menu bar display, Console management, detail-panel quota health colors, incomplete OpenAI/Codex quota response protection, restrained UI microinteractions and accessibility polish, and DMG release packaging.
 - Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
 
 ### v0.3.2: Chinese Localization and Language Switching
@@ -175,6 +192,23 @@ Design boundaries:
 - No dashboard-style Console, heavy motion, or complex design system.
 - No new providers, credential storage changes, or provider query changes.
 - Larger `MenuBarContentView` splitting stays deferred to avoid expanding release risk.
+
+### v0.3.8: OpenAI/Codex Quota Refresh Stability (Released)
+
+Goal: fix the case where proxy, network, or short-lived service cache issues can make the OpenAI/Codex usage response incomplete and cause the app to treat partial quota data as a successful snapshot.
+
+Core fixes:
+
+- The OpenAI/Codex provider now emits a new quota snapshot only when both the 5-hour and 7-day quota windows are present.
+- When the API briefly returns only the 5-hour window, or the 7-day window is `null`/missing, API Inquiry retries once.
+- If the retry still returns incomplete data, the refresh is treated as unavailable and the app keeps the last complete quota snapshot instead of degrading to a single 5-hour row.
+- `used_percent` is now parsed as Decimal, preserving fractional precision from the service response and reducing drift from the official Codex display.
+
+Design boundaries:
+
+- No new providers.
+- No menu bar or Console layout changes.
+- No changes to credential discovery, secure storage, or local Codex auth-file handling.
 
 ### v0.4.0: More Providers and Generic Provider Capabilities
 
