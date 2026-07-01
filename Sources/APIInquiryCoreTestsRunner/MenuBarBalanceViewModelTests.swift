@@ -30,6 +30,7 @@ enum MenuBarBalanceViewModelTests {
         await testSecondaryProviderRowsExposeOtherProviders(using: harness)
         await testZhipuSecondaryProviderRowsOmitUsedSuffix(using: harness)
         await testRefreshUpdatesAllAddedProviders(using: harness)
+        await testRefreshReportsOutcome(using: harness)
     }
 
     @MainActor
@@ -272,6 +273,30 @@ enum MenuBarBalanceViewModelTests {
 
         harness.expectEqual(deepSeek.fetchCount, 1, "menu detail refresh updates secondary deepseek")
         harness.expectEqual(zhipu.fetchCount, 1, "menu detail refresh updates primary zhipu")
+    }
+
+    @MainActor
+    private static func testRefreshReportsOutcome(using harness: TestHarness) async {
+        let provider = MockBalanceProvider(
+            results: [
+                .success(.balance(makeSnapshot(total: "68.65"))),
+                .failure(BalanceProviderError.serverError(statusCode: 500))
+            ]
+        )
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "test-key"])
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
+        let coordinator = makeSingleProviderCoordinator(
+            provider: provider,
+            credentialStore: credentialStore,
+            controller: controller
+        )
+        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator)
+
+        let success = await viewModel.refresh()
+        let failure = await viewModel.refresh()
+
+        harness.expectEqual(success, true, "menu refresh reports success")
+        harness.expectEqual(failure, false, "menu refresh reports failure")
     }
 
     @MainActor

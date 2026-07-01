@@ -5,6 +5,8 @@ struct UsageConsoleHomeSection: View {
     let summaries: [APIProviderSummary]
     let strings: LocalizedStrings
     let setPrimaryProvider: (ProviderID) -> Void
+    let manualResetRefreshFeedback: RefreshActionFeedback
+    let manualResetRefreshTurn: Int
     let refreshManualResetCredits: () -> Void
 
     var body: some View {
@@ -14,6 +16,8 @@ struct UsageConsoleHomeSection: View {
                     summary: summary,
                     strings: strings,
                     setPrimaryProvider: setPrimaryProvider,
+                    manualResetRefreshFeedback: manualResetRefreshFeedback,
+                    manualResetRefreshTurn: manualResetRefreshTurn,
                     refreshManualResetCredits: refreshManualResetCredits
                 )
             }
@@ -27,6 +31,8 @@ struct ProviderStatusRow: View {
     let summary: APIProviderSummary
     let strings: LocalizedStrings
     let setPrimaryProvider: (ProviderID) -> Void
+    let manualResetRefreshFeedback: RefreshActionFeedback
+    let manualResetRefreshTurn: Int
     let refreshManualResetCredits: () -> Void
 
     var body: some View {
@@ -98,6 +104,9 @@ struct ProviderStatusRow: View {
         }
 
         if let manualResetCreditsText = summary.manualResetCreditsText {
+            let feedback: RefreshActionFeedback = summary.isManualResetCreditsRefreshing
+                ? .refreshing
+                : manualResetRefreshFeedback
             metrics.append(
                 ProviderMetricItem(
                     title: strings.manualResetMetricTitle,
@@ -105,7 +114,8 @@ struct ProviderStatusRow: View {
                     accessory: ProviderMetricAccessory(
                         systemImageName: "arrow.clockwise",
                         help: strings.refreshManualResetCredits,
-                        isDisabled: summary.isManualResetCreditsRefreshing,
+                        feedback: feedback,
+                        refreshTurn: manualResetRefreshTurn,
                         action: refreshManualResetCredits
                     )
                 )

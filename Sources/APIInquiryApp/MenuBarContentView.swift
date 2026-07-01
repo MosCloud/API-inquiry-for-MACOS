@@ -10,8 +10,10 @@ struct MenuBarContentView: View {
     @ObservedObject var viewModel: MenuBarBalanceViewModel
     @ObservedObject var languageStore: AppLanguageStore
     @StateObject private var launchAtLoginController: LaunchAtLoginController
+    @State private var refreshFeedback: RefreshActionFeedback = .idle
     @State private var refreshAnimationTurn = 0
     @State private var refreshAnimationTask: Task<Void, Never>?
+    @State private var refreshFeedbackResetTask: Task<Void, Never>?
     private let openConsole: (UsageConsoleSection) -> Void
 
     init(
@@ -85,6 +87,7 @@ struct MenuBarContentView: View {
         }
         .onDisappear {
             stopRefreshAnimationLoop()
+            resetRefreshFeedback()
         }
         .onChange(of: accessibilityReduceMotion) { reduceMotion in
             if reduceMotion {
@@ -146,18 +149,19 @@ struct MenuBarContentView: View {
                     openConsoleAndCloseMenu(.home)
                 }
 
+                let feedback = effectiveRefreshFeedback
                 headerIconButton(
                     systemImage: "arrow.clockwise",
-                    help: viewModel.isRefreshDisabled ? strings.refreshing : strings.refresh,
+                    help: feedback == .refreshing ? strings.refreshing : strings.refresh,
                     accessibilityLabel: strings.refresh,
-                    accessibilityValue: viewModel.isRefreshDisabled ? strings.refreshing : nil,
+                    accessibilityValue: feedback == .refreshing ? strings.refreshing : nil,
+                    feedback: feedback,
                     refreshTurn: refreshAnimationTurn,
                     reduceMotion: accessibilityReduceMotion
                 ) {
-                    startRefreshAnimationLoop()
-                    Task { await viewModel.refresh() }
+                    triggerRefresh()
                 }
-                .disabled(viewModel.isRefreshDisabled)
+                .disabled(viewModel.isRefreshDisabled || refreshFeedback.disablesInteraction)
             }
         }
     }
@@ -412,25 +416,30 @@ struct MenuBarContentView: View {
         help: String,
         accessibilityLabel: String? = nil,
         accessibilityValue: String? = nil,
+        feedback: RefreshActionFeedback = .idle,
         refreshTurn: Int = 0,
         reduceMotion: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: systemImage)
+            Image(systemName: feedback.systemImageName(default: systemImage))
                 .imageScale(.medium)
                 .apiInquiryRefreshTurnEffect(
-                    turn: refreshTurn,
-                    duration: RefreshAnimation.turnDuration,
+                    turn: feedback == .refreshing ? refreshTurn : 0,
+                    duration: RefreshFeedbackTiming.turnDuration,
                     reduceMotion: reduceMotion
                 )
+                .scaleEffect(feedback.isCompletion && !reduceMotion ? 1.08 : 1)
                 .frame(width: 24, height: 24)
                 .contentShape(Rectangle())
+                .id(feedback.systemImageName(default: systemImage))
         }
         .buttonStyle(.borderless)
+        .foregroundStyle(feedback.foregroundColor)
         .help(help)
         .accessibilityLabel(accessibilityLabel ?? help)
         .accessibilityValue(accessibilityValue ?? "")
+        .apiInquirySubtleAnimation(value: feedback, reduceMotion: reduceMotion)
     }
 
     private func footerAction(
@@ -464,6 +473,57 @@ struct MenuBarContentView: View {
         dismissMenu()
     }
 
+    private var effectiveRefreshFeedback: RefreshActionFeedback {
+        if viewModel.isRefreshDisabled && refreshFeedback == .idle {
+            return .refreshing
+        }
+
+        return refreshFeedback
+    }
+
+    private func triggerRefresh() {
+        guard refreshFeedback == .idle, !viewModel.isRefreshDisabled else {
+            return
+        }
+
+        refreshFeedbackResetTask?.cancel()
+        refreshFeedbackResetTask = nil
+        refreshFeedback = .refreshing
+        startRefreshAnimationLoop()
+
+        Task {
+            let succeeded = await viewModel.refresh()
+            await MainActor.run {
+                completeRefresh(succeeded: succeeded)
+            }
+        }
+    }
+
+    private func completeRefresh(succeeded: Bool) {
+        stopRefreshAnimationLoop()
+        refreshFeedback = succeeded ? .success : .failure
+        let targetFeedback = refreshFeedback
+        refreshFeedbackResetTask = Task {
+            try? await Task.sleep(nanoseconds: RefreshFeedbackTiming.completionDurationNanoseconds)
+            guard !Task.isCancelled else {
+                return
+            }
+            await MainActor.run {
+                guard refreshFeedback == targetFeedback else {
+                    return
+                }
+                refreshFeedback = .idle
+                refreshFeedbackResetTask = nil
+            }
+        }
+    }
+
+    private func resetRefreshFeedback() {
+        refreshFeedbackResetTask?.cancel()
+        refreshFeedbackResetTask = nil
+        refreshFeedback = .idle
+    }
+
     private func startRefreshAnimationLoop() {
         guard !accessibilityReduceMotion else {
             stopRefreshAnimationLoop()
@@ -483,7 +543,7 @@ struct MenuBarContentView: View {
                 }
 
                 let shouldContinue = await MainActor.run {
-                    !accessibilityReduceMotion && viewModel.isRefreshDisabled
+                    !accessibilityReduceMotion && effectiveRefreshFeedback == .refreshing
                 }
                 guard shouldContinue else {
                     await MainActor.run {
@@ -538,8 +598,8 @@ struct MenuBarContentView: View {
 }
 
 private enum RefreshAnimation {
-    static let turnDuration = 0.8
-    static let turnDurationNanoseconds: UInt64 = 800_000_000
+    static let turnDuration = RefreshFeedbackTiming.turnDuration
+    static let turnDurationNanoseconds = RefreshFeedbackTiming.turnDurationNanoseconds
 }
 
 private enum FooterActionRole {

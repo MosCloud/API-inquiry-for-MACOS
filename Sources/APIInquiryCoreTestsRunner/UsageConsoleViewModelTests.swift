@@ -33,6 +33,7 @@ enum UsageConsoleViewModelTests {
         await testCodexManualResetCreditsForceRefreshBypassesCache(using: harness)
         await testCodexManualResetCreditsRefreshDoesNotRefreshMainQuota(using: harness)
         await testCodexManualResetCreditsFailureKeepsPreviousSummary(using: harness)
+        await testCodexManualResetCreditsRefreshReportsOutcome(using: harness)
     }
 
     @MainActor
@@ -141,6 +142,22 @@ enum UsageConsoleViewModelTests {
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
         harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 7/18 expires", "manual reset failure keeps cached summary")
         harness.expectEqual(provider.fetchCount, 2, "manual reset failure fetch count")
+    }
+
+    @MainActor
+    private static func testCodexManualResetCreditsRefreshReportsOutcome(using harness: TestHarness) async {
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let provider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z")),
+            .failure(BalanceProviderError.serverError(statusCode: 500))
+        ])
+        let viewModel = makeCodexManualResetViewModel(provider: provider, now: { now })
+
+        let success = await viewModel.refreshCodexManualResetCredits(force: true)
+        let failure = await viewModel.refreshCodexManualResetCredits(force: true)
+
+        harness.expectEqual(success, true, "manual reset refresh reports success")
+        harness.expectEqual(failure, false, "manual reset refresh reports failure")
     }
 
     @MainActor

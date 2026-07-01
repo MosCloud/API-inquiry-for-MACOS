@@ -15,7 +15,8 @@ struct ProviderMetricItem {
 struct ProviderMetricAccessory {
     let systemImageName: String
     let help: String
-    let isDisabled: Bool
+    let feedback: RefreshActionFeedback
+    let refreshTurn: Int
     let action: () -> Void
 }
 
@@ -47,17 +48,23 @@ struct ProviderMetricBox: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
-                Text(item.title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+            Text(item.title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .overlay(alignment: .leading) {
+                    if let accessory = item.accessory {
+                        HStack(spacing: 4) {
+                            Text(item.title)
+                                .font(.caption)
+                                .lineLimit(1)
+                                .hidden()
 
-                if let accessory = item.accessory {
-                    ProviderMetricAccessoryButton(accessory: accessory)
+                            ProviderMetricAccessoryButton(accessory: accessory)
+                        }
+                    }
                 }
-            }
 
             Text(item.value)
                 .font(.system(.title3, design: .rounded).weight(.semibold))
@@ -72,20 +79,30 @@ struct ProviderMetricBox: View {
 }
 
 private struct ProviderMetricAccessoryButton: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+
     let accessory: ProviderMetricAccessory
 
     var body: some View {
         Button(action: accessory.action) {
-            Image(systemName: accessory.systemImageName)
+            Image(systemName: accessory.feedback.systemImageName(default: accessory.systemImageName))
                 .font(.system(size: 10, weight: .semibold))
+                .apiInquiryRefreshTurnEffect(
+                    turn: accessory.feedback == .refreshing ? accessory.refreshTurn : 0,
+                    duration: RefreshFeedbackTiming.turnDuration,
+                    reduceMotion: accessibilityReduceMotion
+                )
+                .scaleEffect(accessory.feedback.isCompletion && !accessibilityReduceMotion ? 1.08 : 1)
                 .frame(width: 20, height: 20)
                 .contentShape(Rectangle())
+                .id(accessory.feedback)
         }
         .buttonStyle(.borderless)
-        .disabled(accessory.isDisabled)
-        .foregroundStyle(.secondary)
-        .opacity(accessory.isDisabled ? 0.45 : 0.85)
+        .disabled(accessory.feedback.disablesInteraction)
+        .foregroundStyle(accessory.feedback.foregroundColor)
+        .opacity(accessory.feedback == .refreshing ? 0.75 : 0.9)
         .help(accessory.help)
         .accessibilityLabel(accessory.help)
+        .apiInquirySubtleAnimation(value: accessory.feedback, reduceMotion: accessibilityReduceMotion)
     }
 }

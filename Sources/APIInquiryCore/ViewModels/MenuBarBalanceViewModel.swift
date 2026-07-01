@@ -251,8 +251,15 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         }
     }
 
-    public func refresh() async {
+    @discardableResult
+    public func refresh() async -> Bool {
         await coordinator.refreshAddedProviders()
+
+        if case .loaded = activeState {
+            return true
+        }
+
+        return false
     }
 
     public func startAutoRefresh() {

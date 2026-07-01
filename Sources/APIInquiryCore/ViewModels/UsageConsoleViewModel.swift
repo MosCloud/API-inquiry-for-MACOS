@@ -203,23 +203,24 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     public func refreshCodexManualResetCreditsIfNeeded() {
         Task { [weak self] in
-            await self?.refreshCodexManualResetCredits(force: false)
+            _ = await self?.refreshCodexManualResetCredits(force: false)
         }
     }
 
-    public func refreshCodexManualResetCredits(force: Bool) async {
+    @discardableResult
+    public func refreshCodexManualResetCredits(force: Bool) async -> Bool {
         guard let apiKey = codexManualResetCredential() else {
             codexManualResetCreditsState = .idle
-            return
+            return false
         }
 
         let currentDate = now()
         if !force, isCodexManualResetCacheFresh(at: currentDate) {
-            return
+            return true
         }
 
         guard !isCodexManualResetCreditsRefreshing else {
-            return
+            return false
         }
 
         let previousSnapshot = cachedCodexManualResetCreditsSnapshot
@@ -232,8 +233,10 @@ public final class UsageConsoleViewModel: ObservableObject {
         do {
             let snapshot = try await manualResetCreditsProvider.fetchSnapshot(apiKey: apiKey)
             codexManualResetCreditsState = .loaded(snapshot)
+            return true
         } catch {
             codexManualResetCreditsState = .failed(previous: previousSnapshot)
+            return false
         }
     }
 
