@@ -18,7 +18,7 @@ public final class CodexQuotaProvider: BalanceProvider {
     }
 
     public func fetchSnapshot(apiKey: String) async throws -> ProviderSnapshot {
-        let credential = try parseCredential(apiKey)
+        let credential = try CodexCredentialParser.parse(apiKey)
         var request = URLRequest(url: usageURL)
         request.httpMethod = "GET"
         request.setValue("Bearer \(credential.accessToken)", forHTTPHeaderField: "Authorization")
@@ -38,61 +38,6 @@ public final class CodexQuotaProvider: BalanceProvider {
         default:
             throw BalanceProviderError.serverError(statusCode: response.statusCode)
         }
-    }
-
-    private func parseCredential(_ value: String) throws -> CodexCredential {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            throw BalanceProviderError.authenticationFailed
-        }
-
-        if trimmed.hasPrefix("{") {
-            return try parseAuthJSON(trimmed)
-        }
-
-        let token: String
-        if trimmed.lowercased().hasPrefix("bearer ") {
-            token = String(trimmed.dropFirst(7)).trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            token = trimmed
-        }
-
-        guard !token.isEmpty else {
-            throw BalanceProviderError.authenticationFailed
-        }
-        return CodexCredential(accessToken: token, accountID: nil)
-    }
-
-    private func parseAuthJSON(_ value: String) throws -> CodexCredential {
-        guard let data = value.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw BalanceProviderError.authenticationFailed
-        }
-
-        let tokens = object["tokens"] as? [String: Any]
-        let accessToken = firstNonEmptyString([
-            tokens?["access_token"],
-            object["accessToken"],
-            object["access_token"]
-        ])
-        let accountID = firstNonEmptyString([
-            tokens?["account_id"],
-            object["account_id"],
-            object["accountID"]
-        ])
-
-        guard let accessToken else {
-            throw BalanceProviderError.authenticationFailed
-        }
-
-        return CodexCredential(accessToken: accessToken, accountID: accountID)
-    }
-
-    private func firstNonEmptyString(_ values: [Any?]) -> String? {
-        values
-            .compactMap { $0 as? String }
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first { !$0.isEmpty }
     }
 
     private func decodeUsage(from data: Data) throws -> QuotaUsageSnapshot {
@@ -181,11 +126,6 @@ public final class CodexQuotaProvider: BalanceProvider {
             .replacingOccurrences(of: "-", with: " ")
             .capitalized
     }
-}
-
-private struct CodexCredential {
-    let accessToken: String
-    let accountID: String?
 }
 
 private struct CodexUsageEnvelope: Decodable {
