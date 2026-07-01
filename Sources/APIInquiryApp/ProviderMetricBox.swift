@@ -78,7 +78,7 @@ private struct ProviderMetricAccessoryButton: View {
         Button(action: accessory.action) {
             Image(systemName: accessory.systemImageName)
                 .font(.system(size: 10, weight: .semibold))
-                .frame(width: 16, height: 16)
+                .frame(width: 20, height: 20)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
