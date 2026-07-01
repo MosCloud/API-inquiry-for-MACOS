@@ -56,8 +56,16 @@ struct UsageConsoleView: View {
             UsageConsoleHomeSection(
                 summaries: viewModel.providerSummaries,
                 strings: strings,
-                setPrimaryProvider: { viewModel.setPrimaryProvider($0) }
+                setPrimaryProvider: { viewModel.setPrimaryProvider($0) },
+                refreshManualResetCredits: {
+                    Task {
+                        await viewModel.refreshCodexManualResetCredits(force: true)
+                    }
+                }
             )
+            .onAppear {
+                viewModel.refreshCodexManualResetCreditsIfNeeded()
+            }
         case .api:
             UsageConsoleAPISection(
                 viewModel: viewModel,

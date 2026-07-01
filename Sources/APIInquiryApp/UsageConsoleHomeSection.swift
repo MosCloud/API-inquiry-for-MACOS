@@ -5,6 +5,7 @@ struct UsageConsoleHomeSection: View {
     let summaries: [APIProviderSummary]
     let strings: LocalizedStrings
     let setPrimaryProvider: (ProviderID) -> Void
+    let refreshManualResetCredits: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: ConsoleMetrics.homeProviderListSpacing) {
@@ -12,7 +13,8 @@ struct UsageConsoleHomeSection: View {
                 ProviderStatusRow(
                     summary: summary,
                     strings: strings,
-                    setPrimaryProvider: setPrimaryProvider
+                    setPrimaryProvider: setPrimaryProvider,
+                    refreshManualResetCredits: refreshManualResetCredits
                 )
             }
         }
@@ -25,6 +27,7 @@ struct ProviderStatusRow: View {
     let summary: APIProviderSummary
     let strings: LocalizedStrings
     let setPrimaryProvider: (ProviderID) -> Void
+    let refreshManualResetCredits: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: ConsoleMetrics.providerHeaderMetricsSpacing) {
@@ -90,6 +93,21 @@ struct ProviderStatusRow: View {
                 ProviderMetricItem(
                     title: strings.planMetricTitle,
                     value: planNameText
+                )
+            )
+        }
+
+        if let manualResetCreditsText = summary.manualResetCreditsText {
+            metrics.append(
+                ProviderMetricItem(
+                    title: strings.manualResetMetricTitle,
+                    value: manualResetCreditsText,
+                    accessory: ProviderMetricAccessory(
+                        systemImageName: "arrow.clockwise",
+                        help: strings.refreshManualResetCredits,
+                        isDisabled: summary.isManualResetCreditsRefreshing,
+                        action: refreshManualResetCredits
+                    )
                 )
             )
         }

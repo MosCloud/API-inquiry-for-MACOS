@@ -3,6 +3,20 @@ import SwiftUI
 struct ProviderMetricItem {
     let title: String
     let value: String
+    let accessory: ProviderMetricAccessory?
+
+    init(title: String, value: String, accessory: ProviderMetricAccessory? = nil) {
+        self.title = title
+        self.value = value
+        self.accessory = accessory
+    }
+}
+
+struct ProviderMetricAccessory {
+    let systemImageName: String
+    let help: String
+    let isDisabled: Bool
+    let action: () -> Void
 }
 
 struct ProviderMetricGrid: View {
@@ -11,7 +25,7 @@ struct ProviderMetricGrid: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(metrics.indices, id: \.self) { index in
-                ProviderMetricBox(title: metrics[index].title, value: metrics[index].value)
+                ProviderMetricBox(item: metrics[index])
 
                 if index != metrics.indices.last {
                     metricSeparator
@@ -29,17 +43,23 @@ struct ProviderMetricGrid: View {
 }
 
 struct ProviderMetricBox: View {
-    let title: String
-    let value: String
+    let item: ProviderMetricItem
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            HStack(spacing: 4) {
+                Text(item.title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
-            Text(value)
+                if let accessory = item.accessory {
+                    ProviderMetricAccessoryButton(accessory: accessory)
+                }
+            }
+
+            Text(item.value)
                 .font(.system(.title3, design: .rounded).weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -47,6 +67,25 @@ struct ProviderMetricBox: View {
         .padding(.vertical, 7)
         .padding(.horizontal, 12)
         .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: item.accessory == nil ? .combine : .contain)
+    }
+}
+
+private struct ProviderMetricAccessoryButton: View {
+    let accessory: ProviderMetricAccessory
+
+    var body: some View {
+        Button(action: accessory.action) {
+            Image(systemName: accessory.systemImageName)
+                .font(.system(size: 10, weight: .semibold))
+                .frame(width: 16, height: 16)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .disabled(accessory.isDisabled)
+        .foregroundStyle(.secondary)
+        .opacity(accessory.isDisabled ? 0.45 : 0.85)
+        .help(accessory.help)
+        .accessibilityLabel(accessory.help)
     }
 }
