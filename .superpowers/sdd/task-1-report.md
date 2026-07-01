@@ -75,3 +75,23 @@ PASS: 513 expectations
 - Used only fake tokens in tests and report content.
 - No UI, refresh-controller, or manual reset credits changes were introduced.
 - `CodexQuotaProviderTests.swift` did not need edits because existing coverage still validates provider request behavior after the parser extraction.
+
+## Follow-up Review Fix
+
+- Added parser-level tests for the alias contract called out in review:
+  - `tokens.access_token`
+  - top-level `accessToken`
+  - top-level `access_token`
+  - `tokens.account_id`
+  - top-level `account_id`
+  - top-level `accountID`
+- Re-ran the required verification command and it passed with the existing parser implementation, so no production code change was needed for this review item.
+- Verification:
+
+```bash
+CLANG_MODULE_CACHE_PATH=/Users/zbw/Desktop/API-inquiry/.build/module-cache swift run APIInquiryCoreTestsRunner
+```
+
+```text
+PASS: 519 expectations
+```

@@ -6,6 +6,8 @@ enum CodexCredentialParserTests {
         testRawTokenParsing(using: harness)
         testBearerTokenNormalization(using: harness)
         testAuthJSONParsing(using: harness)
+        testAuthJSONAccessTokenAliases(using: harness)
+        testAuthJSONAccountIDAliases(using: harness)
     }
 
     private static func testRawTokenParsing(using harness: TestHarness) {
@@ -44,6 +46,95 @@ enum CodexCredentialParserTests {
             harness.expectEqual(json.accountID, "account-123", "auth json account parsed")
         } catch {
             harness.expectTrue(false, "auth json parse should not throw: \(error)")
+        }
+    }
+
+    private static func testAuthJSONAccessTokenAliases(using harness: TestHarness) {
+        let cases: [(name: String, json: String, expected: String)] = [
+            (
+                "tokens.access_token",
+                """
+                {
+                  "tokens": {
+                    "access_token": "json-token"
+                  }
+                }
+                """,
+                "json-token"
+            ),
+            (
+                "top-level accessToken",
+                """
+                {
+                  "accessToken": "json-token"
+                }
+                """,
+                "json-token"
+            ),
+            (
+                "top-level access_token",
+                """
+                {
+                  "access_token": "json-token"
+                }
+                """,
+                "json-token"
+            )
+        ]
+
+        for testCase in cases {
+            do {
+                let credential = try CodexCredentialParser.parse(testCase.json)
+                harness.expectEqual(credential.accessToken, testCase.expected, "\(testCase.name) parsed")
+            } catch {
+                harness.expectTrue(false, "\(testCase.name) parse should not throw: \(error)")
+            }
+        }
+    }
+
+    private static func testAuthJSONAccountIDAliases(using harness: TestHarness) {
+        let cases: [(name: String, json: String, expected: String)] = [
+            (
+                "tokens.account_id",
+                """
+                {
+                  "tokens": {
+                    "access_token": "json-token",
+                    "account_id": "account-123"
+                  }
+                }
+                """,
+                "account-123"
+            ),
+            (
+                "top-level account_id",
+                """
+                {
+                  "access_token": "json-token",
+                  "account_id": "account-123"
+                }
+                """,
+                "account-123"
+            ),
+            (
+                "top-level accountID",
+                """
+                {
+                  "access_token": "json-token",
+                  "accountID": "account-123"
+                }
+                """,
+                "account-123"
+            )
+        ]
+
+        for testCase in cases {
+            do {
+                let credential = try CodexCredentialParser.parse(testCase.json)
+                harness.expectEqual(credential.accountID, testCase.expected, "\(testCase.name) parsed")
+            } catch {
+                harness.expectTrue(false, "\(testCase.name) parse should not throw: \(error)")
+            }
         }
     }
 }
