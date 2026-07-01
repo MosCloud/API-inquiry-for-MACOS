@@ -534,6 +534,7 @@ struct MenuBarContentView: View {
             return
         }
 
+        refreshAnimationTurn = 0
         refreshAnimationTurn += 1
         refreshAnimationTask = Task {
             while !Task.isCancelled {
@@ -548,6 +549,7 @@ struct MenuBarContentView: View {
                 guard shouldContinue else {
                     await MainActor.run {
                         refreshAnimationTask = nil
+                        refreshAnimationTurn = 0
                     }
                     return
                 }
@@ -562,6 +564,7 @@ struct MenuBarContentView: View {
     private func stopRefreshAnimationLoop() {
         refreshAnimationTask?.cancel()
         refreshAnimationTask = nil
+        refreshAnimationTurn = 0
     }
 
     private var statusColor: Color {

@@ -149,6 +149,7 @@ struct UsageConsoleView: View {
             return
         }
 
+        manualResetRefreshTurn = 0
         manualResetRefreshTurn += 1
         manualResetRefreshAnimationTask = Task {
             while !Task.isCancelled {
@@ -163,6 +164,7 @@ struct UsageConsoleView: View {
                 guard shouldContinue else {
                     await MainActor.run {
                         manualResetRefreshAnimationTask = nil
+                        manualResetRefreshTurn = 0
                     }
                     return
                 }
@@ -177,5 +179,6 @@ struct UsageConsoleView: View {
     private func stopManualResetRefreshAnimationLoop() {
         manualResetRefreshAnimationTask?.cancel()
         manualResetRefreshAnimationTask = nil
+        manualResetRefreshTurn = 0
     }
 }
