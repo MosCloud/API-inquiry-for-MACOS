@@ -48,23 +48,18 @@ struct ProviderMetricBox: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(item.title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .overlay(alignment: .leading) {
-                    if let accessory = item.accessory {
-                        HStack(spacing: 4) {
-                            Text(item.title)
-                                .font(.caption)
-                                .lineLimit(1)
-                                .hidden()
+            HStack(spacing: 4) {
+                Text(item.title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
-                            ProviderMetricAccessoryButton(accessory: accessory)
-                        }
-                    }
+                if let accessory = item.accessory {
+                    ProviderMetricAccessoryButton(accessory: accessory)
                 }
+            }
+            .frame(height: 14, alignment: .center)
 
             Text(item.value)
                 .font(.system(.title3, design: .rounded).weight(.semibold))

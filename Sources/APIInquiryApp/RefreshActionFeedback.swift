@@ -40,5 +40,5 @@ enum RefreshActionFeedback: Hashable {
 enum RefreshFeedbackTiming {
     static let turnDuration = 0.8
     static let turnDurationNanoseconds: UInt64 = 800_000_000
-    static let completionDurationNanoseconds: UInt64 = 900_000_000
+    static let completionDurationNanoseconds: UInt64 = 1_400_000_000
 }
