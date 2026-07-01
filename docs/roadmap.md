@@ -1,13 +1,13 @@
 # API Inquiry Roadmap
 
-Last updated: 2026-05-30
+Last updated: 2026-07-01
 
 ## 中文
 
 ### 当前状态
 
-- 最新已发布版本：`v0.3.7`
-- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、多供应商菜单栏展示、Console 管理、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、DMG 打包发布。
+- 最新已发布版本：`v0.3.9`
+- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、Codex 手动重置额度展示、多供应商菜单栏展示、Console 管理、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、DMG 打包发布。
 - 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
 
 ### v0.3.2：中文本地化与语言切换
@@ -80,6 +80,22 @@ Last updated: 2026-05-30
 - 不新增供应商，不修改凭据存储或 provider 查询逻辑。
 - `MenuBarContentView` 更大范围拆分继续延后，避免在 UI 收尾版本里放大风险。
 
+### v0.3.9：Codex 手动重置额度（已发布）
+
+目标：在不改变菜单栏主刷新链路的前提下，让 Console Home 更完整展示 OpenAI/Codex 账号当前可用的手动重置资源。
+
+核心方向：
+
+- OpenAI/Codex 卡片展示手动重置卡数量和到期信息。
+- 手动重置查询优先使用本机 Codex 登录态，使用独立低频缓存，不进入 5 分钟主刷新。
+- 指标旁提供独立刷新按钮，并使用查询中、成功、失败的轻量反馈。
+- 修复重复刷新后图标速度异常累积的问题。
+
+设计边界：
+
+- 手动重置信息只在 Console Home 展示，不进入 Menubar 展示。
+- 不展示 token、cookie、原始响应或完整唯一 ID。
+
 ### v0.4.0：更多供应商与通用 Provider 能力
 
 - 增加更多内置供应商。
@@ -102,8 +118,8 @@ Last updated: 2026-05-30
 
 ### Current Status
 
-- Latest released version: `v0.3.7`
-- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, multi-provider menu bar display, Console management, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, and DMG release packaging.
+- Latest released version: `v0.3.9`
+- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, Codex manual reset credit display, multi-provider menu bar display, Console management, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, and DMG release packaging.
 - Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
 
 ### v0.3.2: Chinese Localization and Language Switching
@@ -175,6 +191,22 @@ Design boundaries:
 - No dashboard-style Console, heavy motion, or complex design system.
 - No new providers, credential storage changes, or provider query changes.
 - Larger `MenuBarContentView` splitting stays deferred to avoid expanding release risk.
+
+### v0.3.9: Codex Manual Reset Credits (Released)
+
+Goal: show the current OpenAI/Codex manual reset resources in Console Home without changing the menu bar's main refresh chain.
+
+Core directions:
+
+- Show manual reset-card count and expiration details on the OpenAI/Codex card.
+- Prefer local Codex login state for manual reset checks, use a separate low-frequency cache, and keep it out of the 5-minute main refresh.
+- Provide an independent refresh button next to the metric with lightweight in-progress, success, and failure feedback.
+- Fix refresh icons accumulating rotation speed across repeated refreshes.
+
+Design boundaries:
+
+- Manual reset information appears only in Console Home, not in the menu bar.
+- Do not display tokens, cookies, raw responses, or full unique IDs.
 
 ### v0.4.0: More Providers and Generic Provider Capabilities
 

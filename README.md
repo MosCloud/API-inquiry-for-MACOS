@@ -113,8 +113,8 @@ Scripts/package-dmg.sh
 脚本会生成：
 
 ```text
-dist/API-Inquiry-v0.3.7.dmg
-dist/API-Inquiry-v0.3.7.dmg.sha256
+dist/API-Inquiry-v0.3.9.dmg
+dist/API-Inquiry-v0.3.9.dmg.sha256
 ```
 
 完成发布验证和上传后，删除本机开发态 app bundle，避免 Launchpad 将非正式副本索引成重复图标：
@@ -127,11 +127,11 @@ Scripts/clean-development-apps.sh
 
 本项目采用免费的 GitHub Releases 发布策略。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。
 
-1. 从 GitHub Releases 下载 `API-Inquiry-v0.3.7.dmg` 和 `API-Inquiry-v0.3.7.dmg.sha256`。
+1. 从 GitHub Releases 下载 `API-Inquiry-v0.3.9.dmg` 和 `API-Inquiry-v0.3.9.dmg.sha256`。
 2. 校验下载文件：
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.3.7.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.3.9.dmg.sha256
    ```
 
 3. 打开 DMG。
@@ -208,6 +208,7 @@ Scripts/restart-installed-app.sh
 - 菜单栏只显示 Primary Provider 详情：DeepSeek 显示紧凑余额，例如 `¥68.6`；智谱 GLM Coding Plan 显示用量，例如 `5h 17%`。
 - Codex 作为 Primary Provider 时，菜单栏显示 ChatGPT/GPT 标识加 `5h xx%` 剩余额度。
 - Codex 详情页展示 5h 和 Week 两个剩余额度窗口，并在 Console Home 展示当前 plan。
+- Console Home 的 OpenAI/Codex 卡片展示手动重置额度，并可单独刷新该信息。
 - Codex 优先自动读取本机 Codex 登录态；无需在 Console 手工输入 OpenAI Platform API 密钥。
 - 展开面板顶部突出展示 Primary Provider，其余供应商以紧凑行展示。
 - 展开面板中的刷新按钮会刷新所有已添加供应商。
@@ -223,6 +224,7 @@ Scripts/restart-installed-app.sh
 - 智谱 GLM Coding Plan 用量集成
 - Codex/ChatGPT 会话额度查询，包含 5h 和 Week 剩余额度
 - Codex 当前 plan 展示
+- Codex 手动重置额度展示和独立刷新
 - 内置多供应商目录
 - 每供应商独立的安全密钥串存储
 - 每 5 分钟自动刷新和手动刷新
@@ -247,7 +249,7 @@ Scripts/restart-installed-app.sh
 
 ## 路线图
 
-- 最新已发布版本：`v0.3.7`
+- 最新已发布版本：`v0.3.9`
 - 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
 - 后续方向：更多供应商、供应商显示控制、自动更新和更完善的安装/升级体验。
 
