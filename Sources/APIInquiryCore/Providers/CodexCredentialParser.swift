@@ -21,13 +21,7 @@ public enum CodexCredentialParser {
             return try parseAuthJSON(trimmed)
         }
 
-        let token: String
-        if trimmed.lowercased().hasPrefix("bearer ") {
-            token = String(trimmed.dropFirst(7)).trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            token = trimmed
-        }
-
+        let token = normalizedAccessToken(trimmed)
         guard !token.isEmpty else {
             throw BalanceProviderError.authenticationFailed
         }
@@ -42,7 +36,7 @@ public enum CodexCredentialParser {
         }
 
         let tokens = object["tokens"] as? [String: Any]
-        let accessToken = firstNonEmptyString([
+        let accessToken = firstNonEmptyAccessToken([
             tokens?["access_token"],
             object["accessToken"],
             object["access_token"]
@@ -65,5 +59,24 @@ public enum CodexCredentialParser {
             .compactMap { $0 as? String }
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first { !$0.isEmpty }
+    }
+
+    private static func firstNonEmptyAccessToken(_ values: [Any?]) -> String? {
+        values
+            .compactMap { $0 as? String }
+            .map(normalizedAccessToken)
+            .first { !$0.isEmpty }
+    }
+
+    private static func normalizedAccessToken(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowercased = trimmed.lowercased()
+        if lowercased == "bearer" {
+            return ""
+        }
+        if lowercased.hasPrefix("bearer ") {
+            return String(trimmed.dropFirst(7)).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return trimmed
     }
 }

@@ -4,6 +4,7 @@ import Foundation
 enum CodexManualResetCreditsProviderTests {
     static func run(using harness: TestHarness) async {
         await testFetchSnapshotBuildsRequestAndParsesCredits(using: harness)
+        await testAuthJSONAccountIDSendsHeader(using: harness)
         await testEnvelopeCreditsAreAlsoAccepted(using: harness)
         await testAuthenticationFailureMapsToProviderError(using: harness)
         await testForbiddenMapsToAuthenticationFailure(using: harness)
@@ -68,6 +69,34 @@ enum CodexManualResetCreditsProviderTests {
             )
         } catch {
             harness.expectTrue(false, "manual reset fetch should not throw: \(error)")
+        }
+    }
+
+    private static func testAuthJSONAccountIDSendsHeader(using harness: TestHarness) async {
+        let httpClient = CodexManualResetMockHTTPClient(response: HTTPResponse(
+            data: #"{"credits":[]}"#.data(using: .utf8)!,
+            statusCode: 200
+        ))
+        let provider = CodexManualResetCreditsProvider(httpClient: httpClient)
+
+        do {
+            _ = try await provider.fetchSnapshot(apiKey:
+                """
+                {
+                  "tokens": {
+                    "access_token": "json-token",
+                    "account_id": "account-123"
+                  }
+                }
+                """
+            )
+            harness.expectEqual(
+                httpClient.lastRequest?.value(forHTTPHeaderField: "ChatGPT-Account-Id"),
+                "account-123",
+                "manual reset account id header"
+            )
+        } catch {
+            harness.expectTrue(false, "manual reset auth json account id should not throw: \(error)")
         }
     }
 

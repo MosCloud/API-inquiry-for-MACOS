@@ -7,6 +7,8 @@ enum CodexCredentialParserTests {
         testBearerTokenNormalization(using: harness)
         testAuthJSONParsing(using: harness)
         testAuthJSONAccessTokenAliases(using: harness)
+        testAuthJSONBearerAccessTokenNormalization(using: harness)
+        testAuthJSONBearerAccessTokenRejectsEmptyValue(using: harness)
         testAuthJSONAccountIDAliases(using: harness)
     }
 
@@ -89,6 +91,42 @@ enum CodexCredentialParserTests {
             } catch {
                 harness.expectTrue(false, "\(testCase.name) parse should not throw: \(error)")
             }
+        }
+    }
+
+    private static func testAuthJSONBearerAccessTokenNormalization(using harness: TestHarness) {
+        do {
+            let credential = try CodexCredentialParser.parse(
+                """
+                {
+                  "tokens": {
+                    "access_token": "Bearer json-token"
+                  }
+                }
+                """
+            )
+            harness.expectEqual(credential.accessToken, "json-token", "auth json bearer token normalized")
+        } catch {
+            harness.expectTrue(false, "auth json bearer token parse should not throw: \(error)")
+        }
+    }
+
+    private static func testAuthJSONBearerAccessTokenRejectsEmptyValue(using harness: TestHarness) {
+        do {
+            _ = try CodexCredentialParser.parse(
+                """
+                {
+                  "tokens": {
+                    "access_token": "Bearer   "
+                  }
+                }
+                """
+            )
+            harness.expectTrue(false, "empty bearer token should fail")
+        } catch BalanceProviderError.authenticationFailed {
+            harness.expectTrue(true, "empty bearer token fails authentication")
+        } catch {
+            harness.expectTrue(false, "empty bearer token should fail with authenticationFailed: \(error)")
         }
     }
 
