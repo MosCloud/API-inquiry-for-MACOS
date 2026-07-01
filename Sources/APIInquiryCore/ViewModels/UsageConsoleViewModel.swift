@@ -24,6 +24,8 @@ public struct APIProviderSummary: Equatable {
     public let lastRefreshText: String
     public let planNextResetText: String?
     public let planNameText: String?
+    public let manualResetCreditsText: String?
+    public let isManualResetCreditsRefreshing: Bool
     public let isPrimary: Bool
 
     public init(
@@ -44,6 +46,8 @@ public struct APIProviderSummary: Equatable {
         lastRefreshText: String = "--",
         planNextResetText: String? = nil,
         planNameText: String? = nil,
+        manualResetCreditsText: String? = nil,
+        isManualResetCreditsRefreshing: Bool = false,
         isPrimary: Bool = false
     ) {
         self.id = id
@@ -63,6 +67,8 @@ public struct APIProviderSummary: Equatable {
         self.lastRefreshText = lastRefreshText
         self.planNextResetText = planNextResetText
         self.planNameText = planNameText
+        self.manualResetCreditsText = manualResetCreditsText
+        self.isManualResetCreditsRefreshing = isManualResetCreditsRefreshing
         self.isPrimary = isPrimary
     }
 }
@@ -75,9 +81,14 @@ public final class UsageConsoleViewModel: ObservableObject {
     @Published public private(set) var apiKeyInputsByProviderID: [ProviderID: String] = [:]
     @Published public private(set) var settingsFeedbacksByProviderID: [ProviderID: SettingsFeedback] = [:]
     @Published public private(set) var apiKeyDeleteConfirmationProviderID: ProviderID?
+    @Published public private(set) var codexManualResetCreditsState: CodexManualResetCreditsDisplayState = .idle
+    @Published public private(set) var isCodexManualResetCreditsRefreshing = false
 
     private let coordinator: MultiProviderBalanceCoordinator
     private let credentialStore: CredentialStore
+    private let manualResetCreditsProvider: CodexManualResetCreditsProviding
+    private let manualResetCacheTTL: TimeInterval
+    private let now: () -> Date
     private let lastRefreshTimeFormatter: LastRefreshTimeFormatter
     private let languageStore: AppLanguageStore?
     private var cancellables: Set<AnyCancellable> = []
@@ -85,11 +96,17 @@ public final class UsageConsoleViewModel: ObservableObject {
     public init(
         coordinator: MultiProviderBalanceCoordinator,
         credentialStore: CredentialStore,
+        manualResetCreditsProvider: CodexManualResetCreditsProviding = CodexManualResetCreditsProvider(),
+        manualResetCacheTTL: TimeInterval = 3_600,
+        now: @escaping () -> Date = Date.init,
         lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
         languageStore: AppLanguageStore? = nil
     ) {
         self.coordinator = coordinator
         self.credentialStore = credentialStore
+        self.manualResetCreditsProvider = manualResetCreditsProvider
+        self.manualResetCacheTTL = manualResetCacheTTL
+        self.now = now
         self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
         self.languageStore = languageStore
 
@@ -147,6 +164,7 @@ public final class UsageConsoleViewModel: ObservableObject {
             let state = coordinator.state(for: id)
             let validationStatusText = validationStatusText(for: state)
             let isCredentialConfigured = coordinator.isCredentialConfigured(for: id)
+            let isCodexProvider = id == .codex
             return APIProviderSummary(
                 id: id,
                 displayName: descriptor.displayName,
@@ -171,7 +189,9 @@ public final class UsageConsoleViewModel: ObservableObject {
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
                 lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
                 planNextResetText: timeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
-                planNameText: state.lastQuotaUsageSnapshot?.planName,
+                planNameText: isCodexProvider ? nil : state.lastQuotaUsageSnapshot?.planName,
+                manualResetCreditsText: isCodexProvider ? codexManualResetCreditsSummaryText() : nil,
+                isManualResetCreditsRefreshing: isCodexProvider && isCodexManualResetCreditsRefreshing,
                 isPrimary: id == coordinator.primaryProviderID
             )
         }
@@ -179,6 +199,42 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     public func refresh() async {
         await coordinator.refreshAddedProviders()
+    }
+
+    public func refreshCodexManualResetCreditsIfNeeded() {
+        Task { [weak self] in
+            await self?.refreshCodexManualResetCredits(force: false)
+        }
+    }
+
+    public func refreshCodexManualResetCredits(force: Bool) async {
+        guard let apiKey = codexManualResetCredential() else {
+            codexManualResetCreditsState = .idle
+            return
+        }
+
+        let currentDate = now()
+        if !force, isCodexManualResetCacheFresh(at: currentDate) {
+            return
+        }
+
+        guard !isCodexManualResetCreditsRefreshing else {
+            return
+        }
+
+        let previousSnapshot = cachedCodexManualResetCreditsSnapshot
+        isCodexManualResetCreditsRefreshing = true
+        codexManualResetCreditsState = .loading(previous: previousSnapshot)
+        defer {
+            isCodexManualResetCreditsRefreshing = false
+        }
+
+        do {
+            let snapshot = try await manualResetCreditsProvider.fetchSnapshot(apiKey: apiKey)
+            codexManualResetCreditsState = .loaded(snapshot)
+        } catch {
+            codexManualResetCreditsState = .failed(previous: previousSnapshot)
+        }
     }
 
     public func addProvider(_ id: ProviderID) {
@@ -421,6 +477,51 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
     }
 
+    private func codexManualResetCreditsSummaryText() -> String {
+        guard coordinator.isCredentialConfigured(for: .codex) else {
+            return "--"
+        }
+
+        return CodexManualResetCreditsFormatter.summaryText(
+            for: codexManualResetCreditsState,
+            now: now(),
+            strings: strings,
+            calendar: beijingCalendar
+        )
+    }
+
+    private func codexManualResetCredential() -> String? {
+        guard coordinator.addedProviderIDs.contains(.codex),
+              let descriptor = coordinator.descriptor(for: .codex),
+              let credential = try? credentialStore.credential(forAccount: descriptor.credentialAccount),
+              !credential.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+
+        return credential
+    }
+
+    private var cachedCodexManualResetCreditsSnapshot: CodexManualResetCreditsSnapshot? {
+        switch codexManualResetCreditsState {
+        case .idle:
+            return nil
+        case .loading(let previous):
+            return previous
+        case .loaded(let snapshot):
+            return snapshot
+        case .failed(let previous):
+            return previous
+        }
+    }
+
+    private func isCodexManualResetCacheFresh(at currentDate: Date) -> Bool {
+        guard let snapshot = cachedCodexManualResetCreditsSnapshot else {
+            return false
+        }
+
+        return currentDate.timeIntervalSince(snapshot.fetchedAt) < manualResetCacheTTL
+    }
+
     private func codexConfigTargetURL(for descriptor: ProviderDescriptor) -> URL? {
         guard descriptor.credentialManagement == .localExternalConfiguration else {
             return nil
@@ -473,5 +574,11 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     private var timeFormatter: LastRefreshTimeFormatter {
         lastRefreshTimeFormatter.withLanguage(strings.language)
+    }
+
+    private var beijingCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Shanghai") ?? .autoupdatingCurrent
+        return calendar
     }
 }

@@ -22,6 +22,10 @@ public struct CodexManualResetCreditsSnapshot: Equatable {
     }
 }
 
+public protocol CodexManualResetCreditsProviding {
+    func fetchSnapshot(apiKey: String) async throws -> CodexManualResetCreditsSnapshot
+}
+
 public final class CodexManualResetCreditsProvider {
     private let creditsURL: URL
     private let httpClient: HTTPClient
@@ -75,6 +79,8 @@ public final class CodexManualResetCreditsProvider {
         return CodexManualResetCreditsSnapshot(credits: credits, fetchedAt: now())
     }
 }
+
+extension CodexManualResetCreditsProvider: CodexManualResetCreditsProviding {}
 
 private struct CodexManualResetCreditsPayload: Decodable {
     let credits: [CodexManualResetCredit]?

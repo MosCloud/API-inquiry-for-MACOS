@@ -56,21 +56,11 @@ public enum CodexManualResetCreditsFormatter {
     }
 
     private static func loadingText(_ strings: LocalizedStrings) -> String {
-        switch strings.language {
-        case .zh:
-            return "查询中"
-        case .en:
-            return "Checking"
-        }
+        strings.manualResetChecking
     }
 
     private static func failedText(_ strings: LocalizedStrings) -> String {
-        switch strings.language {
-        case .zh:
-            return "查询失败"
-        case .en:
-            return "Failed"
-        }
+        strings.manualResetFailed
     }
 
     private static func expiresText(_ strings: LocalizedStrings) -> String {

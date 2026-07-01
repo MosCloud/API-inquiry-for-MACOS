@@ -30,6 +30,10 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.moreActions, "More Actions", "english more actions")
         harness.expectEqual(strings.currentStatus, "Current Status", "english current status")
         harness.expectEqual(strings.quotaWindow, "Quota Window", "english quota window")
+        harness.expectEqual(strings.manualResetMetricTitle, "Manual Reset", "english manual reset title")
+        harness.expectEqual(strings.refreshManualResetCredits, "Refresh manual reset credits", "english manual reset refresh")
+        harness.expectEqual(strings.manualResetChecking, "Checking", "english manual reset checking")
+        harness.expectEqual(strings.manualResetFailed, "Failed", "english manual reset failed")
     }
 
     private static func testChineseStringsUseReviewedTerminology(using harness: TestHarness) {
@@ -54,6 +58,10 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.moreActions, "更多操作", "chinese more actions")
         harness.expectEqual(strings.currentStatus, "当前状态", "chinese current status")
         harness.expectEqual(strings.quotaWindow, "额度窗口", "chinese quota window")
+        harness.expectEqual(strings.manualResetMetricTitle, "手动重置", "chinese manual reset title")
+        harness.expectEqual(strings.refreshManualResetCredits, "刷新手动重置信息", "chinese manual reset refresh")
+        harness.expectEqual(strings.manualResetChecking, "查询中", "chinese manual reset checking")
+        harness.expectEqual(strings.manualResetFailed, "查询失败", "chinese manual reset failed")
     }
 
     private static func testProviderNamesRemainUntranslated(using harness: TestHarness) {

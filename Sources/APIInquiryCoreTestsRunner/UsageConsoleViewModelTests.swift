@@ -28,23 +28,119 @@ enum UsageConsoleViewModelTests {
         testRemovingProviderShowsFeedbackWhenCredentialDeletionFails(using: harness)
         testRemovingProviderClearsProviderScopedAPIKeyInput(using: harness)
         await testSavingProviderScopedAPIKeyRefreshesOnlyThatProvider(using: harness)
-        await testCodexSummaryExposesPlanName(using: harness)
+        await testCodexSummaryExposesManualResetCredits(using: harness)
+        await testCodexManualResetCreditsRefreshUsesCache(using: harness)
+        await testCodexManualResetCreditsForceRefreshBypassesCache(using: harness)
+        await testCodexManualResetCreditsRefreshDoesNotRefreshMainQuota(using: harness)
+        await testCodexManualResetCreditsFailureKeepsPreviousSummary(using: harness)
     }
 
     @MainActor
-    private static func testCodexSummaryExposesPlanName(using harness: TestHarness) async {
+    private static func testCodexSummaryExposesManualResetCredits(using harness: TestHarness) async {
         let coordinator = makeCodexCoordinator(primaryProviderID: .codex)
         await coordinator.refresh(.codex)
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let manualResetProvider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z")),
+        ])
         let viewModel = UsageConsoleViewModel(
             coordinator: coordinator,
-            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"]),
+            manualResetCreditsProvider: manualResetProvider,
+            now: { now }
         )
+
+        await viewModel.refreshCodexManualResetCredits(force: true)
 
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
         harness.expectEqual(codexSummary?.balanceText, "5h 72% remg", "codex console detail")
-        harness.expectEqual(codexSummary?.planNameText, "Plus", "codex console plan")
+        harness.expectEqual(codexSummary?.planNameText, nil, "codex console plan replaced")
+        harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 7/18 expires", "codex console manual reset")
+        harness.expectEqual(codexSummary?.isManualResetCreditsRefreshing, false, "codex manual reset not refreshing")
         harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex console status")
         harness.expectEqual(codexSummary?.supportsAPIKeyManagement, false, "codex console hides api key management")
+    }
+
+    @MainActor
+    private static func testCodexManualResetCreditsRefreshUsesCache(using harness: TestHarness) async {
+        var now = isoDate("2026-07-01T00:00:00Z")
+        let provider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z")),
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-27T00:44:20Z"))
+        ])
+        let viewModel = makeCodexManualResetViewModel(provider: provider, now: { now })
+
+        await viewModel.refreshCodexManualResetCredits(force: false)
+        await viewModel.refreshCodexManualResetCredits(force: false)
+
+        harness.expectEqual(provider.fetchCount, 1, "manual reset cache prevents repeated fetch")
+
+        now = now.addingTimeInterval(3_601)
+        await viewModel.refreshCodexManualResetCredits(force: false)
+
+        harness.expectEqual(provider.fetchCount, 2, "manual reset cache refreshes after ttl")
+    }
+
+    @MainActor
+    private static func testCodexManualResetCreditsForceRefreshBypassesCache(using harness: TestHarness) async {
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let provider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z")),
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-27T00:44:20Z"))
+        ])
+        let viewModel = makeCodexManualResetViewModel(provider: provider, now: { now })
+
+        await viewModel.refreshCodexManualResetCredits(force: false)
+        await viewModel.refreshCodexManualResetCredits(force: true)
+
+        harness.expectEqual(provider.fetchCount, 2, "manual reset force refresh bypasses cache")
+    }
+
+    @MainActor
+    private static func testCodexManualResetCreditsRefreshDoesNotRefreshMainQuota(using harness: TestHarness) async {
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let codexProvider = MockBalanceProvider(
+            id: .codex,
+            results: [.success(.quotaUsage(makeCodexSnapshot()))]
+        )
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+        let coordinator = MultiProviderBalanceCoordinator(
+            registrations: [testRegistration(for: codexProvider)],
+            credentialStore: credentialStore,
+            preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.codex], primaryProviderID: .codex),
+            defaultProviderID: .codex
+        )
+        let manualResetProvider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z"))
+        ])
+        let viewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: credentialStore,
+            manualResetCreditsProvider: manualResetProvider,
+            now: { now }
+        )
+
+        await viewModel.refreshCodexManualResetCredits(force: true)
+
+        harness.expectEqual(codexProvider.fetchCount, 0, "manual reset refresh does not refresh main quota")
+        harness.expectEqual(manualResetProvider.fetchCount, 1, "manual reset provider is refreshed")
+    }
+
+    @MainActor
+    private static func testCodexManualResetCreditsFailureKeepsPreviousSummary(using harness: TestHarness) async {
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let provider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z")),
+            .failure(BalanceProviderError.serverError(statusCode: 500))
+        ])
+        let viewModel = makeCodexManualResetViewModel(provider: provider, now: { now })
+
+        await viewModel.refreshCodexManualResetCredits(force: true)
+        await viewModel.refreshCodexManualResetCredits(force: true)
+
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+        harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 7/18 expires", "manual reset failure keeps cached summary")
+        harness.expectEqual(provider.fetchCount, 2, "manual reset failure fetch count")
     }
 
     @MainActor
@@ -793,37 +889,84 @@ enum UsageConsoleViewModelTests {
 
     @MainActor
     private static func makeCodexCoordinator(primaryProviderID: ProviderID) -> MultiProviderBalanceCoordinator {
+        makeCodexCoordinator(
+            primaryProviderID: primaryProviderID,
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+        )
+    }
+
+    @MainActor
+    private static func makeCodexCoordinator(
+        primaryProviderID: ProviderID,
+        credentialStore: CredentialStore
+    ) -> MultiProviderBalanceCoordinator {
         MultiProviderBalanceCoordinator(
             registrations: testRegistrations(for: [
                 MockBalanceProvider(
                     id: .codex,
-                    results: [.success(.quotaUsage(QuotaUsageSnapshot(
-                        providerID: .codex,
-                        planName: "Plus",
-                        windows: [
-                            QuotaWindowSnapshot(
-                                label: "5h",
-                                remainingPercentage: Decimal(72),
-                                resetAt: nil,
-                                isAvailable: true
-                            ),
-                            QuotaWindowSnapshot(
-                                label: "Week",
-                                remainingPercentage: Decimal(48),
-                                resetAt: nil,
-                                isAvailable: true
-                            )
-                        ],
-                        fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-                    )))]
+                    results: [.success(.quotaUsage(makeCodexSnapshot()))]
                 )
             ]),
-            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"]),
+            credentialStore: credentialStore,
             preferences: InMemoryProviderPreferencesStore(
                 addedProviderIDs: [.codex],
                 primaryProviderID: primaryProviderID
             )
         )
+    }
+
+    @MainActor
+    private static func makeCodexManualResetViewModel(
+        provider: RecordingManualResetCreditsProvider,
+        now: @escaping () -> Date
+    ) -> UsageConsoleViewModel {
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, credentialStore: credentialStore)
+        return UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: credentialStore,
+            manualResetCreditsProvider: provider,
+            now: now
+        )
+    }
+
+    private static func makeCodexSnapshot() -> QuotaUsageSnapshot {
+        QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(
+                    label: "5h",
+                    remainingPercentage: Decimal(72),
+                    resetAt: nil,
+                    isAvailable: true
+                ),
+                QuotaWindowSnapshot(
+                    label: "Week",
+                    remainingPercentage: Decimal(48),
+                    resetAt: nil,
+                    isAvailable: true
+                )
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+    }
+
+    private static func manualResetSnapshot(now: Date, expiry: String) -> CodexManualResetCreditsSnapshot {
+        CodexManualResetCreditsSnapshot(
+            credits: [
+                CodexManualResetCredit(
+                    grantedAt: now,
+                    expiresAt: isoDate(expiry),
+                    redeemedAt: nil
+                )
+            ],
+            fetchedAt: now
+        )
+    }
+
+    private static func isoDate(_ value: String) -> Date {
+        ISO8601DateFormatter().date(from: value)!
     }
 
     @MainActor
@@ -899,5 +1042,25 @@ private final class FailingDeleteCredentialStore: CredentialStore {
 
     func deleteCredential(forAccount account: String) throws {
         throw CredentialStoreError.unexpectedStatus(-1)
+    }
+}
+
+private final class RecordingManualResetCreditsProvider: CodexManualResetCreditsProviding {
+    private var results: [Result<CodexManualResetCreditsSnapshot, Error>]
+    private(set) var fetchCount = 0
+    private(set) var lastAPIKey: String?
+
+    init(results: [Result<CodexManualResetCreditsSnapshot, Error>]) {
+        self.results = results
+    }
+
+    func fetchSnapshot(apiKey: String) async throws -> CodexManualResetCreditsSnapshot {
+        fetchCount += 1
+        lastAPIKey = apiKey
+
+        guard !results.isEmpty else {
+            throw BalanceProviderError.missingBalanceInfo
+        }
+        return try results.removeFirst().get()
     }
 }
