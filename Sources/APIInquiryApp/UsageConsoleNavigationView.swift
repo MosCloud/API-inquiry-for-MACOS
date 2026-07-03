@@ -37,7 +37,6 @@ struct UsageConsoleNavigationView: View {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(section == selectedSection ? Color.white.opacity(0.12) : Color.clear)
                 }
-                .help(section.displayName(strings: strings))
                 .accessibilityLabel(section.displayName(strings: strings))
             }
         }

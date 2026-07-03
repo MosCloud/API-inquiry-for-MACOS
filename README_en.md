@@ -52,7 +52,7 @@ swift run APIInquiryCoreTestsRunner
 Expected result:
 
 ```text
-PASS: 507 expectations
+PASS: 608 expectations
 ```
 
 ## Build
@@ -113,8 +113,8 @@ Scripts/package-dmg.sh
 The script creates:
 
 ```text
-dist/API-Inquiry-v0.3.9.dmg
-dist/API-Inquiry-v0.3.9.dmg.sha256
+dist/API-Inquiry-v0.3.10.dmg
+dist/API-Inquiry-v0.3.10.dmg.sha256
 ```
 
 After release validation and upload, remove local development app bundles so Launchpad only indexes the installed app:
@@ -127,11 +127,11 @@ Scripts/clean-development-apps.sh
 
 This project uses a free GitHub Releases distribution strategy. The DMG is ad-hoc signed but not Apple notarized.
 
-1. Download `API-Inquiry-v0.3.9.dmg` and `API-Inquiry-v0.3.9.dmg.sha256` from GitHub Releases.
+1. Download `API-Inquiry-v0.3.10.dmg` and `API-Inquiry-v0.3.10.dmg.sha256` from GitHub Releases.
 2. Verify the download:
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.3.9.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.3.10.dmg.sha256
    ```
 
 3. Open the DMG.
@@ -207,8 +207,8 @@ Manual checks:
 - Deleting the key from the console returns the app to setup state.
 - The menu bar shows only the Primary Provider detail: DeepSeek shows compact balance such as `¥68.6`; Zhipu GLM Coding Plan shows usage such as `5h 17%`.
 - When Codex is the Primary Provider, the menu bar shows the ChatGPT/GPT mark plus `5h xx%` remaining quota.
-- The Codex detail panel shows both 5h and Week remaining quota windows, and Console Home shows the current plan.
-- The OpenAI/Codex card in Console Home shows manual reset credits and can refresh that information independently.
+- The Codex detail panel shows both 5h and Week remaining quota windows.
+- The OpenAI/Codex card in Console Home shows manual reset credits, can refresh that information independently, and opens detailed credit records.
 - Codex first auto-reads local Codex login state; you do not need to enter an OpenAI Platform API key in the Console.
 - The expanded panel shows the Primary Provider in the top hero area and other providers as compact rows.
 - The expanded panel refresh action refreshes all added providers.
@@ -223,8 +223,7 @@ Included in this release:
 - DeepSeek balance API integration
 - Zhipu GLM Coding Plan usage integration
 - Codex/ChatGPT session quota checks with 5h and Week remaining quota
-- Codex current plan display
-- Codex manual reset credit display and independent refresh
+- Codex manual reset credit display, independent refresh, and detail sheet
 - Built-in multi-provider catalog
 - Secure per-provider Keychain storage
 - 5-minute automatic refresh and manual refresh
@@ -249,7 +248,7 @@ Deferred:
 
 ## Roadmap
 
-- Latest released version: `v0.3.9`
+- Latest released version: `v0.3.10`
 - Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
 - Later direction: more providers, provider display controls, automatic updates, and better install/upgrade flows.
 

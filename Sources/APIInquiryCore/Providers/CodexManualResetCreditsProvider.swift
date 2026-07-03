@@ -109,28 +109,22 @@ private struct CodexManualResetCreditsPayload: Decodable {
     }
 }
 
-private struct CodexManualResetCreditPayload: Decodable {
-    let grantedAt: Date?
-    let expiresAt: Date?
-    let redeemedAt: Date?
-
-    enum CodingKeys: String, CodingKey {
-        case grantedAt = "granted_at"
-        case expiresAt = "expires_at"
-        case redeemedAt = "redeemed_at"
-    }
+private enum CodexManualResetCreditCodingKeys: String, CodingKey {
+    case grantedAt = "granted_at"
+    case expiresAt = "expires_at"
+    case redeemedAt = "redeemed_at"
 }
 
 extension CodexManualResetCredit: Decodable {
     public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodexManualResetCreditPayload.CodingKeys.self)
+        let container = try decoder.container(keyedBy: CodexManualResetCreditCodingKeys.self)
         grantedAt = try container.decodeFlexibleISO8601Date(forKey: .grantedAt)
         expiresAt = try container.decodeFlexibleISO8601Date(forKey: .expiresAt)
         redeemedAt = try container.decodeFlexibleISO8601Date(forKey: .redeemedAt)
     }
 }
 
-private extension KeyedDecodingContainer where Key == CodexManualResetCreditPayload.CodingKeys {
+private extension KeyedDecodingContainer where Key == CodexManualResetCreditCodingKeys {
     func decodeFlexibleISO8601Date(forKey key: Key) throws -> Date? {
         guard contains(key) else {
             return nil
@@ -153,7 +147,7 @@ private extension KeyedDecodingContainer where Key == CodexManualResetCreditPayl
         )
     }
 
-    static var iso8601Formatters: [ISO8601DateFormatter] {
+    static let iso8601Formatters: [ISO8601DateFormatter] = {
         let standard = ISO8601DateFormatter()
         standard.formatOptions = [.withInternetDateTime]
 
@@ -161,5 +155,5 @@ private extension KeyedDecodingContainer where Key == CodexManualResetCreditPayl
         fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
         return [fractional, standard]
-    }
+    }()
 }

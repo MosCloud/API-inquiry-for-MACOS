@@ -80,7 +80,7 @@ public final class CodexQuotaProvider: BalanceProvider {
 
     private func resetDate(for window: CodexRateLimitWindow) -> Date? {
         if let resetAt = window.resetAt {
-            return Date(timeIntervalSince1970: TimeInterval(resetAt))
+            return resetAt
         }
         if let resetAfterSeconds = window.resetAfterSeconds {
             return Date(timeInterval: TimeInterval(resetAfterSeconds), since: now())
@@ -167,7 +167,7 @@ private struct CodexRateLimit: Decodable {
 
 private struct CodexRateLimitWindow: Decodable {
     let usedPercent: Int
-    let resetAt: Int?
+    let resetAt: Date?
     let resetAfterSeconds: Int?
 
     enum CodingKeys: String, CodingKey {
@@ -179,7 +179,7 @@ private struct CodexRateLimitWindow: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         usedPercent = try container.decodeFlexibleInt(forKey: .usedPercent)
-        resetAt = try container.decodeFlexibleOptionalInt(forKey: .resetAt)
+        resetAt = try container.decodeFlexibleOptionalDate(forKey: .resetAt)
         resetAfterSeconds = try container.decodeFlexibleOptionalInt(forKey: .resetAfterSeconds)
     }
 }
@@ -211,5 +211,51 @@ private extension KeyedDecodingContainer {
             return nil
         }
         return try decodeFlexibleInt(forKey: key)
+    }
+
+    func decodeFlexibleOptionalDate(forKey key: Key) throws -> Date? {
+        guard contains(key) else {
+            return nil
+        }
+        if try decodeNil(forKey: key) {
+            return nil
+        }
+        if let intValue = try? decode(Int.self, forKey: key) {
+            return Self.dateFromEpoch(Double(intValue))
+        }
+        if let doubleValue = try? decode(Double.self, forKey: key) {
+            return Self.dateFromEpoch(doubleValue)
+        }
+
+        let stringValue = try decode(String.self, forKey: key)
+        if let doubleValue = Double(stringValue) {
+            return Self.dateFromEpoch(doubleValue)
+        }
+        for formatter in Self.iso8601Formatters {
+            if let date = formatter.date(from: stringValue) {
+                return date
+            }
+        }
+
+        throw DecodingError.dataCorruptedError(
+            forKey: key,
+            in: self,
+            debugDescription: "Expected epoch seconds, epoch milliseconds, or ISO-8601 date string."
+        )
+    }
+
+    private static func dateFromEpoch(_ rawValue: Double) -> Date {
+        let seconds = abs(rawValue) >= 10_000_000_000 ? rawValue / 1_000 : rawValue
+        return Date(timeIntervalSince1970: seconds)
+    }
+
+    private static var iso8601Formatters: [ISO8601DateFormatter] {
+        let standard = ISO8601DateFormatter()
+        standard.formatOptions = [.withInternetDateTime]
+
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        return [fractional, standard]
     }
 }

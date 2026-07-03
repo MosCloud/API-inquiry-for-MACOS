@@ -7,6 +7,9 @@ enum CodexQuotaProviderTests {
         await testBearerTokenIsNormalized(using: harness)
         await testAuthJSONExtractsTokenAndAccountID(using: harness)
         await testResetAfterSecondsIsUsedWhenResetAtIsMissing(using: harness)
+        await testResetAtAcceptsUnixMilliseconds(using: harness)
+        await testResetAtAcceptsUnixMillisecondsString(using: harness)
+        await testResetAtAcceptsISO8601String(using: harness)
         await testNullResetFieldsAreIgnored(using: harness)
         await testPlanNameNormalization(using: harness)
         await testAuthenticationFailureMapsToProviderError(using: harness)
@@ -134,6 +137,88 @@ enum CodexQuotaProviderTests {
             harness.expectTrue(false, "codex reset_after_seconds should not throw: \(error)")
         }
     }
+
+    private static func testResetAtAcceptsUnixMilliseconds(using harness: TestHarness) async {
+        let resetAt = Date(timeIntervalSince1970: 1_715_003_600)
+        let httpClient = CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 18000,
+                  "reset_at": 1715003600000
+                }
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        ))
+        let provider = CodexQuotaProvider(httpClient: httpClient)
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            harness.expectEqual(snapshot.lastQuotaWindow(label: "5h")?.resetAt, resetAt, "codex reset_at milliseconds")
+        } catch {
+            harness.expectTrue(false, "codex reset_at milliseconds should not throw: \(error)")
+        }
+    }
+
+    private static func testResetAtAcceptsUnixMillisecondsString(using harness: TestHarness) async {
+        let resetAt = Date(timeIntervalSince1970: 1_715_003_600)
+        let httpClient = CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 18000,
+                  "reset_at": "1715003600000"
+                }
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        ))
+        let provider = CodexQuotaProvider(httpClient: httpClient)
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            harness.expectEqual(snapshot.lastQuotaWindow(label: "5h")?.resetAt, resetAt, "codex reset_at milliseconds string")
+        } catch {
+            harness.expectTrue(false, "codex reset_at milliseconds string should not throw: \(error)")
+        }
+    }
+
+    private static func testResetAtAcceptsISO8601String(using harness: TestHarness) async {
+        let resetAt = ISO8601DateFormatter().date(from: "2024-05-06T08:33:20Z")!
+        let httpClient = CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 18000,
+                  "reset_at": "2024-05-06T08:33:20Z"
+                }
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        ))
+        let provider = CodexQuotaProvider(httpClient: httpClient)
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            harness.expectEqual(snapshot.lastQuotaWindow(label: "5h")?.resetAt, resetAt, "codex reset_at iso8601")
+        } catch {
+            harness.expectTrue(false, "codex reset_at iso8601 should not throw: \(error)")
+        }
+    }
+
 
     private static func testNullResetFieldsAreIgnored(using harness: TestHarness) async {
         let httpClient = CodexMockHTTPClient(response: HTTPResponse(

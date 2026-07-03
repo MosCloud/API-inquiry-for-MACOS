@@ -34,6 +34,12 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.refreshManualResetCredits, "Refresh manual reset credits", "english manual reset refresh")
         harness.expectEqual(strings.manualResetChecking, "Checking", "english manual reset checking")
         harness.expectEqual(strings.manualResetFailed, "Failed", "english manual reset failed")
+        harness.expectEqual(strings.manualResetDetailsTitle, "Manual Reset Details", "english manual reset detail title")
+        harness.expectEqual(strings.showManualResetDetails, "Show manual reset details", "english show manual reset detail")
+        harness.expectEqual(strings.manualResetGrantedAtTitle, "Granted at", "english manual reset granted")
+        harness.expectEqual(strings.manualResetExpiresAtTitle, "Expires at", "english manual reset expires")
+        harness.expectEqual(strings.manualResetNoRecords, "No manual reset records", "english manual reset empty")
+        harness.expectEqual(strings.close, "Close", "english close")
     }
 
     private static func testChineseStringsUseReviewedTerminology(using harness: TestHarness) {
@@ -51,7 +57,6 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.versionTitle, "版本", "chinese version title")
         harness.expectEqual(strings.projectHomepage, "项目主页", "chinese project homepage")
         harness.expectEqual(strings.apiKeyMetricTitle, "API 密钥", "chinese api key")
-        harness.expectEqual(strings.updatedMetricTitle, "更新于", "chinese updated metric title")
         harness.expectEqual(strings.replaceKey, "更换密钥", "chinese replace key")
         harness.expectEqual(strings.deleteAPIKeyConfirmation, "删除已保存的 API 密钥？", "chinese delete api key confirmation")
         harness.expectEqual(strings.keychainName, "密钥串", "chinese keychain")
@@ -62,6 +67,12 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.refreshManualResetCredits, "刷新手动重置信息", "chinese manual reset refresh")
         harness.expectEqual(strings.manualResetChecking, "查询中", "chinese manual reset checking")
         harness.expectEqual(strings.manualResetFailed, "查询失败", "chinese manual reset failed")
+        harness.expectEqual(strings.manualResetDetailsTitle, "手动重置详情", "chinese manual reset detail title")
+        harness.expectEqual(strings.showManualResetDetails, "查看手动重置详情", "chinese show manual reset detail")
+        harness.expectEqual(strings.manualResetGrantedAtTitle, "发放时间", "chinese manual reset granted")
+        harness.expectEqual(strings.manualResetExpiresAtTitle, "过期时间", "chinese manual reset expires")
+        harness.expectEqual(strings.manualResetNoRecords, "暂无手动重置记录", "chinese manual reset empty")
+        harness.expectEqual(strings.close, "关闭", "chinese close")
     }
 
     private static func testProviderNamesRemainUntranslated(using harness: TestHarness) {

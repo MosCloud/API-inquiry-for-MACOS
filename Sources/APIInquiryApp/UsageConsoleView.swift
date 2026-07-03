@@ -14,6 +14,7 @@ struct UsageConsoleView: View {
     @State private var manualResetRefreshTurn = 0
     @State private var manualResetRefreshAnimationTask: Task<Void, Never>?
     @State private var manualResetRefreshFeedbackResetTask: Task<Void, Never>?
+    @State private var isManualResetDetailsPresented = false
 
     init(viewModel: UsageConsoleViewModel, initialSection: UsageConsoleSection = .home) {
         self.viewModel = viewModel
@@ -53,6 +54,12 @@ struct UsageConsoleView: View {
             alignment: .topLeading
         )
         .background(.regularMaterial)
+        .sheet(isPresented: $isManualResetDetailsPresented) {
+            CodexManualResetCreditsDetailSheet(
+                model: viewModel.codexManualResetCreditsDetailModel,
+                strings: strings
+            )
+        }
     }
 
     @ViewBuilder
@@ -65,7 +72,10 @@ struct UsageConsoleView: View {
                 setPrimaryProvider: { viewModel.setPrimaryProvider($0) },
                 manualResetRefreshFeedback: manualResetRefreshFeedback,
                 manualResetRefreshTurn: manualResetRefreshTurn,
-                refreshManualResetCredits: triggerManualResetRefresh
+                refreshManualResetCredits: triggerManualResetRefresh,
+                showManualResetDetails: {
+                    isManualResetDetailsPresented = true
+                }
             )
             .onAppear {
                 viewModel.refreshCodexManualResetCreditsIfNeeded()

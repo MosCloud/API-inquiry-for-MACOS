@@ -145,7 +145,6 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                     quotaWindowRows: quotaWindowRows(for: state, suffixText: "%"),
                     statusText: ProviderDisplayFormatter.statusText(for: state, strings: strings),
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
-                    lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
                     resetText: timeFormatter.resetText(for: state.lastPlanUsageSnapshot?.resetAt)
                 )
             }

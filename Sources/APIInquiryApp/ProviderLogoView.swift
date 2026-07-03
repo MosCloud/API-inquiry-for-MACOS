@@ -26,7 +26,6 @@ struct ProviderHomepageButton: View {
         .buttonStyle(.plain)
         .background(Color.secondary.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .help(strings.openProviderAPIPage(summary.displayName))
         .accessibilityLabel(strings.openProviderAPIPage(summary.displayName))
     }
 }

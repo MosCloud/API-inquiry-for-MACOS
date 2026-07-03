@@ -69,13 +69,17 @@ public struct LocalizedStrings: Equatable {
     public var detailMetricTitle: String { text(en: "Detail", zh: "详情") }
     public var planMetricTitle: String { text(en: "Plan", zh: "计划") }
     public var manualResetMetricTitle: String { text(en: "Manual Reset", zh: "手动重置") }
-    public var updatedMetricTitle: String { text(en: "Updated", zh: "更新于") }
     public var planNextResetsMetricTitle: String { text(en: "Plan Next Resets", zh: "计划下次重置") }
     public var refreshManualResetCredits: String {
         text(en: "Refresh manual reset credits", zh: "刷新手动重置信息")
     }
     public var manualResetChecking: String { text(en: "Checking", zh: "查询中") }
     public var manualResetFailed: String { text(en: "Failed", zh: "查询失败") }
+    public var manualResetDetailsTitle: String { text(en: "Manual Reset Details", zh: "手动重置详情") }
+    public var showManualResetDetails: String { text(en: "Show manual reset details", zh: "查看手动重置详情") }
+    public var manualResetGrantedAtTitle: String { text(en: "Granted at", zh: "发放时间") }
+    public var manualResetExpiresAtTitle: String { text(en: "Expires at", zh: "过期时间") }
+    public var manualResetNoRecords: String { text(en: "No manual reset records", zh: "暂无手动重置记录") }
 
     public var apiKeyPlaceholder: String { text(en: "API key", zh: "API 密钥") }
     public var newAPIKeyPlaceholder: String { text(en: "New API key", zh: "新 API 密钥") }
@@ -85,6 +89,7 @@ public struct LocalizedStrings: Equatable {
     public var replaceKey: String { text(en: "Replace Key", zh: "更换密钥") }
     public var deleteKey: String { text(en: "Delete Key", zh: "删除 API 密钥") }
     public var cancel: String { text(en: "Cancel", zh: "取消") }
+    public var close: String { text(en: "Close", zh: "关闭") }
     public var delete: String { text(en: "Delete", zh: "删除") }
     public var remove: String { text(en: "Remove", zh: "移除") }
     public var removeProvider: String { text(en: "Remove Provider", zh: "移除供应商") }

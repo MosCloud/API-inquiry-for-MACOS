@@ -4,6 +4,7 @@ import Foundation
 enum ZhipuCodingPlanProviderTests {
     static func run(using harness: TestHarness) async {
         await testFetchSnapshotParsesTokenLimit(using: harness)
+        await testFetchSnapshotParsesDecimalPercentage(using: harness)
         await testAuthenticationFailureMapsToProviderError(using: harness)
         await testRateLimitMapsToProviderError(using: harness)
         await testUsageLimitBusinessCodeMapsToProviderError(using: harness)
@@ -113,6 +114,28 @@ enum ZhipuCodingPlanProviderTests {
         }
     }
 
+    private static func testFetchSnapshotParsesDecimalPercentage(using harness: TestHarness) async {
+        let fetchedAt = Date(timeIntervalSince1970: 1_715_000_000)
+        let httpClient = ZhipuMockHTTPClient(response: HTTPResponse(
+            data: quotaResponseData(percentage: Decimal(string: "17.4")!, nextResetTime: nil),
+            statusCode: 200
+        ))
+        let provider = ZhipuCodingPlanProvider(httpClient: httpClient, now: { fetchedAt })
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-zhipu-key")
+            guard case .planUsage(let usage) = snapshot else {
+                harness.expectTrue(false, "zhipu decimal percentage should return plan usage")
+                return
+            }
+
+            harness.expectEqual(usage.usagePercentage, Decimal(string: "17.4")!, "zhipu decimal usage percentage")
+            harness.expectTrue(usage.isAvailable, "zhipu decimal usage available below limit")
+        } catch {
+            harness.expectTrue(false, "zhipu decimal usage should not throw: \(error)")
+        }
+    }
+
     private static func testAuthenticationFailureMapsToProviderError(using harness: TestHarness) async {
         let provider = ZhipuCodingPlanProvider(httpClient: ZhipuMockHTTPClient(response: HTTPResponse(data: Data(), statusCode: 401)))
 
@@ -175,7 +198,7 @@ enum ZhipuCodingPlanProviderTests {
 
     private static func quotaResponseData(
         limitType: String = "TOKENS_LIMIT",
-        percentage: Int,
+        percentage: Decimal,
         nextResetTime: Int?
     ) -> Data {
         let resetLine = nextResetTime.map { #","nextResetTime": \#($0)"# } ?? ""

@@ -21,7 +21,6 @@ public struct APIProviderSummary: Equatable {
     public let statusTone: ProviderStatusTone
     public let healthTone: ProviderAmountTone
     public let balanceText: String
-    public let lastRefreshText: String
     public let planNextResetText: String?
     public let planNameText: String?
     public let manualResetCreditsText: String?
@@ -43,7 +42,6 @@ public struct APIProviderSummary: Equatable {
         statusTone: ProviderStatusTone = .neutral,
         healthTone: ProviderAmountTone = .neutral,
         balanceText: String,
-        lastRefreshText: String = "--",
         planNextResetText: String? = nil,
         planNameText: String? = nil,
         manualResetCreditsText: String? = nil,
@@ -64,7 +62,6 @@ public struct APIProviderSummary: Equatable {
         self.statusTone = statusTone
         self.healthTone = healthTone
         self.balanceText = balanceText
-        self.lastRefreshText = lastRefreshText
         self.planNextResetText = planNextResetText
         self.planNameText = planNameText
         self.manualResetCreditsText = manualResetCreditsText
@@ -92,6 +89,8 @@ public final class UsageConsoleViewModel: ObservableObject {
     private let lastRefreshTimeFormatter: LastRefreshTimeFormatter
     private let languageStore: AppLanguageStore?
     private var cancellables: Set<AnyCancellable> = []
+    private var codexManualResetRefreshRevision = 0
+    private var codexManualResetCredentialHash: Int?
 
     public init(
         coordinator: MultiProviderBalanceCoordinator,
@@ -187,11 +186,14 @@ public final class UsageConsoleViewModel: ObservableObject {
                 statusTone: providerSummaryStatusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
-                lastRefreshText: timeFormatter.lastRefreshText(for: state.lastSnapshot?.fetchedAt),
                 planNextResetText: timeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
                 planNameText: isCodexProvider ? nil : state.lastQuotaUsageSnapshot?.planName,
-                manualResetCreditsText: isCodexProvider ? codexManualResetCreditsSummaryText() : nil,
-                isManualResetCreditsRefreshing: isCodexProvider && isCodexManualResetCreditsRefreshing,
+                manualResetCreditsText: isCodexProvider && isCredentialConfigured
+                    ? codexManualResetCreditsSummaryText()
+                    : nil,
+                isManualResetCreditsRefreshing: isCodexProvider
+                    && isCredentialConfigured
+                    && isCodexManualResetCreditsRefreshing,
                 isPrimary: id == coordinator.primaryProviderID
             )
         }
@@ -210,12 +212,17 @@ public final class UsageConsoleViewModel: ObservableObject {
     @discardableResult
     public func refreshCodexManualResetCredits(force: Bool) async -> Bool {
         guard let apiKey = codexManualResetCredential() else {
-            codexManualResetCreditsState = .idle
+            resetCodexManualResetCreditsState()
             return false
+        }
+        let credentialHash = apiKey.hashValue
+        if let cachedCredentialHash = codexManualResetCredentialHash,
+           cachedCredentialHash != credentialHash {
+            resetCodexManualResetCreditsState()
         }
 
         let currentDate = now()
-        if !force, isCodexManualResetCacheFresh(at: currentDate) {
+        if !force, isCodexManualResetCacheFresh(at: currentDate, credentialHash: credentialHash) {
             return true
         }
 
@@ -224,17 +231,36 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
 
         let previousSnapshot = cachedCodexManualResetCreditsSnapshot
+        let refreshRevision = codexManualResetRefreshRevision
+        codexManualResetCredentialHash = credentialHash
         isCodexManualResetCreditsRefreshing = true
         codexManualResetCreditsState = .loading(previous: previousSnapshot)
         defer {
-            isCodexManualResetCreditsRefreshing = false
+            if isCodexManualResetRefreshCurrent(
+                revision: refreshRevision,
+                credentialHash: credentialHash
+            ) {
+                isCodexManualResetCreditsRefreshing = false
+            }
         }
 
         do {
             let snapshot = try await manualResetCreditsProvider.fetchSnapshot(apiKey: apiKey)
+            guard isCodexManualResetRefreshCurrent(
+                revision: refreshRevision,
+                credentialHash: credentialHash
+            ) else {
+                return false
+            }
             codexManualResetCreditsState = .loaded(snapshot)
             return true
         } catch {
+            guard isCodexManualResetRefreshCurrent(
+                revision: refreshRevision,
+                credentialHash: credentialHash
+            ) else {
+                return false
+            }
             codexManualResetCreditsState = .failed(previous: previousSnapshot)
             return false
         }
@@ -252,6 +278,9 @@ public final class UsageConsoleViewModel: ObservableObject {
             )
             apiKeyInputsByProviderID[id] = nil
             settingsFeedbacksByProviderID[id] = nil
+            if id == .codex {
+                resetCodexManualResetCreditsState()
+            }
         } catch {
             settingsFeedbacksByProviderID[id] = SettingsFeedback(
                 kind: .error,
@@ -481,7 +510,12 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     private func codexManualResetCreditsSummaryText() -> String {
-        guard coordinator.isCredentialConfigured(for: .codex) else {
+        guard let credential = codexManualResetCredential() else {
+            return "--"
+        }
+
+        if let cachedCredentialHash = codexManualResetCredentialHash,
+           cachedCredentialHash != credential.hashValue {
             return "--"
         }
 
@@ -489,8 +523,23 @@ public final class UsageConsoleViewModel: ObservableObject {
             for: codexManualResetCreditsState,
             now: now(),
             strings: strings,
-            calendar: beijingCalendar
+            calendar: timeFormatter.displayCalendar
         )
+    }
+
+    public var codexManualResetCreditsDetailModel: CodexManualResetCreditsDetailModel {
+        CodexManualResetCreditsFormatter.detailModel(
+            for: codexManualResetCreditsState,
+            strings: strings,
+            timeZone: timeFormatter.displayTimeZone
+        )
+    }
+
+    private func resetCodexManualResetCreditsState() {
+        codexManualResetRefreshRevision += 1
+        codexManualResetCredentialHash = nil
+        codexManualResetCreditsState = .idle
+        isCodexManualResetCreditsRefreshing = false
     }
 
     private func codexManualResetCredential() -> String? {
@@ -517,12 +566,30 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
     }
 
-    private func isCodexManualResetCacheFresh(at currentDate: Date) -> Bool {
+    private func isCodexManualResetCacheFresh(at currentDate: Date, credentialHash: Int) -> Bool {
+        guard codexManualResetCredentialHash == credentialHash else {
+            return false
+        }
+
         guard let snapshot = cachedCodexManualResetCreditsSnapshot else {
             return false
         }
 
         return currentDate.timeIntervalSince(snapshot.fetchedAt) < manualResetCacheTTL
+    }
+
+    private func isCodexManualResetRefreshCurrent(revision: Int, credentialHash: Int) -> Bool {
+        guard codexManualResetRefreshRevision == revision else {
+            return false
+        }
+
+        guard coordinator.addedProviderIDs.contains(.codex),
+              let currentCredential = codexManualResetCredential(),
+              currentCredential.hashValue == credentialHash else {
+            return false
+        }
+
+        return true
     }
 
     private func codexConfigTargetURL(for descriptor: ProviderDescriptor) -> URL? {
@@ -579,9 +646,4 @@ public final class UsageConsoleViewModel: ObservableObject {
         lastRefreshTimeFormatter.withLanguage(strings.language)
     }
 
-    private var beijingCalendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Shanghai") ?? .autoupdatingCurrent
-        return calendar
-    }
 }

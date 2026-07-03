@@ -29,11 +29,17 @@ enum UsageConsoleViewModelTests {
         testRemovingProviderClearsProviderScopedAPIKeyInput(using: harness)
         await testSavingProviderScopedAPIKeyRefreshesOnlyThatProvider(using: harness)
         await testCodexSummaryExposesManualResetCredits(using: harness)
+        testUnconfiguredCodexDoesNotExposeManualResetCredits(using: harness)
+        await testCodexSummaryUsesFormatterTimezone(using: harness)
         await testCodexManualResetCreditsRefreshUsesCache(using: harness)
+        await testCodexManualResetCreditsCacheTracksCredentialChanges(using: harness)
         await testCodexManualResetCreditsForceRefreshBypassesCache(using: harness)
         await testCodexManualResetCreditsRefreshDoesNotRefreshMainQuota(using: harness)
         await testCodexManualResetCreditsFailureKeepsPreviousSummary(using: harness)
         await testCodexManualResetCreditsRefreshReportsOutcome(using: harness)
+        await testRemovingCodexClearsManualResetCreditsState(using: harness)
+        await testInFlightManualResetRefreshDoesNotRestoreRemovedCodexState(using: harness)
+        await testStaleManualResetRefreshDoesNotClearNewRefreshState(using: harness)
     }
 
     @MainActor
@@ -56,10 +62,46 @@ enum UsageConsoleViewModelTests {
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
         harness.expectEqual(codexSummary?.balanceText, "5h 72% remg", "codex console detail")
         harness.expectEqual(codexSummary?.planNameText, nil, "codex console plan replaced")
-        harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 7/18 expires", "codex console manual reset")
+        harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 07/18 expires", "codex console manual reset")
         harness.expectEqual(codexSummary?.isManualResetCreditsRefreshing, false, "codex manual reset not refreshing")
         harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex console status")
         harness.expectEqual(codexSummary?.supportsAPIKeyManagement, false, "codex console hides api key management")
+    }
+
+    @MainActor
+    private static func testUnconfiguredCodexDoesNotExposeManualResetCredits(using harness: TestHarness) {
+        let credentialStore = InMemoryCredentialStore()
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, credentialStore: credentialStore)
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+        harness.expectEqual(codexSummary?.manualResetCreditsText, nil, "unconfigured codex hides manual reset summary")
+        harness.expectEqual(codexSummary?.isManualResetCreditsRefreshing, false, "unconfigured codex hides manual reset refreshing state")
+    }
+
+    @MainActor
+    private static func testCodexSummaryUsesFormatterTimezone(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex)
+        await coordinator.refresh(.codex)
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let manualResetProvider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z")),
+        ])
+        let viewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"]),
+            manualResetCreditsProvider: manualResetProvider,
+            now: { now },
+            lastRefreshTimeFormatter: LastRefreshTimeFormatter(
+                locale: Locale(identifier: "en_US"),
+                timeZone: TimeZone(identifier: "America/Los_Angeles")!
+            )
+        )
+
+        await viewModel.refreshCodexManualResetCredits(force: true)
+
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+        harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 07/17 expires", "codex manual reset summary uses local timezone")
     }
 
     @MainActor
@@ -80,6 +122,35 @@ enum UsageConsoleViewModelTests {
         await viewModel.refreshCodexManualResetCredits(force: false)
 
         harness.expectEqual(provider.fetchCount, 2, "manual reset cache refreshes after ttl")
+    }
+
+    @MainActor
+    private static func testCodexManualResetCreditsCacheTracksCredentialChanges(using harness: TestHarness) async {
+        var now = isoDate("2026-07-01T00:00:00Z")
+        let provider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z")),
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-27T00:44:20Z"))
+        ])
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "old-token"])
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, credentialStore: credentialStore)
+        let viewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: credentialStore,
+            manualResetCreditsProvider: provider,
+            now: { now }
+        )
+
+        await viewModel.refreshCodexManualResetCredits(force: false)
+        try? credentialStore.saveCredential("new-token", forAccount: "codex-session-token")
+        let staleSummary = viewModel.providerSummaries.first { $0.id == .codex }?.manualResetCreditsText
+        now = now.addingTimeInterval(60)
+        await viewModel.refreshCodexManualResetCredits(force: false)
+
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+        harness.expectEqual(staleSummary, "--", "manual reset summary hides cache after codex credential changes")
+        harness.expectEqual(provider.fetchCount, 2, "manual reset cache misses after codex credential changes")
+        harness.expectEqual(provider.lastAPIKey, "new-token", "manual reset refresh uses changed codex credential")
+        harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 07/27 expires", "manual reset summary updates after credential change")
     }
 
     @MainActor
@@ -140,7 +211,7 @@ enum UsageConsoleViewModelTests {
         await viewModel.refreshCodexManualResetCredits(force: true)
 
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
-        harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 7/18 expires", "manual reset failure keeps cached summary")
+        harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 07/18 expires", "manual reset failure keeps cached summary")
         harness.expectEqual(provider.fetchCount, 2, "manual reset failure fetch count")
     }
 
@@ -158,6 +229,108 @@ enum UsageConsoleViewModelTests {
 
         harness.expectEqual(success, true, "manual reset refresh reports success")
         harness.expectEqual(failure, false, "manual reset refresh reports failure")
+    }
+
+    @MainActor
+    private static func testRemovingCodexClearsManualResetCreditsState(using harness: TestHarness) async {
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let provider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z"))
+        ])
+        let viewModel = makeCodexManualResetViewModel(provider: provider, now: { now })
+
+        await viewModel.refreshCodexManualResetCredits(force: true)
+        viewModel.removeProvider(.codex)
+        viewModel.addProvider(.codex)
+
+        harness.expectEqual(viewModel.codexManualResetCreditsState, .idle, "removing codex clears manual reset state")
+        harness.expectEqual(
+            viewModel.providerSummaries.first { $0.id == .codex }?.manualResetCreditsText,
+            "--",
+            "re-adding codex does not show stale manual reset summary"
+        )
+    }
+
+    @MainActor
+    private static func testInFlightManualResetRefreshDoesNotRestoreRemovedCodexState(using harness: TestHarness) async {
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let provider = DelayedManualResetCreditsProvider()
+        let viewModel = makeCodexManualResetViewModel(provider: provider, now: { now })
+
+        let refreshTask = Task {
+            await viewModel.refreshCodexManualResetCredits(force: true)
+        }
+        await provider.waitUntilStarted()
+        viewModel.removeProvider(.codex)
+        provider.complete(with: manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z"))
+        let result = await refreshTask.value
+        viewModel.addProvider(.codex)
+
+        harness.expectEqual(result, false, "removed codex makes in-flight manual reset refresh stale")
+        harness.expectEqual(viewModel.codexManualResetCreditsState, .idle, "stale manual reset refresh does not restore state")
+        harness.expectEqual(
+            viewModel.providerSummaries.first { $0.id == .codex }?.manualResetCreditsText,
+            "--",
+            "stale manual reset refresh does not restore summary"
+        )
+    }
+
+    @MainActor
+    private static func testStaleManualResetRefreshDoesNotClearNewRefreshState(using harness: TestHarness) async {
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let provider = SequencedDelayedManualResetCreditsProvider()
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "old-token"])
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, credentialStore: credentialStore)
+        let viewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: credentialStore,
+            manualResetCreditsProvider: provider,
+            now: { now }
+        )
+
+        let staleRefreshTask = Task {
+            await viewModel.refreshCodexManualResetCredits(force: true)
+        }
+        await provider.waitUntilStarted(requestCount: 1)
+
+        try? credentialStore.saveCredential("new-token", forAccount: "codex-session-token")
+        let currentRefreshTask = Task {
+            await viewModel.refreshCodexManualResetCredits(force: true)
+        }
+        await provider.waitUntilStarted(requestCount: 2)
+
+        provider.completeRequest(
+            at: 0,
+            with: manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z")
+        )
+        let staleResult = await staleRefreshTask.value
+
+        let refreshingSummary = viewModel.providerSummaries.first { $0.id == .codex }
+        harness.expectEqual(staleResult, false, "stale manual reset refresh reports stale outcome")
+        harness.expectEqual(
+            refreshingSummary?.isManualResetCreditsRefreshing,
+            true,
+            "stale manual reset completion keeps current refresh active"
+        )
+
+        provider.completeRequest(
+            at: 1,
+            with: manualResetSnapshot(now: now, expiry: "2026-07-27T00:44:20Z")
+        )
+        let currentResult = await currentRefreshTask.value
+
+        let completedSummary = viewModel.providerSummaries.first { $0.id == .codex }
+        harness.expectEqual(currentResult, true, "current manual reset refresh succeeds")
+        harness.expectEqual(
+            completedSummary?.isManualResetCreditsRefreshing,
+            false,
+            "current manual reset completion clears refreshing state"
+        )
+        harness.expectEqual(
+            completedSummary?.manualResetCreditsText,
+            "1 · 07/27 expires",
+            "current manual reset refresh owns final summary"
+        )
     }
 
     @MainActor
@@ -311,7 +484,6 @@ enum UsageConsoleViewModelTests {
 
         harness.expectEqual(viewModel.providerSummaries.first?.apiKeyStatusText, "已配置", "chinese console configured key status")
         harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "正常", "chinese console active status")
-        harness.expectEqual(viewModel.providerSummaries.first?.lastRefreshText.hasPrefix("最近更新："), true, "chinese console last refresh prefix")
     }
 
     @MainActor
@@ -934,7 +1106,7 @@ enum UsageConsoleViewModelTests {
 
     @MainActor
     private static func makeCodexManualResetViewModel(
-        provider: RecordingManualResetCreditsProvider,
+        provider: CodexManualResetCreditsProviding,
         now: @escaping () -> Date
     ) -> UsageConsoleViewModel {
         let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
@@ -1079,5 +1251,76 @@ private final class RecordingManualResetCreditsProvider: CodexManualResetCredits
             throw BalanceProviderError.missingBalanceInfo
         }
         return try results.removeFirst().get()
+    }
+}
+
+private final class DelayedManualResetCreditsProvider: CodexManualResetCreditsProviding {
+    private var continuation: CheckedContinuation<CodexManualResetCreditsSnapshot, Error>?
+    private var startedContinuation: CheckedContinuation<Void, Never>?
+    private var hasStarted = false
+
+    func fetchSnapshot(apiKey: String) async throws -> CodexManualResetCreditsSnapshot {
+        hasStarted = true
+        startedContinuation?.resume()
+        startedContinuation = nil
+
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+        }
+    }
+
+    func waitUntilStarted() async {
+        if hasStarted {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            self.startedContinuation = continuation
+        }
+    }
+
+    func complete(with snapshot: CodexManualResetCreditsSnapshot) {
+        continuation?.resume(returning: snapshot)
+        continuation = nil
+    }
+}
+
+private final class SequencedDelayedManualResetCreditsProvider: CodexManualResetCreditsProviding {
+    private var continuations: [CheckedContinuation<CodexManualResetCreditsSnapshot, Error>?] = []
+    private var startedContinuations: [(requestCount: Int, continuation: CheckedContinuation<Void, Never>)] = []
+
+    func fetchSnapshot(apiKey: String) async throws -> CodexManualResetCreditsSnapshot {
+        try await withCheckedThrowingContinuation { continuation in
+            continuations.append(continuation)
+            resumeStartedContinuations()
+        }
+    }
+
+    func waitUntilStarted(requestCount: Int) async {
+        if continuations.count >= requestCount {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            startedContinuations.append((requestCount: requestCount, continuation: continuation))
+        }
+    }
+
+    func completeRequest(at index: Int, with snapshot: CodexManualResetCreditsSnapshot) {
+        guard continuations.indices.contains(index),
+              let continuation = continuations[index] else {
+            return
+        }
+
+        continuations[index] = nil
+        continuation.resume(returning: snapshot)
+    }
+
+    private func resumeStartedContinuations() {
+        let readyContinuations = startedContinuations.filter { continuations.count >= $0.requestCount }
+        startedContinuations.removeAll { continuations.count >= $0.requestCount }
+        for waiter in readyContinuations {
+            waiter.continuation.resume()
+        }
     }
 }

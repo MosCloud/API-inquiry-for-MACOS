@@ -436,7 +436,6 @@ struct MenuBarContentView: View {
         }
         .buttonStyle(.borderless)
         .foregroundStyle(feedback.foregroundColor)
-        .help(help)
         .accessibilityLabel(accessibilityLabel ?? help)
         .accessibilityValue(accessibilityValue ?? "")
         .apiInquirySubtleAnimation(value: feedback, reduceMotion: reduceMotion)
@@ -465,7 +464,6 @@ struct MenuBarContentView: View {
         }
         .buttonStyle(FooterActionButtonStyle(isHighlighted: isHighlighted, role: role))
         .frame(maxWidth: .infinity)
-        .help(title)
     }
 
     private func openConsoleAndCloseMenu(_ section: UsageConsoleSection) {

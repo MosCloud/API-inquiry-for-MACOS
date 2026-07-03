@@ -28,7 +28,6 @@ struct UsageConsoleSectionHeader: View {
                     Label(strings.addProvider, systemImage: "plus")
                 }
                 .disabled(availableProviderIDsToAdd.isEmpty)
-                .help(strings.addProvider)
                 .accessibilityLabel(strings.addProvider)
             }
         }

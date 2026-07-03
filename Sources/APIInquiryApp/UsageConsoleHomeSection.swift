@@ -8,6 +8,7 @@ struct UsageConsoleHomeSection: View {
     let manualResetRefreshFeedback: RefreshActionFeedback
     let manualResetRefreshTurn: Int
     let refreshManualResetCredits: () -> Void
+    let showManualResetDetails: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: ConsoleMetrics.homeProviderListSpacing) {
@@ -18,7 +19,8 @@ struct UsageConsoleHomeSection: View {
                     setPrimaryProvider: setPrimaryProvider,
                     manualResetRefreshFeedback: manualResetRefreshFeedback,
                     manualResetRefreshTurn: manualResetRefreshTurn,
-                    refreshManualResetCredits: refreshManualResetCredits
+                    refreshManualResetCredits: refreshManualResetCredits,
+                    showManualResetDetails: showManualResetDetails
                 )
             }
         }
@@ -34,6 +36,7 @@ struct ProviderStatusRow: View {
     let manualResetRefreshFeedback: RefreshActionFeedback
     let manualResetRefreshTurn: Int
     let refreshManualResetCredits: () -> Void
+    let showManualResetDetails: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: ConsoleMetrics.providerHeaderMetricsSpacing) {
@@ -117,17 +120,14 @@ struct ProviderStatusRow: View {
                         feedback: feedback,
                         refreshTurn: manualResetRefreshTurn,
                         action: refreshManualResetCredits
+                    ),
+                    valueAction: ProviderMetricValueAction(
+                        help: strings.showManualResetDetails,
+                        action: showManualResetDetails
                     )
                 )
             )
         }
-
-        metrics.append(
-            ProviderMetricItem(
-                title: strings.updatedMetricTitle,
-                value: strippedPrefix(summary.lastRefreshText, prefix: strings.lastUpdatedPrefix)
-            )
-        )
 
         return metrics
     }

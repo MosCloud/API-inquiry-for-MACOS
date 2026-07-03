@@ -43,7 +43,6 @@ struct UsageConsoleSettingsSection: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    .help(strings.projectHomepage)
                     .accessibilityLabel(strings.projectHomepage)
                 }
             }

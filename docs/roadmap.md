@@ -1,13 +1,13 @@
 # API Inquiry Roadmap
 
-Last updated: 2026-07-01
+Last updated: 2026-07-03
 
 ## 中文
 
 ### 当前状态
 
-- 最新已发布版本：`v0.3.9`
-- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、Codex 手动重置额度展示、多供应商菜单栏展示、Console 管理、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、DMG 打包发布。
+- 最新已发布版本：`v0.3.10`
+- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、Console 管理、系统时区自适应时间展示、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、DMG 打包发布。
 - 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
 
 ### v0.3.2：中文本地化与语言切换
@@ -96,6 +96,23 @@ Last updated: 2026-07-01
 - 手动重置信息只在 Console Home 展示，不进入 Menubar 展示。
 - 不展示 token、cookie、原始响应或完整唯一 ID。
 
+### v0.3.10：手动重置详情与时区自适应（已发布）
+
+目标：在 v0.3.9 的手动重置摘要基础上，补齐详情查看能力，修复发布前评审中优先级最高的问题，并让应用内时间展示跟随当前系统时区。
+
+核心方向：
+
+- Console Home 的 OpenAI/Codex 手动重置摘要可打开详情页，展示所有可用重置卡。
+- 手动重置详情中的发放时间和过期时间按当前系统时区显示。
+- 应用内刷新时间、重置时间和额度时间统一使用系统时区与 12/24 小时制偏好。
+- Console Home 删除“更新于”指标列，为额度与手动重置详情留出更稳定的空间。
+- 修复手动重置刷新中的旧结果回写、凭证变化缓存复用、未配置入口暴露和 Codex quota 毫秒字符串解析问题。
+
+设计边界：
+
+- 手动重置详情仍不展示 token、cookie、原始响应或完整唯一 ID。
+- 不改变菜单栏主刷新链路；手动重置信息继续独立缓存、独立刷新。
+
 ### v0.4.0：更多供应商与通用 Provider 能力
 
 - 增加更多内置供应商。
@@ -118,8 +135,8 @@ Last updated: 2026-07-01
 
 ### Current Status
 
-- Latest released version: `v0.3.9`
-- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, Codex manual reset credit display, multi-provider menu bar display, Console management, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, and DMG release packaging.
+- Latest released version: `v0.3.10`
+- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, and DMG release packaging.
 - Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
 
 ### v0.3.2: Chinese Localization and Language Switching
@@ -207,6 +224,23 @@ Design boundaries:
 
 - Manual reset information appears only in Console Home, not in the menu bar.
 - Do not display tokens, cookies, raw responses, or full unique IDs.
+
+### v0.3.10: Manual Reset Details and Time Zone Adaptation (Released)
+
+Goal: extend the v0.3.9 manual reset summary with a detail view, fix the highest-priority release review issues, and make in-app time display follow the current system time zone.
+
+Core directions:
+
+- Open the full manual reset card list from the OpenAI/Codex summary in Console Home.
+- Show manual reset granted and expiration times in the current system time zone.
+- Make refresh, reset, and quota times consistently follow system time zone and 12-hour/24-hour preferences.
+- Remove the last-updated metric column from Console Home so quota and manual reset details have more stable space.
+- Fix stale manual reset refresh writes, credential-scoped cache reuse, unconfigured Codex detail entry exposure, and Codex quota millisecond-string reset parsing.
+
+Design boundaries:
+
+- Manual reset details still do not display tokens, cookies, raw responses, or full unique IDs.
+- Do not change the menu bar's main refresh chain; manual reset information remains independently cached and refreshed.
 
 ### v0.4.0: More Providers and Generic Provider Capabilities
 

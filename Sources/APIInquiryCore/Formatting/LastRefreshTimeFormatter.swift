@@ -19,6 +19,17 @@ public struct LastRefreshTimeFormatter {
         LastRefreshTimeFormatter(locale: locale, timeZone: timeZone, language: language)
     }
 
+    public var displayTimeZone: TimeZone {
+        timeZone
+    }
+
+    public var displayCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = locale
+        calendar.timeZone = timeZone
+        return calendar
+    }
+
     public func lastRefreshText(for date: Date?) -> String {
         guard let date else {
             return "\(strings.lastUpdatedPrefix)\(labelSeparator)--"

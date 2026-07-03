@@ -17,7 +17,6 @@ public struct ProviderDetailRow: Equatable {
     public let quotaWindowRows: [QuotaWindowDisplayRow]
     public let statusText: String
     public let statusTone: ProviderStatusTone
-    public let lastRefreshText: String
     public let resetText: String?
 }
 

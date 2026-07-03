@@ -60,9 +60,9 @@ public final class ZhipuCodingPlanProvider: BalanceProvider {
         return PlanUsageSnapshot(
             providerID: id,
             windowLabel: "5h",
-            usagePercentage: Decimal(tokenLimit.percentage),
+            usagePercentage: tokenLimit.percentage,
             resetAt: tokenLimit.nextResetTime.map { Date(timeIntervalSince1970: Double($0) / 1000) },
-            isAvailable: tokenLimit.percentage < 100,
+            isAvailable: tokenLimit.percentage < Decimal(100),
             fetchedAt: now()
         )
     }
@@ -134,6 +134,45 @@ private struct ZhipuQuotaLimit: Decodable {
     let type: String
     let usage: Int?
     let currentValue: Int?
-    let percentage: Int
+    let percentage: Decimal
     let nextResetTime: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case usage
+        case currentValue
+        case percentage
+        case nextResetTime
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        type = try container.decode(String.self, forKey: .type)
+        usage = try container.decodeIfPresent(Int.self, forKey: .usage)
+        currentValue = try container.decodeIfPresent(Int.self, forKey: .currentValue)
+        percentage = try container.decodeFlexibleDecimal(forKey: .percentage)
+        nextResetTime = try container.decodeIfPresent(Int.self, forKey: .nextResetTime)
+    }
+}
+
+private extension KeyedDecodingContainer {
+    func decodeFlexibleDecimal(forKey key: Key) throws -> Decimal {
+        if let decimalValue = try? decode(Decimal.self, forKey: key) {
+            return decimalValue
+        }
+        if let doubleValue = try? decode(Double.self, forKey: key),
+           let decimalValue = Decimal(string: String(describing: doubleValue), locale: Locale(identifier: "en_US_POSIX")) {
+            return decimalValue
+        }
+
+        let stringValue = try decode(String.self, forKey: key)
+        guard let decimalValue = Decimal(string: stringValue, locale: Locale(identifier: "en_US_POSIX")) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: key,
+                in: self,
+                debugDescription: "Expected a decimal number, number, or decimal string."
+            )
+        }
+        return decimalValue
+    }
 }

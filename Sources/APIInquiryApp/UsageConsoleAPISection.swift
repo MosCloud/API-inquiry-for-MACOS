@@ -183,7 +183,6 @@ struct UsageConsoleAPISection: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .controlSize(.small)
-        .help(strings.moreActions)
         .accessibilityLabel(strings.moreActions)
     }
 
