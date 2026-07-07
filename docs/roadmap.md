@@ -6,9 +6,9 @@ Last updated: 2026-07-07
 
 ### 当前状态
 
-- 最新已发布版本：`v0.3.10`
-- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、Console 管理、系统时区自适应时间展示、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、DMG 打包发布。
-- 下一计划版本：`v0.3.11`，聚焦质量修复、CI 基线和发布前稳定性；`v0.4.0` 继续聚焦更多供应商与通用 Provider 能力。
+- 最新已发布版本：`v0.3.11`
+- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、Console 管理、系统时区自适应时间展示、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、质量修复与 CI 基线、DMG 打包发布。
+- 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
 
 ### v0.3.2：中文本地化与语言切换
 
@@ -113,7 +113,7 @@ Last updated: 2026-07-07
 - 手动重置详情仍不展示 token、cookie、原始响应或完整唯一 ID。
 - 不改变菜单栏主刷新链路；手动重置信息继续独立缓存、独立刷新。
 
-### v0.3.11：质量修复与发布基线（计划中）
+### v0.3.11：质量修复与发布基线（已发布）
 
 目标：在进入 `v0.4.0` Provider 扩展前，先修复评审中确认的高收益质量问题，降低后续扩展风险。
 
@@ -158,9 +158,9 @@ Last updated: 2026-07-07
 
 ### Current Status
 
-- Latest released version: `v0.3.10`
-- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, and DMG release packaging.
-- Next planned version: `v0.3.11`, focused on quality fixes, CI baseline, and pre-release stability; `v0.4.0` remains focused on more providers and generic provider capabilities.
+- Latest released version: `v0.3.11`
+- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, quality fixes with a CI baseline, and DMG release packaging.
+- Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
 
 ### v0.3.2: Chinese Localization and Language Switching
 
@@ -265,7 +265,7 @@ Design boundaries:
 - Manual reset details still do not display tokens, cookies, raw responses, or full unique IDs.
 - Do not change the menu bar's main refresh chain; manual reset information remains independently cached and refreshed.
 
-### v0.3.11: Quality Fixes and Release Baseline (Planned)
+### v0.3.11: Quality Fixes and Release Baseline (Released)
 
 Goal: fix the highest-leverage quality issues confirmed by review before entering the `v0.4.0` provider expansion, reducing risk for later extensibility work.
 
