@@ -162,7 +162,7 @@ public enum ProviderValueFormatter {
     }
 
     static func primaryQuotaWindow(in usage: QuotaUsageSnapshot) -> QuotaWindowSnapshot? {
-        usage.windows.first { $0.label == "5h" } ?? usage.windows.first
+        usage.windows.first { $0.resolvedKind == .fiveHour } ?? usage.windows.first
     }
 
     private static func quotaWindowText(

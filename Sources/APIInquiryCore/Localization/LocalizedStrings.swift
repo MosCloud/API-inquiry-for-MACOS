@@ -230,17 +230,24 @@ public struct LocalizedStrings: Equatable {
         displayName
     }
 
-    public func quotaWindowLabel(_ label: String) -> String {
-        switch (language, label) {
-        case (.zh, "5h"):
+    public func quotaWindowLabel(_ kind: QuotaWindowKind) -> String {
+        switch (language, kind) {
+        case (.zh, .fiveHour):
             return "5 时"
-        case (.zh, "Week"), (.zh, "7d"):
+        case (.zh, .week):
             return "1 周"
-        case (.en, "Week"):
+        case (.en, .week):
             return "7d"
-        default:
-            return label
+        case (.en, .fiveHour):
+            return "5h"
         }
+    }
+
+    public func quotaWindowLabel(_ label: String) -> String {
+        if let kind = QuotaWindowKind(label: label) {
+            return quotaWindowLabel(kind)
+        }
+        return label
     }
 
     public func languageOptionTitle(_ language: AppLanguage) -> String {

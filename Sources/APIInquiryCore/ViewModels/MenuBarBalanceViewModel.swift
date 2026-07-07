@@ -182,7 +182,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     private func quotaWindowResetText(for window: QuotaWindowSnapshot) -> String? {
-        window.label == "Week"
+        window.resolvedKind == .week
             ? timeFormatter.resetDateText(for: window.resetAt)
             : timeFormatter.resetText(for: window.resetAt)
     }

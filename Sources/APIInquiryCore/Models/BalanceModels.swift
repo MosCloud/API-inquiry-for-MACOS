@@ -12,9 +12,35 @@ public enum ProviderDetailKind: Equatable {
     case quotaUsage
 }
 
+public enum QuotaWindowKind: Equatable, Hashable {
+    case fiveHour
+    case week
+
+    public init?(label: String) {
+        switch label {
+        case "5h":
+            self = .fiveHour
+        case "Week", "7d":
+            self = .week
+        default:
+            return nil
+        }
+    }
+
+    public var canonicalLabel: String {
+        switch self {
+        case .fiveHour:
+            return "5h"
+        case .week:
+            return "Week"
+        }
+    }
+}
+
 public struct PlanUsageSnapshot: Equatable {
     public let providerID: ProviderID
     public let windowLabel: String
+    public let windowKind: QuotaWindowKind?
     public let usagePercentage: Decimal
     public let resetAt: Date?
     public let isAvailable: Bool
@@ -23,6 +49,7 @@ public struct PlanUsageSnapshot: Equatable {
     public init(
         providerID: ProviderID,
         windowLabel: String,
+        windowKind: QuotaWindowKind? = nil,
         usagePercentage: Decimal,
         resetAt: Date?,
         isAvailable: Bool,
@@ -30,29 +57,41 @@ public struct PlanUsageSnapshot: Equatable {
     ) {
         self.providerID = providerID
         self.windowLabel = windowLabel
+        self.windowKind = windowKind
         self.usagePercentage = usagePercentage
         self.resetAt = resetAt
         self.isAvailable = isAvailable
         self.fetchedAt = fetchedAt
     }
+
+    public var resolvedWindowKind: QuotaWindowKind? {
+        windowKind ?? QuotaWindowKind(label: windowLabel)
+    }
 }
 
 public struct QuotaWindowSnapshot: Equatable {
     public let label: String
+    public let kind: QuotaWindowKind?
     public let remainingPercentage: Decimal
     public let resetAt: Date?
     public let isAvailable: Bool
 
     public init(
         label: String,
+        kind: QuotaWindowKind? = nil,
         remainingPercentage: Decimal,
         resetAt: Date?,
         isAvailable: Bool
     ) {
         self.label = label
+        self.kind = kind
         self.remainingPercentage = remainingPercentage
         self.resetAt = resetAt
         self.isAvailable = isAvailable
+    }
+
+    public var resolvedKind: QuotaWindowKind? {
+        kind ?? QuotaWindowKind(label: label)
     }
 }
 

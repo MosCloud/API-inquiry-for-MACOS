@@ -50,10 +50,10 @@ public final class CodexQuotaProvider: BalanceProvider {
 
         var windows: [QuotaWindowSnapshot] = []
         if let primary = payload.rateLimit.primaryWindow {
-            windows.append(makeWindow(label: "5h", from: primary))
+            windows.append(makeWindow(label: "5h", kind: .fiveHour, from: primary))
         }
         if let secondary = payload.rateLimit.secondaryWindow {
-            windows.append(makeWindow(label: "Week", from: secondary))
+            windows.append(makeWindow(label: "Week", kind: .week, from: secondary))
         }
 
         guard !windows.isEmpty else {
@@ -68,10 +68,11 @@ public final class CodexQuotaProvider: BalanceProvider {
         )
     }
 
-    private func makeWindow(label: String, from window: CodexRateLimitWindow) -> QuotaWindowSnapshot {
+    private func makeWindow(label: String, kind: QuotaWindowKind, from window: CodexRateLimitWindow) -> QuotaWindowSnapshot {
         let remaining = clamp(Decimal(100) - Decimal(window.usedPercent), lower: 0, upper: 100)
         return QuotaWindowSnapshot(
             label: label,
+            kind: kind,
             remainingPercentage: remaining,
             resetAt: resetDate(for: window),
             isAvailable: remaining > 0

@@ -60,6 +60,7 @@ public final class ZhipuCodingPlanProvider: BalanceProvider {
         return PlanUsageSnapshot(
             providerID: id,
             windowLabel: "5h",
+            windowKind: .fiveHour,
             usagePercentage: tokenLimit.percentage,
             resetAt: tokenLimit.nextResetTime.map { Date(timeIntervalSince1970: Double($0) / 1000) },
             isAvailable: tokenLimit.percentage < Decimal(100),
