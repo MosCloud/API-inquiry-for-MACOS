@@ -10,10 +10,7 @@ struct MenuBarContentView: View {
     @ObservedObject var viewModel: MenuBarBalanceViewModel
     @ObservedObject var languageStore: AppLanguageStore
     @StateObject private var launchAtLoginController: LaunchAtLoginController
-    @State private var refreshFeedback: RefreshActionFeedback = .idle
-    @State private var refreshAnimationTurn = 0
-    @State private var refreshAnimationTask: Task<Void, Never>?
-    @State private var refreshFeedbackResetTask: Task<Void, Never>?
+    @StateObject private var refreshFeedbackController = RefreshActionFeedbackController()
     private let openConsole: (UsageConsoleSection) -> Void
 
     init(
@@ -81,27 +78,26 @@ struct MenuBarContentView: View {
         .frame(width: 320)
         .onAppear {
             launchAtLoginController.refreshStatus()
-            if viewModel.isRefreshDisabled {
-                startRefreshAnimationLoop()
-            }
+            refreshFeedbackController.syncExternalRefreshing(
+                viewModel.isRefreshDisabled,
+                reduceMotion: accessibilityReduceMotion
+            )
         }
         .onDisappear {
-            stopRefreshAnimationLoop()
-            resetRefreshFeedback()
+            refreshFeedbackController.syncExternalRefreshing(false, reduceMotion: accessibilityReduceMotion)
+            refreshFeedbackController.reset()
         }
         .onChange(of: accessibilityReduceMotion) { reduceMotion in
-            if reduceMotion {
-                stopRefreshAnimationLoop()
-            } else if viewModel.isRefreshDisabled {
-                startRefreshAnimationLoop()
-            }
+            refreshFeedbackController.syncExternalRefreshing(
+                viewModel.isRefreshDisabled,
+                reduceMotion: reduceMotion
+            )
         }
         .onChange(of: viewModel.isRefreshDisabled) { isRefreshing in
-            if isRefreshing {
-                startRefreshAnimationLoop()
-            } else {
-                stopRefreshAnimationLoop()
-            }
+            refreshFeedbackController.syncExternalRefreshing(
+                isRefreshing,
+                reduceMotion: accessibilityReduceMotion
+            )
         }
         .apiInquirySubtleAnimation(value: viewModel.errorText, reduceMotion: accessibilityReduceMotion)
         .apiInquirySubtleAnimation(value: launchAtLoginController.message, reduceMotion: accessibilityReduceMotion)
@@ -156,12 +152,12 @@ struct MenuBarContentView: View {
                     accessibilityLabel: strings.refresh,
                     accessibilityValue: feedback == .refreshing ? strings.refreshing : nil,
                     feedback: feedback,
-                    refreshTurn: refreshAnimationTurn,
+                    refreshTurn: refreshFeedbackController.refreshTurn,
                     reduceMotion: accessibilityReduceMotion
                 ) {
                     triggerRefresh()
                 }
-                .disabled(viewModel.isRefreshDisabled || refreshFeedback.disablesInteraction)
+                .disabled(viewModel.isRefreshDisabled || refreshFeedbackController.feedback.disablesInteraction)
             }
         }
     }
@@ -472,97 +468,25 @@ struct MenuBarContentView: View {
     }
 
     private var effectiveRefreshFeedback: RefreshActionFeedback {
-        if viewModel.isRefreshDisabled && refreshFeedback == .idle {
+        if viewModel.isRefreshDisabled && refreshFeedbackController.feedback == .idle {
             return .refreshing
         }
 
-        return refreshFeedback
+        return refreshFeedbackController.feedback
     }
 
     private func triggerRefresh() {
-        guard refreshFeedback == .idle, !viewModel.isRefreshDisabled else {
+        guard !viewModel.isRefreshDisabled,
+              refreshFeedbackController.begin(reduceMotion: accessibilityReduceMotion) else {
             return
         }
-
-        refreshFeedbackResetTask?.cancel()
-        refreshFeedbackResetTask = nil
-        refreshFeedback = .refreshing
-        startRefreshAnimationLoop()
 
         Task {
             let succeeded = await viewModel.refresh()
             await MainActor.run {
-                completeRefresh(succeeded: succeeded)
+                refreshFeedbackController.complete(succeeded: succeeded)
             }
         }
-    }
-
-    private func completeRefresh(succeeded: Bool) {
-        stopRefreshAnimationLoop()
-        refreshFeedback = succeeded ? .success : .failure
-        let targetFeedback = refreshFeedback
-        refreshFeedbackResetTask = Task {
-            try? await Task.sleep(nanoseconds: RefreshFeedbackTiming.completionDurationNanoseconds)
-            guard !Task.isCancelled else {
-                return
-            }
-            await MainActor.run {
-                guard refreshFeedback == targetFeedback else {
-                    return
-                }
-                refreshFeedback = .idle
-                refreshFeedbackResetTask = nil
-            }
-        }
-    }
-
-    private func resetRefreshFeedback() {
-        refreshFeedbackResetTask?.cancel()
-        refreshFeedbackResetTask = nil
-        refreshFeedback = .idle
-    }
-
-    private func startRefreshAnimationLoop() {
-        guard !accessibilityReduceMotion else {
-            stopRefreshAnimationLoop()
-            return
-        }
-
-        guard refreshAnimationTask == nil else {
-            return
-        }
-
-        refreshAnimationTurn = 0
-        refreshAnimationTurn += 1
-        refreshAnimationTask = Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: RefreshAnimation.turnDurationNanoseconds)
-                guard !Task.isCancelled else {
-                    return
-                }
-
-                let shouldContinue = await MainActor.run {
-                    !accessibilityReduceMotion && effectiveRefreshFeedback == .refreshing
-                }
-                guard shouldContinue else {
-                    await MainActor.run {
-                        refreshAnimationTask = nil
-                        refreshAnimationTurn = 0
-                    }
-                    return
-                }
-
-                await MainActor.run {
-                    refreshAnimationTurn += 1
-                }
-            }
-        }
-    }
-
-    private func stopRefreshAnimationLoop() {
-        refreshAnimationTask?.cancel()
-        refreshAnimationTask = nil
-        refreshAnimationTurn = 0
     }
 
     private var statusColor: Color {
@@ -596,11 +520,6 @@ struct MenuBarContentView: View {
         }
         .joined(separator: ", ")
     }
-}
-
-private enum RefreshAnimation {
-    static let turnDuration = RefreshFeedbackTiming.turnDuration
-    static let turnDurationNanoseconds = RefreshFeedbackTiming.turnDurationNanoseconds
 }
 
 private enum FooterActionRole {

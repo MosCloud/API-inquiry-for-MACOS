@@ -9,10 +9,7 @@ struct UsageConsoleView: View {
     @State private var selectedSection: UsageConsoleSection
     @State private var replacingProviderIDs: Set<ProviderID> = []
     @State private var providerRemovalConfirmationID: ProviderID?
-    @State private var manualResetRefreshFeedback: RefreshActionFeedback = .idle
-    @State private var manualResetRefreshTurn = 0
-    @State private var manualResetRefreshAnimationTask: Task<Void, Never>?
-    @State private var manualResetRefreshFeedbackResetTask: Task<Void, Never>?
+    @StateObject private var manualResetRefreshFeedbackController = RefreshActionFeedbackController()
     @State private var isManualResetDetailsPresented = false
 
     init(viewModel: UsageConsoleViewModel, initialSection: UsageConsoleSection = .home) {
@@ -59,6 +56,9 @@ struct UsageConsoleView: View {
                 strings: strings
             )
         }
+        .onChange(of: accessibilityReduceMotion) { reduceMotion in
+            manualResetRefreshFeedbackController.syncExternalRefreshing(false, reduceMotion: reduceMotion)
+        }
     }
 
     @ViewBuilder
@@ -69,8 +69,8 @@ struct UsageConsoleView: View {
                 summaries: viewModel.providerSummaries,
                 strings: strings,
                 setPrimaryProvider: { viewModel.setPrimaryProvider($0) },
-                manualResetRefreshFeedback: manualResetRefreshFeedback,
-                manualResetRefreshTurn: manualResetRefreshTurn,
+                manualResetRefreshFeedback: manualResetRefreshFeedbackController.feedback,
+                manualResetRefreshTurn: manualResetRefreshFeedbackController.refreshTurn,
                 refreshManualResetCredits: triggerManualResetRefresh,
                 showManualResetDetails: {
                     isManualResetDetailsPresented = true
@@ -111,82 +111,15 @@ struct UsageConsoleView: View {
     }
 
     private func triggerManualResetRefresh() {
-        guard manualResetRefreshFeedback == .idle else {
+        guard manualResetRefreshFeedbackController.begin(reduceMotion: accessibilityReduceMotion) else {
             return
         }
-
-        manualResetRefreshFeedbackResetTask?.cancel()
-        manualResetRefreshFeedbackResetTask = nil
-        manualResetRefreshFeedback = .refreshing
-        startManualResetRefreshAnimationLoop()
 
         Task {
             let succeeded = await viewModel.refreshCodexManualResetCredits(force: true)
             await MainActor.run {
-                completeManualResetRefresh(succeeded: succeeded)
+                manualResetRefreshFeedbackController.complete(succeeded: succeeded)
             }
         }
-    }
-
-    private func completeManualResetRefresh(succeeded: Bool) {
-        stopManualResetRefreshAnimationLoop()
-        manualResetRefreshFeedback = succeeded ? .success : .failure
-        let targetFeedback = manualResetRefreshFeedback
-        manualResetRefreshFeedbackResetTask = Task {
-            try? await Task.sleep(nanoseconds: RefreshFeedbackTiming.completionDurationNanoseconds)
-            guard !Task.isCancelled else {
-                return
-            }
-            await MainActor.run {
-                guard manualResetRefreshFeedback == targetFeedback else {
-                    return
-                }
-                manualResetRefreshFeedback = .idle
-                manualResetRefreshFeedbackResetTask = nil
-            }
-        }
-    }
-
-    private func startManualResetRefreshAnimationLoop() {
-        guard !accessibilityReduceMotion else {
-            stopManualResetRefreshAnimationLoop()
-            return
-        }
-
-        guard manualResetRefreshAnimationTask == nil else {
-            return
-        }
-
-        manualResetRefreshTurn = 0
-        manualResetRefreshTurn += 1
-        manualResetRefreshAnimationTask = Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: RefreshFeedbackTiming.turnDurationNanoseconds)
-                guard !Task.isCancelled else {
-                    return
-                }
-
-                let shouldContinue = await MainActor.run {
-                    !accessibilityReduceMotion && manualResetRefreshFeedback == .refreshing
-                }
-                guard shouldContinue else {
-                    await MainActor.run {
-                        manualResetRefreshAnimationTask = nil
-                        manualResetRefreshTurn = 0
-                    }
-                    return
-                }
-
-                await MainActor.run {
-                    manualResetRefreshTurn += 1
-                }
-            }
-        }
-    }
-
-    private func stopManualResetRefreshAnimationLoop() {
-        manualResetRefreshAnimationTask?.cancel()
-        manualResetRefreshAnimationTask = nil
-        manualResetRefreshTurn = 0
     }
 }
