@@ -105,6 +105,15 @@ public struct LocalizedStrings: Equatable {
     public var openConfig: String { text(en: "Open Config", zh: "打开配置") }
     public var showConfigInFinder: String { text(en: "Show Config in Finder", zh: "在 Finder 中显示配置") }
     public var configCouldNotBeOpened: String { text(en: "Config could not be opened.", zh: "无法打开配置。") }
+    public var codexAuthFileMalformed: String {
+        text(en: "Codex auth.json exists but could not be parsed.", zh: "Codex auth.json 已存在，但无法解析。")
+    }
+    public var codexAuthFileMissingToken: String {
+        text(
+            en: "Codex auth.json exists but does not contain an access token.",
+            zh: "Codex auth.json 已存在，但未包含 access token。"
+        )
+    }
 
     public var removeProviderConfirmation: String {
         text(en: "Remove this provider?", zh: "移除此供应商？")

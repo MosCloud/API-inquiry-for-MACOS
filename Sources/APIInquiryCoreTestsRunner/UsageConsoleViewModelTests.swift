@@ -11,6 +11,7 @@ enum UsageConsoleViewModelTests {
         await testProviderSummariesExposeChineseAPIAccessCopy(using: harness)
         testProviderSummariesExposeUnconfiguredAPIAccessCopy(using: harness)
         testProviderSummariesExposeCodexConfigTarget(using: harness)
+        testProviderSummariesExposeCodexAuthFileConfigurationFeedback(using: harness)
         await testProviderSummariesExposeInvalidProvider(using: harness)
         await testProviderSummariesExposeBalanceHealthToneBoundaries(using: harness)
         await testProviderSummariesExposePlanHealthToneBoundaries(using: harness)
@@ -436,6 +437,30 @@ enum UsageConsoleViewModelTests {
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
 
         harness.expectEqual(codexSummary?.codexConfigTargetURL, authFileURL, "codex summary exposes config target")
+
+        removeTemporaryFile(authFileURL)
+    }
+
+    @MainActor
+    private static func testProviderSummariesExposeCodexAuthFileConfigurationFeedback(using harness: TestHarness) {
+        let authFileURL = writeTemporaryAuthFile("{")
+        let credentialStore = CodexCredentialStore(
+            delegate: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "fallback-token"]),
+            authFileURLs: [authFileURL]
+        )
+        let coordinator = makeAPIAccessCoordinator(credentialStore: credentialStore)
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+
+        harness.expectEqual(
+            codexSummary?.configurationFeedback,
+            SettingsFeedback(
+                kind: .warning,
+                message: "Codex auth.json exists but could not be parsed."
+            ),
+            "codex summary exposes auth file configuration feedback"
+        )
 
         removeTemporaryFile(authFileURL)
     }

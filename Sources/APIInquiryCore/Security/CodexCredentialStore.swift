@@ -1,5 +1,12 @@
 import Foundation
 
+public enum CodexAuthFileStatus: Equatable {
+    case missing
+    case usable(URL)
+    case malformed(URL)
+    case missingAccessToken(URL)
+}
+
 public final class CodexCredentialStore: CredentialStore {
     private let delegate: CredentialStore
     private let codexAccount: String
@@ -51,6 +58,27 @@ public final class CodexCredentialStore: CredentialStore {
         return nil
     }
 
+    public func codexAuthFileStatus() -> CodexAuthFileStatus {
+        var firstUnusableStatus: CodexAuthFileStatus?
+
+        for url in authFileURLs {
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                continue
+            }
+
+            let status = codexAuthFileStatus(at: url)
+            if case .usable = status {
+                return status
+            }
+
+            if firstUnusableStatus == nil {
+                firstUnusableStatus = status
+            }
+        }
+
+        return firstUnusableStatus ?? .missing
+    }
+
     public func codexConfigTargetURLCreatingDirectoryIfNeeded() -> URL? {
         if let existingTargetURL = codexConfigTargetURL() {
             return existingTargetURL
@@ -74,7 +102,8 @@ public final class CodexCredentialStore: CredentialStore {
     private func readFirstUsableAuthFile() -> String? {
         for url in authFileURLs {
             guard let contents = try? String(contentsOf: url, encoding: .utf8),
-                  containsAccessToken(contents) else {
+                  let object = authObject(from: contents),
+                  containsAccessToken(in: object) else {
                 continue
             }
             return contents
@@ -86,12 +115,24 @@ public final class CodexCredentialStore: CredentialStore {
         authFileURLs.first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
-    private func containsAccessToken(_ contents: String) -> Bool {
-        guard let data = contents.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return false
+    private func codexAuthFileStatus(at url: URL) -> CodexAuthFileStatus {
+        guard let contents = try? String(contentsOf: url, encoding: .utf8),
+              let object = authObject(from: contents) else {
+            return .malformed(url)
         }
 
+        return containsAccessToken(in: object) ? .usable(url) : .missingAccessToken(url)
+    }
+
+    private func authObject(from contents: String) -> [String: Any]? {
+        guard let data = contents.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        return object
+    }
+
+    private func containsAccessToken(in object: [String: Any]) -> Bool {
         if let token = object["accessToken"] as? String, !token.isEmpty {
             return true
         }

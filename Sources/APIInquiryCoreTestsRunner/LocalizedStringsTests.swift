@@ -39,6 +39,16 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.manualResetGrantedAtTitle, "Granted at", "english manual reset granted")
         harness.expectEqual(strings.manualResetExpiresAtTitle, "Expires at", "english manual reset expires")
         harness.expectEqual(strings.manualResetNoRecords, "No manual reset records", "english manual reset empty")
+        harness.expectEqual(
+            strings.codexAuthFileMalformed,
+            "Codex auth.json exists but could not be parsed.",
+            "english codex malformed auth file"
+        )
+        harness.expectEqual(
+            strings.codexAuthFileMissingToken,
+            "Codex auth.json exists but does not contain an access token.",
+            "english codex auth file missing token"
+        )
         harness.expectEqual(strings.close, "Close", "english close")
     }
 
@@ -72,6 +82,16 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.manualResetGrantedAtTitle, "发放时间", "chinese manual reset granted")
         harness.expectEqual(strings.manualResetExpiresAtTitle, "过期时间", "chinese manual reset expires")
         harness.expectEqual(strings.manualResetNoRecords, "暂无手动重置记录", "chinese manual reset empty")
+        harness.expectEqual(
+            strings.codexAuthFileMalformed,
+            "Codex auth.json 已存在，但无法解析。",
+            "chinese codex malformed auth file"
+        )
+        harness.expectEqual(
+            strings.codexAuthFileMissingToken,
+            "Codex auth.json 已存在，但未包含 access token。",
+            "chinese codex auth file missing token"
+        )
         harness.expectEqual(strings.close, "关闭", "chinese close")
     }
 

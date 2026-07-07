@@ -19,6 +19,7 @@ public struct APIProviderSummary: Equatable {
     public let summaryBadgeText: String
     public let supportsAPIKeyManagement: Bool
     public let codexConfigTargetURL: URL?
+    public let configurationFeedback: SettingsFeedback?
     public let statusTone: ProviderStatusTone
     public let healthTone: ProviderAmountTone
     public let balanceText: String
@@ -40,6 +41,7 @@ public struct APIProviderSummary: Equatable {
         summaryBadgeText: String? = nil,
         supportsAPIKeyManagement: Bool = true,
         codexConfigTargetURL: URL? = nil,
+        configurationFeedback: SettingsFeedback? = nil,
         statusTone: ProviderStatusTone = .neutral,
         healthTone: ProviderAmountTone = .neutral,
         balanceText: String,
@@ -60,6 +62,7 @@ public struct APIProviderSummary: Equatable {
         self.summaryBadgeText = summaryBadgeText ?? validationStatusText
         self.supportsAPIKeyManagement = supportsAPIKeyManagement
         self.codexConfigTargetURL = codexConfigTargetURL
+        self.configurationFeedback = configurationFeedback
         self.statusTone = statusTone
         self.healthTone = healthTone
         self.balanceText = balanceText
@@ -184,6 +187,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                 ),
                 supportsAPIKeyManagement: descriptor.credentialManagement.supportsConsoleCredentialManagement,
                 codexConfigTargetURL: codexConfigTargetURL(for: descriptor),
+                configurationFeedback: codexConfigurationFeedback(for: descriptor),
                 statusTone: providerSummaryStatusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
@@ -605,6 +609,23 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
 
         return (credentialStore as? CodexCredentialStore)?.codexConfigTargetURL()
+    }
+
+    private func codexConfigurationFeedback(for descriptor: ProviderDescriptor) -> SettingsFeedback? {
+        guard descriptor.id == .codex,
+              descriptor.credentialManagement == .localExternalConfiguration,
+              let codexCredentialStore = credentialStore as? CodexCredentialStore else {
+            return nil
+        }
+
+        switch codexCredentialStore.codexAuthFileStatus() {
+        case .malformed:
+            return SettingsFeedback(kind: .warning, message: strings.codexAuthFileMalformed)
+        case .missingAccessToken:
+            return SettingsFeedback(kind: .warning, message: strings.codexAuthFileMissingToken)
+        case .missing, .usable:
+            return nil
+        }
     }
 
     private func providerSummaryStatusTone(for state: BalanceState) -> ProviderStatusTone {

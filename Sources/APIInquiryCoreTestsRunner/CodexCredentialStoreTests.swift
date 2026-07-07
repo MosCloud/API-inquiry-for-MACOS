@@ -5,6 +5,9 @@ enum CodexCredentialStoreTests {
     static func run(using harness: TestHarness) {
         testCodexAuthFileTakesPrecedenceOverFallback(using: harness)
         testMissingCodexAuthFileFallsBackToDelegate(using: harness)
+        testCodexAuthFileStatusReportsMalformedFile(using: harness)
+        testCodexAuthFileStatusReportsMissingAccessToken(using: harness)
+        testCodexAuthFileStatusReportsUsableFile(using: harness)
         testDeletingCodexCredentialDoesNotDeleteAuthFile(using: harness)
         testCodexConfigTargetOpensExistingAuthFile(using: harness)
         testCodexConfigTargetFallsBackToConfigDirectory(using: harness)
@@ -39,6 +42,45 @@ enum CodexCredentialStoreTests {
             "codex missing auth file falls back to delegate"
         )
         harness.expectEqual(fallback.requestedAccounts, ["codex-session-token"], "codex missing auth file reads fallback")
+    }
+
+    private static func testCodexAuthFileStatusReportsMalformedFile(using harness: TestHarness) {
+        let authFileURL = writeTemporaryAuthFile("{")
+        let store = CodexCredentialStore(delegate: RecordingCredentialStore(credentialsByAccount: [:]), authFileURLs: [authFileURL])
+
+        harness.expectEqual(
+            store.codexAuthFileStatus(),
+            .malformed(authFileURL),
+            "codex auth file status reports malformed file"
+        )
+
+        removeTemporaryFile(authFileURL)
+    }
+
+    private static func testCodexAuthFileStatusReportsMissingAccessToken(using harness: TestHarness) {
+        let authFileURL = writeTemporaryAuthFile(#"{"tokens":{}}"#)
+        let store = CodexCredentialStore(delegate: RecordingCredentialStore(credentialsByAccount: [:]), authFileURLs: [authFileURL])
+
+        harness.expectEqual(
+            store.codexAuthFileStatus(),
+            .missingAccessToken(authFileURL),
+            "codex auth file status reports missing access token"
+        )
+
+        removeTemporaryFile(authFileURL)
+    }
+
+    private static func testCodexAuthFileStatusReportsUsableFile(using harness: TestHarness) {
+        let authFileURL = writeTemporaryAuthFile(#"{"tokens":{"access_token":"test-access-token"}}"#)
+        let store = CodexCredentialStore(delegate: RecordingCredentialStore(credentialsByAccount: [:]), authFileURLs: [authFileURL])
+
+        harness.expectEqual(
+            store.codexAuthFileStatus(),
+            .usable(authFileURL),
+            "codex auth file status reports usable file"
+        )
+
+        removeTemporaryFile(authFileURL)
     }
 
     private static func testDeletingCodexCredentialDoesNotDeleteAuthFile(using harness: TestHarness) {
