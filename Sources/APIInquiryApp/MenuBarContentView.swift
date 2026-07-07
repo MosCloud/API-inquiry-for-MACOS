@@ -644,7 +644,7 @@ private struct FooterActionButtonStyle: ButtonStyle {
 
         switch role {
         case .normal:
-            return Color.white.opacity(0.05)
+            return ConsoleSurfaceColor.subtleStroke
         case .destructive:
             return Color.red.opacity(0.20)
         }

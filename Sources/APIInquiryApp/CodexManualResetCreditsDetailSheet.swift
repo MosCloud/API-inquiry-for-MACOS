@@ -70,7 +70,7 @@ struct CodexManualResetCreditsDetailSheet: View {
         .clipShape(RoundedRectangle(cornerRadius: ConsoleMetrics.providerRowCornerRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: ConsoleMetrics.providerRowCornerRadius, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                .strokeBorder(ConsoleSurfaceColor.subtleStroke, lineWidth: 1)
         }
     }
 
@@ -112,7 +112,7 @@ struct CodexManualResetCreditsDetailSheet: View {
 
     private var tableSeparator: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.08))
+            .fill(ConsoleSurfaceColor.separator)
             .frame(height: 1)
     }
 }

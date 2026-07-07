@@ -1,4 +1,5 @@
 import APIInquiryCore
+import AppKit
 import Foundation
 import SwiftUI
 
@@ -85,4 +86,11 @@ enum ProviderToneColor {
             return .secondary
         }
     }
+}
+
+enum ConsoleSurfaceColor {
+    static var separator: Color { Color(nsColor: .separatorColor) }
+    static var subtleStroke: Color { Color(nsColor: .separatorColor).opacity(0.70) }
+    static var selectedStroke: Color { Color.accentColor.opacity(0.65) }
+    static var subtleFill: Color { Color.secondary.opacity(0.10) }
 }

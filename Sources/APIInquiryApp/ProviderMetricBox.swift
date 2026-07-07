@@ -51,7 +51,7 @@ struct ProviderMetricGrid: View {
 struct ProviderMetricSeparator: View {
     var body: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.10))
+            .fill(ConsoleSurfaceColor.separator)
             .frame(width: 1, height: 36)
             .padding(.horizontal, 8)
     }
@@ -96,7 +96,7 @@ struct ProviderMetricBox: View {
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.09), lineWidth: 1)
+                            .strokeBorder(ConsoleSurfaceColor.subtleStroke, lineWidth: 1)
                     }
                     .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
