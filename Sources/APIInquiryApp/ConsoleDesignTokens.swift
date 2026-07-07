@@ -3,6 +3,10 @@ import Foundation
 import SwiftUI
 
 enum ConsoleMetrics {
+    static let windowWidth: CGFloat = 780
+    static let windowHeight: CGFloat = 560
+    static let windowMinWidth: CGFloat = 780
+    static let windowMinHeight: CGFloat = 560
     static let providerHomepageButtonHeight: CGFloat = 40
     static let providerModuleHorizontalPadding: CGFloat = 14
     static let providerModuleVerticalPadding: CGFloat = 6

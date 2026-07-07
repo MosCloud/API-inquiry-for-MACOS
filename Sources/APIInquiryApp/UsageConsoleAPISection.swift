@@ -6,7 +6,6 @@ struct UsageConsoleAPISection: View {
     @ObservedObject var viewModel: UsageConsoleViewModel
     @Binding var replacingProviderIDs: Set<ProviderID>
     @Binding var providerRemovalConfirmationID: ProviderID?
-    @Binding var localFeedbacksByProviderID: [ProviderID: SettingsFeedback]
 
     var body: some View {
         VStack(alignment: .leading, spacing: ConsoleMetrics.apiProviderListSpacing) {
@@ -62,8 +61,7 @@ struct UsageConsoleAPISection: View {
             providerRemovalConfirmation(for: summary)
             apiKeyDeletionConfirmation(for: summary)
 
-            FeedbackText(feedback: viewModel.settingsFeedback(for: summary.id))
-            FeedbackText(feedback: localFeedbacksByProviderID[summary.id])
+            FeedbackText(feedback: summary.configurationFeedback ?? viewModel.settingsFeedback(for: summary.id))
         }
         .padding(.horizontal, ConsoleMetrics.providerModuleHorizontalPadding)
         .padding(.vertical, ConsoleMetrics.apiProviderModuleVerticalPadding)
@@ -188,20 +186,20 @@ struct UsageConsoleAPISection: View {
 
     private func openCodexConfig(_ summary: APIProviderSummary) {
         guard let targetURL = summary.codexConfigTargetURL else {
-            localFeedbacksByProviderID[summary.id] = SettingsFeedback(
+            viewModel.setSettingsFeedback(SettingsFeedback(
                 kind: .error,
                 message: strings.configCouldNotBeOpened
-            )
+            ), for: summary.id)
             return
         }
 
         if NSWorkspace.shared.open(targetURL) {
-            localFeedbacksByProviderID[summary.id] = nil
+            viewModel.setSettingsFeedback(nil, for: summary.id)
         } else {
-            localFeedbacksByProviderID[summary.id] = SettingsFeedback(
+            viewModel.setSettingsFeedback(SettingsFeedback(
                 kind: .error,
                 message: strings.configCouldNotBeOpened
-            )
+            ), for: summary.id)
         }
     }
 
@@ -211,7 +209,7 @@ struct UsageConsoleAPISection: View {
         }
 
         NSWorkspace.shared.activateFileViewerSelecting([targetURL])
-        localFeedbacksByProviderID[summary.id] = nil
+        viewModel.setSettingsFeedback(nil, for: summary.id)
     }
 
     private func apiKeyBinding(for id: ProviderID) -> Binding<String> {

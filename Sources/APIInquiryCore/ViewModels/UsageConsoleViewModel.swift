@@ -310,6 +310,10 @@ public final class UsageConsoleViewModel: ObservableObject {
         settingsFeedbacksByProviderID[id]
     }
 
+    public func setSettingsFeedback(_ feedback: SettingsFeedback?, for id: ProviderID) {
+        settingsFeedbacksByProviderID[id] = feedback
+    }
+
     public func isAPIKeyConfigured(for id: ProviderID) -> Bool {
         coordinator.isCredentialConfigured(for: id)
     }

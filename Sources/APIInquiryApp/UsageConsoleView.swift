@@ -9,7 +9,6 @@ struct UsageConsoleView: View {
     @State private var selectedSection: UsageConsoleSection
     @State private var replacingProviderIDs: Set<ProviderID> = []
     @State private var providerRemovalConfirmationID: ProviderID?
-    @State private var localFeedbacksByProviderID: [ProviderID: SettingsFeedback] = [:]
     @State private var manualResetRefreshFeedback: RefreshActionFeedback = .idle
     @State private var manualResetRefreshTurn = 0
     @State private var manualResetRefreshAnimationTask: Task<Void, Never>?
@@ -47,9 +46,9 @@ struct UsageConsoleView: View {
         }
         .padding(20)
         .frame(
-            minWidth: 720,
+            minWidth: ConsoleMetrics.windowMinWidth,
             maxWidth: .infinity,
-            minHeight: 520,
+            minHeight: ConsoleMetrics.windowMinHeight,
             maxHeight: .infinity,
             alignment: .topLeading
         )
@@ -84,8 +83,7 @@ struct UsageConsoleView: View {
             UsageConsoleAPISection(
                 viewModel: viewModel,
                 replacingProviderIDs: $replacingProviderIDs,
-                providerRemovalConfirmationID: $providerRemovalConfirmationID,
-                localFeedbacksByProviderID: $localFeedbacksByProviderID
+                providerRemovalConfirmationID: $providerRemovalConfirmationID
             )
         case .settings:
             UsageConsoleSettingsSection(

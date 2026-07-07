@@ -29,6 +29,7 @@ enum UsageConsoleViewModelTests {
         testRemovingProviderShowsFeedbackWhenCredentialDeletionFails(using: harness)
         testRemovingProviderClearsProviderScopedAPIKeyInput(using: harness)
         await testSavingProviderScopedAPIKeyRefreshesOnlyThatProvider(using: harness)
+        testProviderScopedSettingsFeedbackCanBeSetAndCleared(using: harness)
         await testCodexSummaryExposesManualResetCredits(using: harness)
         testUnconfiguredCodexDoesNotExposeManualResetCredits(using: harness)
         await testCodexSummaryUsesFormatterTimezone(using: harness)
@@ -635,6 +636,20 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(deepSeek.fetchCount, 0, "console provider-scoped save does not refresh deepseek")
         harness.expectEqual(viewModel.apiKeyInput(for: .zhipuCodingPlan), "", "console provider-scoped input clears")
         harness.expectEqual(viewModel.settingsFeedback(for: .zhipuCodingPlan), SettingsFeedback(kind: .success, message: "Saved securely."), "console provider-scoped save feedback")
+    }
+
+    @MainActor
+    private static func testProviderScopedSettingsFeedbackCanBeSetAndCleared(using harness: TestHarness) {
+        let viewModel = makeViewModel()
+        let feedback = SettingsFeedback(kind: .error, message: "Could not open config.")
+
+        viewModel.setSettingsFeedback(feedback, for: .deepseek)
+
+        harness.expectEqual(viewModel.settingsFeedback(for: .deepseek), feedback, "console provider-scoped feedback set")
+
+        viewModel.setSettingsFeedback(nil, for: .deepseek)
+
+        harness.expectEqual(viewModel.settingsFeedback(for: .deepseek), nil, "console provider-scoped feedback cleared")
     }
 
     @MainActor

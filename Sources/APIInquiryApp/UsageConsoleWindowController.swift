@@ -37,11 +37,17 @@ final class UsageConsoleWindowController: ObservableObject {
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 780, height: 560),
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: ConsoleMetrics.windowWidth,
+                height: ConsoleMetrics.windowHeight
+            ),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
+        window.minSize = NSSize(width: ConsoleMetrics.windowMinWidth, height: ConsoleMetrics.windowMinHeight)
         window.title = LocalizedStrings(language: languageStore.resolvedLanguage).appConsoleTitle
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .visible
