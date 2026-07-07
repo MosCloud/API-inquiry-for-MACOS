@@ -1,4 +1,5 @@
 import Combine
+import CryptoKit
 import Foundation
 
 public enum APIAccessState: Equatable {
@@ -90,7 +91,7 @@ public final class UsageConsoleViewModel: ObservableObject {
     private let languageStore: AppLanguageStore?
     private var cancellables: Set<AnyCancellable> = []
     private var codexManualResetRefreshRevision = 0
-    private var codexManualResetCredentialHash: Int?
+    private var codexManualResetCredentialFingerprint: String?
 
     public init(
         coordinator: MultiProviderBalanceCoordinator,
@@ -215,14 +216,14 @@ public final class UsageConsoleViewModel: ObservableObject {
             resetCodexManualResetCreditsState()
             return false
         }
-        let credentialHash = apiKey.hashValue
-        if let cachedCredentialHash = codexManualResetCredentialHash,
-           cachedCredentialHash != credentialHash {
+        let credentialFingerprint = codexManualResetCredentialFingerprint(for: apiKey)
+        if let cachedCredentialFingerprint = codexManualResetCredentialFingerprint,
+           cachedCredentialFingerprint != credentialFingerprint {
             resetCodexManualResetCreditsState()
         }
 
         let currentDate = now()
-        if !force, isCodexManualResetCacheFresh(at: currentDate, credentialHash: credentialHash) {
+        if !force, isCodexManualResetCacheFresh(at: currentDate, credentialFingerprint: credentialFingerprint) {
             return true
         }
 
@@ -232,13 +233,13 @@ public final class UsageConsoleViewModel: ObservableObject {
 
         let previousSnapshot = cachedCodexManualResetCreditsSnapshot
         let refreshRevision = codexManualResetRefreshRevision
-        codexManualResetCredentialHash = credentialHash
+        codexManualResetCredentialFingerprint = credentialFingerprint
         isCodexManualResetCreditsRefreshing = true
         codexManualResetCreditsState = .loading(previous: previousSnapshot)
         defer {
             if isCodexManualResetRefreshCurrent(
                 revision: refreshRevision,
-                credentialHash: credentialHash
+                credentialFingerprint: credentialFingerprint
             ) {
                 isCodexManualResetCreditsRefreshing = false
             }
@@ -248,7 +249,7 @@ public final class UsageConsoleViewModel: ObservableObject {
             let snapshot = try await manualResetCreditsProvider.fetchSnapshot(apiKey: apiKey)
             guard isCodexManualResetRefreshCurrent(
                 revision: refreshRevision,
-                credentialHash: credentialHash
+                credentialFingerprint: credentialFingerprint
             ) else {
                 return false
             }
@@ -257,7 +258,7 @@ public final class UsageConsoleViewModel: ObservableObject {
         } catch {
             guard isCodexManualResetRefreshCurrent(
                 revision: refreshRevision,
-                credentialHash: credentialHash
+                credentialFingerprint: credentialFingerprint
             ) else {
                 return false
             }
@@ -514,8 +515,9 @@ public final class UsageConsoleViewModel: ObservableObject {
             return "--"
         }
 
-        if let cachedCredentialHash = codexManualResetCredentialHash,
-           cachedCredentialHash != credential.hashValue {
+        let credentialFingerprint = codexManualResetCredentialFingerprint(for: credential)
+        if let cachedCredentialFingerprint = codexManualResetCredentialFingerprint,
+           cachedCredentialFingerprint != credentialFingerprint {
             return "--"
         }
 
@@ -537,7 +539,7 @@ public final class UsageConsoleViewModel: ObservableObject {
 
     private func resetCodexManualResetCreditsState() {
         codexManualResetRefreshRevision += 1
-        codexManualResetCredentialHash = nil
+        codexManualResetCredentialFingerprint = nil
         codexManualResetCreditsState = .idle
         isCodexManualResetCreditsRefreshing = false
     }
@@ -553,6 +555,11 @@ public final class UsageConsoleViewModel: ObservableObject {
         return credential
     }
 
+    private func codexManualResetCredentialFingerprint(for credential: String) -> String {
+        let digest = SHA256.hash(data: Data(credential.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
     private var cachedCodexManualResetCreditsSnapshot: CodexManualResetCreditsSnapshot? {
         switch codexManualResetCreditsState {
         case .idle:
@@ -566,8 +573,8 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
     }
 
-    private func isCodexManualResetCacheFresh(at currentDate: Date, credentialHash: Int) -> Bool {
-        guard codexManualResetCredentialHash == credentialHash else {
+    private func isCodexManualResetCacheFresh(at currentDate: Date, credentialFingerprint: String) -> Bool {
+        guard codexManualResetCredentialFingerprint == credentialFingerprint else {
             return false
         }
 
@@ -578,14 +585,14 @@ public final class UsageConsoleViewModel: ObservableObject {
         return currentDate.timeIntervalSince(snapshot.fetchedAt) < manualResetCacheTTL
     }
 
-    private func isCodexManualResetRefreshCurrent(revision: Int, credentialHash: Int) -> Bool {
+    private func isCodexManualResetRefreshCurrent(revision: Int, credentialFingerprint: String) -> Bool {
         guard codexManualResetRefreshRevision == revision else {
             return false
         }
 
         guard coordinator.addedProviderIDs.contains(.codex),
               let currentCredential = codexManualResetCredential(),
-              currentCredential.hashValue == credentialHash else {
+              codexManualResetCredentialFingerprint(for: currentCredential) == credentialFingerprint else {
             return false
         }
 

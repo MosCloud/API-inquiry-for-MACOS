@@ -31,6 +31,7 @@ enum UsageConsoleViewModelTests {
         await testCodexSummaryExposesManualResetCredits(using: harness)
         testUnconfiguredCodexDoesNotExposeManualResetCredits(using: harness)
         await testCodexSummaryUsesFormatterTimezone(using: harness)
+        testManualResetCredentialTrackingDoesNotUseHashValue(using: harness)
         await testCodexManualResetCreditsRefreshUsesCache(using: harness)
         await testCodexManualResetCreditsCacheTracksCredentialChanges(using: harness)
         await testCodexManualResetCreditsForceRefreshBypassesCache(using: harness)
@@ -102,6 +103,21 @@ enum UsageConsoleViewModelTests {
 
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
         harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 07/17 expires", "codex manual reset summary uses local timezone")
+    }
+
+    private static func testManualResetCredentialTrackingDoesNotUseHashValue(using harness: TestHarness) {
+        let sourcePath = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("APIInquiryCore")
+            .appendingPathComponent("ViewModels")
+            .appendingPathComponent("UsageConsoleViewModel.swift")
+        let source = (try? String(contentsOf: sourcePath, encoding: .utf8)) ?? ""
+
+        harness.expectTrue(
+            !source.contains("hashValue"),
+            "manual reset credential tracking does not use process-randomized hashValue"
+        )
     }
 
     @MainActor
