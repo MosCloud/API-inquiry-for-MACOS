@@ -1,6 +1,6 @@
 # API Inquiry Roadmap
 
-Last updated: 2026-07-03
+Last updated: 2026-07-07
 
 ## 中文
 
@@ -8,7 +8,7 @@ Last updated: 2026-07-03
 
 - 最新已发布版本：`v0.3.10`
 - 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、Console 管理、系统时区自适应时间展示、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、DMG 打包发布。
-- 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
+- 下一计划版本：`v0.3.11`，聚焦质量修复、CI 基线和发布前稳定性；`v0.4.0` 继续聚焦更多供应商与通用 Provider 能力。
 
 ### v0.3.2：中文本地化与语言切换
 
@@ -113,6 +113,29 @@ Last updated: 2026-07-03
 - 手动重置详情仍不展示 token、cookie、原始响应或完整唯一 ID。
 - 不改变菜单栏主刷新链路；手动重置信息继续独立缓存、独立刷新。
 
+### v0.3.11：质量修复与发布基线（计划中）
+
+目标：在进入 `v0.4.0` Provider 扩展前，先修复评审中确认的高收益质量问题，降低后续扩展风险。
+
+核心方向：
+
+- 增加 GitHub Actions 基线，自动运行 `swift run APIInquiryCoreTestsRunner` 和 `swift build`。
+- 将额度窗口的 `"5h"` / `"Week"` 从逻辑判断键收敛为语义枚举，显示文案继续由本地化层负责。
+- 将 Codex 手动重置缓存的凭证变化检测从 `String.hashValue` 改为稳定 fingerprint。
+- 当本机 Codex `auth.json` 已存在但格式异常或缺少 access token 时，提供非敏感诊断提示。
+- 统一 Console API 页反馈通道，避免同一 Provider 下两条反馈叠显。
+- 将 Console SwiftUI 内容尺寸与 AppKit 窗口尺寸收敛到单一 token 来源。
+- 修复关键浅色模式描边和分隔线对比度。
+- 抽取菜单栏刷新与手动重置刷新共用的刷新反馈状态。
+
+设计边界：
+
+- 不新增 Provider。
+- 不做完整 Codex auxiliary-feed 架构。
+- 不做 `ProviderSnapshot` 展示 adapter 重写。
+- 不完整拆分 `MenuBarContentView`。
+- 不引入 Sparkle 自动更新、Homebrew Cask 或低余额通知。
+
 ### v0.4.0：更多供应商与通用 Provider 能力
 
 - 增加更多内置供应商。
@@ -137,7 +160,7 @@ Last updated: 2026-07-03
 
 - Latest released version: `v0.3.10`
 - Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, and DMG release packaging.
-- Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
+- Next planned version: `v0.3.11`, focused on quality fixes, CI baseline, and pre-release stability; `v0.4.0` remains focused on more providers and generic provider capabilities.
 
 ### v0.3.2: Chinese Localization and Language Switching
 
@@ -241,6 +264,29 @@ Design boundaries:
 
 - Manual reset details still do not display tokens, cookies, raw responses, or full unique IDs.
 - Do not change the menu bar's main refresh chain; manual reset information remains independently cached and refreshed.
+
+### v0.3.11: Quality Fixes and Release Baseline (Planned)
+
+Goal: fix the highest-leverage quality issues confirmed by review before entering the `v0.4.0` provider expansion, reducing risk for later extensibility work.
+
+Core directions:
+
+- Add a GitHub Actions baseline that runs `swift run APIInquiryCoreTestsRunner` and `swift build`.
+- Move quota-window `"5h"` / `"Week"` logic from display labels to semantic enum values, keeping copy in the localization layer.
+- Replace `String.hashValue` credential-change tracking in Codex manual-reset cache with a stable fingerprint.
+- Provide a non-sensitive diagnostic warning when local Codex `auth.json` exists but is malformed or missing an access token.
+- Unify Console API feedback so one provider cannot show stacked feedback messages.
+- Use a single token source for the Console SwiftUI content size and AppKit window size.
+- Fix key light-mode stroke and separator contrast issues.
+- Extract shared refresh feedback state for menu refresh and manual-reset refresh.
+
+Design boundaries:
+
+- No new providers.
+- No full Codex auxiliary-feed architecture.
+- No `ProviderSnapshot` display-adapter rewrite.
+- No full `MenuBarContentView` split.
+- No Sparkle automatic updates, Homebrew Cask, or low-balance notifications.
 
 ### v0.4.0: More Providers and Generic Provider Capabilities
 
