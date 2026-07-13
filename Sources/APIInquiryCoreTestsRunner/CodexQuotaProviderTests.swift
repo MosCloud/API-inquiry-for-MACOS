@@ -4,6 +4,7 @@ import Foundation
 enum CodexQuotaProviderTests {
     static func run(using harness: TestHarness) async {
         await testRawTokenRequestAndQuotaParsing(using: harness)
+        await testPrimaryWeekWindowUsesWeekKind(using: harness)
         await testBearerTokenIsNormalized(using: harness)
         await testAuthJSONExtractsTokenAndAccountID(using: harness)
         await testResetAfterSecondsIsUsedWhenResetAtIsMissing(using: harness)
@@ -74,6 +75,34 @@ enum CodexQuotaProviderTests {
             )
         } catch {
             harness.expectTrue(false, "codex usage should not throw: \(error)")
+        }
+    }
+
+    private static func testPrimaryWeekWindowUsesWeekKind(using harness: TestHarness) async {
+        let httpClient = CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 604800
+                }
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        ))
+        let provider = CodexQuotaProvider(httpClient: httpClient)
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+
+            harness.expectEqual(snapshot.lastQuotaUsageSnapshot?.windows.count, 1, "codex primary week window count")
+            harness.expectEqual(snapshot.lastQuotaUsageSnapshot?.windows.first?.label, "Week", "codex primary week label")
+            harness.expectEqual(snapshot.lastQuotaUsageSnapshot?.windows.first?.kind, .week, "codex primary week kind")
+        } catch {
+            harness.expectTrue(false, "codex primary week window should not throw: \(error)")
         }
     }
 

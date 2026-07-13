@@ -49,11 +49,13 @@ public final class CodexQuotaProvider: BalanceProvider {
         }
 
         var windows: [QuotaWindowSnapshot] = []
-        if let primary = payload.rateLimit.primaryWindow {
-            windows.append(makeWindow(label: "5h", kind: .fiveHour, from: primary))
+        if let primary = payload.rateLimit.primaryWindow,
+           let metadata = windowMetadata(for: primary) {
+            windows.append(makeWindow(label: metadata.label, kind: metadata.kind, from: primary))
         }
-        if let secondary = payload.rateLimit.secondaryWindow {
-            windows.append(makeWindow(label: "Week", kind: .week, from: secondary))
+        if let secondary = payload.rateLimit.secondaryWindow,
+           let metadata = windowMetadata(for: secondary) {
+            windows.append(makeWindow(label: metadata.label, kind: metadata.kind, from: secondary))
         }
 
         guard !windows.isEmpty else {
@@ -66,6 +68,17 @@ public final class CodexQuotaProvider: BalanceProvider {
             windows: windows,
             fetchedAt: now()
         )
+    }
+
+    private func windowMetadata(for window: CodexRateLimitWindow) -> (label: String, kind: QuotaWindowKind)? {
+        switch window.limitWindowSeconds {
+        case 18_000:
+            return (label: "5h", kind: .fiveHour)
+        case 604_800:
+            return (label: "Week", kind: .week)
+        default:
+            return nil
+        }
     }
 
     private func makeWindow(label: String, kind: QuotaWindowKind, from window: CodexRateLimitWindow) -> QuotaWindowSnapshot {
@@ -168,11 +181,13 @@ private struct CodexRateLimit: Decodable {
 
 private struct CodexRateLimitWindow: Decodable {
     let usedPercent: Int
+    let limitWindowSeconds: Int
     let resetAt: Date?
     let resetAfterSeconds: Int?
 
     enum CodingKeys: String, CodingKey {
         case usedPercent = "used_percent"
+        case limitWindowSeconds = "limit_window_seconds"
         case resetAt = "reset_at"
         case resetAfterSeconds = "reset_after_seconds"
     }
@@ -180,6 +195,7 @@ private struct CodexRateLimitWindow: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         usedPercent = try container.decodeFlexibleInt(forKey: .usedPercent)
+        limitWindowSeconds = try container.decodeFlexibleInt(forKey: .limitWindowSeconds)
         resetAt = try container.decodeFlexibleOptionalDate(forKey: .resetAt)
         resetAfterSeconds = try container.decodeFlexibleOptionalInt(forKey: .resetAfterSeconds)
     }
