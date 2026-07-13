@@ -15,16 +15,32 @@ enum ReleaseVersionConsistencyTests {
         let versionEnv = (try? String(contentsOf: versionEnvPath, encoding: .utf8)) ?? ""
 
         harness.expectTrue(
-            appVersionSource.contains("static let displayVersion = \"v0.3.11\""),
-            "settings app version is v0.3.11"
+            appVersionSource.contains("static let displayVersion = \"v0.3.12\""),
+            "settings app version is v0.3.12"
         )
         harness.expectTrue(
-            versionEnv.contains("APP_VERSION=\"0.3.11\""),
-            "packaging app version is 0.3.11"
+            versionEnv.contains("APP_VERSION=\"0.3.12\""),
+            "packaging app version is 0.3.12"
         )
         harness.expectTrue(
-            versionEnv.contains("DMG_BASENAME=\"API-Inquiry-v0.3.11\""),
-            "dmg basename is v0.3.11"
+            versionEnv.contains("RELEASE_TAG=\"release/v0.3.12\""),
+            "release tag is v0.3.12"
+        )
+        harness.expectTrue(
+            versionEnv.contains("RELEASE_VERSION=\"0.3.12\""),
+            "release version is 0.3.12"
+        )
+        harness.expectTrue(
+            versionEnv.contains("DMG_BASENAME=\"API-Inquiry-v0.3.12\""),
+            "dmg basename is v0.3.12"
+        )
+        harness.expectTrue(
+            versionEnv.contains("VOLUME_NAME=\"API Inquiry v0.3.12\""),
+            "volume name is v0.3.12"
+        )
+        harness.expectTrue(
+            versionEnv.contains("BUILD_NUMBER=\"17\""),
+            "build number is 17"
         )
     }
 
