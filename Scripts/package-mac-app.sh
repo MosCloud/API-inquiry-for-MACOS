@@ -7,6 +7,8 @@ CONFIGURATION="${CONFIGURATION:-release}"
 DIST_DIR="$ROOT_DIR/dist"
 APP_NAME="API Inquiry.app"
 APP_DIR="$DIST_DIR/$APP_NAME"
+STAGING_ROOT="${API_INQUIRY_APP_PACKAGE_WORK_ROOT:-/private/tmp/api-inquiry-app-package-$$}"
+STAGED_APP_DIR="$STAGING_ROOT/$APP_NAME"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
@@ -14,12 +16,21 @@ EXECUTABLE_NAME="APIInquiry"
 PRODUCT_NAME="APIInquiryApp"
 RESOURCE_BUNDLE_NAME="APIInquiry_APIInquiryApp.bundle"
 
+cleanup_staging() {
+    rm -rf "$STAGING_ROOT"
+}
+
+trap cleanup_staging EXIT
+
 cd "$ROOT_DIR"
 
 swift Scripts/generate-app-icon.swift
 swift build --configuration "$CONFIGURATION" --product "$PRODUCT_NAME"
 
-rm -rf "$APP_DIR"
+rm -rf "$STAGING_ROOT" "$APP_DIR"
+CONTENTS_DIR="$STAGED_APP_DIR/Contents"
+MACOS_DIR="$CONTENTS_DIR/MacOS"
+RESOURCES_DIR="$CONTENTS_DIR/Resources"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
 cp "$ROOT_DIR/.build/$CONFIGURATION/$PRODUCT_NAME" "$MACOS_DIR/$EXECUTABLE_NAME"
@@ -66,9 +77,13 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 PLIST
 
 plutil -lint "$CONTENTS_DIR/Info.plist"
-chflags -R nohidden "$APP_DIR"
-xattr -cr "$APP_DIR"
-codesign --force --deep --sign - "$APP_DIR"
-codesign --verify --deep "$APP_DIR"
+chflags -R nohidden "$STAGED_APP_DIR"
+xattr -cr "$STAGED_APP_DIR"
+codesign --force --deep --sign - "$STAGED_APP_DIR"
+codesign --verify --deep --strict "$STAGED_APP_DIR"
+
+mkdir -p "$DIST_DIR"
+ditto "$STAGED_APP_DIR" "$APP_DIR"
+codesign --verify --deep --strict "$APP_DIR"
 
 echo "Packaged $APP_DIR"
