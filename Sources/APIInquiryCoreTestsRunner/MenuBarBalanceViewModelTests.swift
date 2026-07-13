@@ -25,6 +25,7 @@ enum MenuBarBalanceViewModelTests {
         testPrimaryQuotaWindowAmountToneBoundaries(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
         await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
+        await testCodexPrimaryProviderFormatsWeekOnlyQuotaUsage(using: harness)
         await testCodexPrimaryProviderFormatsChineseQuotaLabels(using: harness)
         await testCodexSecondaryProviderRowsExposeQuotaUsage(using: harness)
         await testSecondaryProviderRowsExposeOtherProviders(using: harness)
@@ -63,6 +64,33 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.suffixText, "% remg", "codex weekly quota row suffix")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.detailText, "48% remg", "codex weekly quota row detail")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.resetText, "Resets: 05/18", "codex weekly quota reset")
+    }
+
+    @MainActor
+    private static func testCodexPrimaryProviderFormatsWeekOnlyQuotaUsage(using harness: TestHarness) async {
+        let weeklySnapshot = QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(
+                    label: "Week",
+                    kind: .week,
+                    remainingPercentage: Decimal(48),
+                    resetAt: sampleWeeklyResetDate,
+                    isAvailable: true
+                )
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, codexSnapshot: weeklySnapshot)
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(viewModel.menuBarValueText, "1w 48%", "codex weekly menu bar value")
+        harness.expectEqual(viewModel.menuBarTitle, "1w 48%", "codex weekly menu bar title")
     }
 
     @MainActor
@@ -525,6 +553,14 @@ enum MenuBarBalanceViewModelTests {
 
     @MainActor
     private static func makeCodexCoordinator(primaryProviderID: ProviderID) -> MultiProviderBalanceCoordinator {
+        makeCodexCoordinator(primaryProviderID: primaryProviderID, codexSnapshot: makeCodexSnapshot())
+    }
+
+    @MainActor
+    private static func makeCodexCoordinator(
+        primaryProviderID: ProviderID,
+        codexSnapshot: QuotaUsageSnapshot
+    ) -> MultiProviderBalanceCoordinator {
         MultiProviderBalanceCoordinator(
             registrations: testRegistrations(for: [
                 MockBalanceProvider(
@@ -533,7 +569,7 @@ enum MenuBarBalanceViewModelTests {
                 ),
                 MockBalanceProvider(
                     id: .codex,
-                    results: [.success(.quotaUsage(makeCodexSnapshot()))]
+                    results: [.success(.quotaUsage(codexSnapshot))]
                 )
             ]),
             credentialStore: InMemoryCredentialStore(credentialsByAccount: [

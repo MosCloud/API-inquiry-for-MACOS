@@ -179,7 +179,8 @@ public enum ProviderValueFormatter {
         guard let window else {
             return "--"
         }
-        return "\(window.label) \(formatPercentage(window.remainingPercentage))%"
+        let label = window.resolvedKind == .week ? "1w" : window.label
+        return "\(label) \(formatPercentage(window.remainingPercentage))%"
     }
 
     private static func formatAmount(
