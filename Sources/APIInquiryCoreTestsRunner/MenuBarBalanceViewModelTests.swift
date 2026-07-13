@@ -43,8 +43,8 @@ enum MenuBarBalanceViewModelTests {
             lastRefreshTimeFormatter: fixedTimeFormatter
         )
 
-        harness.expectEqual(viewModel.menuBarValueText, "5h 72%", "codex menu bar value")
-        harness.expectEqual(viewModel.menuBarTitle, "5h 72%", "codex menu bar title has no provider prefix")
+        harness.expectEqual(viewModel.menuBarValueText, "5H 72%", "codex menu bar value")
+        harness.expectEqual(viewModel.menuBarTitle, "5H 72%", "codex menu bar title has no provider prefix")
         harness.expectEqual(viewModel.primaryDisplayParts.providerID, .codex, "codex primary display id")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5h", "codex primary display caption")
         harness.expectEqual(viewModel.primaryDisplayParts.amountText, "72", "codex primary display amount")
@@ -89,8 +89,8 @@ enum MenuBarBalanceViewModelTests {
             lastRefreshTimeFormatter: fixedTimeFormatter
         )
 
-        harness.expectEqual(viewModel.menuBarValueText, "1w 48%", "codex weekly menu bar value")
-        harness.expectEqual(viewModel.menuBarTitle, "1w 48%", "codex weekly menu bar title")
+        harness.expectEqual(viewModel.menuBarValueText, "1W 48%", "codex weekly menu bar value")
+        harness.expectEqual(viewModel.menuBarTitle, "1W 48%", "codex weekly menu bar title")
     }
 
     @MainActor
@@ -131,7 +131,7 @@ enum MenuBarBalanceViewModelTests {
 
         harness.expectEqual(deepSeekViewModel.menuBarTitle, "DS ¥68.6", "deepseek primary title keeps DS prefix")
         harness.expectEqual(zhipuViewModel.menuBarTitle, "GLM 5h 17%", "zhipu primary title keeps GLM prefix")
-        harness.expectEqual(codexViewModel.menuBarTitle, "5h 72%", "codex primary title omits GPT prefix")
+        harness.expectEqual(codexViewModel.menuBarTitle, "5H 72%", "codex primary title omits GPT prefix")
         harness.expectEqual(deepSeekViewModel.menuBarIconFallbackText, "DS", "deepseek menu bar image fallback uses descriptor prefix")
         harness.expectEqual(zhipuViewModel.menuBarIconFallbackText, "GLM", "zhipu menu bar image fallback uses descriptor prefix")
         harness.expectEqual(codexViewModel.menuBarIconFallbackText, "GPT", "codex menu bar image fallback keeps descriptor prefix")
@@ -148,8 +148,8 @@ enum MenuBarBalanceViewModelTests {
         )
 
         harness.expectEqual(viewModel.statusText, "额度可用", "chinese codex status")
-        harness.expectEqual(viewModel.menuBarValueText, "5h 72%", "chinese codex menu bar keeps compact official label")
-        harness.expectEqual(viewModel.menuBarTitle, "5h 72%", "chinese codex menu bar title keeps compact official label")
+        harness.expectEqual(viewModel.menuBarValueText, "5H 72%", "chinese codex menu bar keeps compact official label")
+        harness.expectEqual(viewModel.menuBarTitle, "5H 72%", "chinese codex menu bar title keeps compact official label")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5 时", "chinese codex primary caption")
         harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% 剩余", "chinese codex trailing")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "5 时", "chinese codex first quota label")

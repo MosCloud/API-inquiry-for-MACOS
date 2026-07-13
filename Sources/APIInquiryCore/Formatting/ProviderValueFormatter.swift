@@ -179,7 +179,15 @@ public enum ProviderValueFormatter {
         guard let window else {
             return "--"
         }
-        let label = window.resolvedKind == .week ? "1w" : window.label
+        let label: String
+        switch window.resolvedKind {
+        case .fiveHour:
+            label = "5H"
+        case .week:
+            label = "1W"
+        case nil:
+            label = window.label
+        }
         return "\(label) \(formatPercentage(window.remainingPercentage))%"
     }
 
