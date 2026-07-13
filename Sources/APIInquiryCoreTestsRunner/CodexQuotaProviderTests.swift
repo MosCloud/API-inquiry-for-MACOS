@@ -5,6 +5,7 @@ enum CodexQuotaProviderTests {
     static func run(using harness: TestHarness) async {
         await testRawTokenRequestAndQuotaParsing(using: harness)
         await testPrimaryWeekWindowUsesWeekKind(using: harness)
+        await testFractionalWindowDurationMapsToMissingBalanceInfo(using: harness)
         await testWindowWithoutDurationDoesNotDiscardRecognizedSecondaryWindow(using: harness)
         await testBearerTokenIsNormalized(using: harness)
         await testAuthJSONExtractsTokenAndAccountID(using: harness)
@@ -48,10 +49,12 @@ enum CodexQuotaProviderTests {
                 harness.expectEqual(usage.planName, "Plus", "codex plan name")
                 harness.expectEqual(usage.windows.count, 2, "codex quota window count")
                 harness.expectEqual(usage.windows.first?.label, "5h", "codex primary label")
+                harness.expectEqual(usage.windows.first?.kind, .fiveHour, "codex primary kind")
                 harness.expectEqual(usage.windows.first?.remainingPercentage, Decimal(72), "codex primary remaining")
                 harness.expectEqual(usage.windows.first?.resetAt, primaryReset, "codex primary reset")
                 harness.expectTrue(usage.windows.first?.isAvailable == true, "codex primary available")
                 harness.expectEqual(usage.windows.last?.label, "Week", "codex secondary label")
+                harness.expectEqual(usage.windows.last?.kind, .week, "codex secondary kind")
                 harness.expectEqual(usage.windows.last?.remainingPercentage, Decimal(48), "codex secondary remaining")
                 harness.expectEqual(usage.windows.last?.resetAt, secondaryReset, "codex secondary reset")
                 harness.expectEqual(usage.fetchedAt, fetchedAt, "codex fetched at")
@@ -106,6 +109,27 @@ enum CodexQuotaProviderTests {
         } catch {
             harness.expectTrue(false, "codex primary week window should not throw: \(error)")
         }
+    }
+
+    private static func testFractionalWindowDurationMapsToMissingBalanceInfo(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 604800.9
+                }
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        )))
+
+        await harness.expectThrowsBalanceProviderError(.missingBalanceInfo, {
+            _ = try await provider.fetchSnapshot(apiKey: "test-token")
+        }, "codex fractional window duration maps to missingBalanceInfo")
     }
 
     private static func testWindowWithoutDurationDoesNotDiscardRecognizedSecondaryWindow(using harness: TestHarness) async {

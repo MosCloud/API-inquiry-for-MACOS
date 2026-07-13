@@ -195,9 +195,28 @@ private struct CodexRateLimitWindow: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         usedPercent = try container.decodeFlexibleInt(forKey: .usedPercent)
-        limitWindowSeconds = try container.decodeFlexibleOptionalInt(forKey: .limitWindowSeconds)
+        limitWindowSeconds = try Self.decodeExactOptionalDurationSeconds(from: container)
         resetAt = try container.decodeFlexibleOptionalDate(forKey: .resetAt)
         resetAfterSeconds = try container.decodeFlexibleOptionalInt(forKey: .resetAfterSeconds)
+    }
+
+    private static func decodeExactOptionalDurationSeconds(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) throws -> Int? {
+        guard container.contains(.limitWindowSeconds),
+              try !container.decodeNil(forKey: .limitWindowSeconds) else {
+            return nil
+        }
+
+        if let intValue = try? container.decode(Int.self, forKey: .limitWindowSeconds) {
+            return intValue
+        }
+        if let doubleValue = try? container.decode(Double.self, forKey: .limitWindowSeconds) {
+            return Int(exactly: doubleValue)
+        }
+
+        let stringValue = try container.decode(String.self, forKey: .limitWindowSeconds)
+        return Int(stringValue)
     }
 }
 
