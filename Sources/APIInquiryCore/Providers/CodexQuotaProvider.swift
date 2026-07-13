@@ -181,7 +181,7 @@ private struct CodexRateLimit: Decodable {
 
 private struct CodexRateLimitWindow: Decodable {
     let usedPercent: Int
-    let limitWindowSeconds: Int
+    let limitWindowSeconds: Int?
     let resetAt: Date?
     let resetAfterSeconds: Int?
 
@@ -195,7 +195,7 @@ private struct CodexRateLimitWindow: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         usedPercent = try container.decodeFlexibleInt(forKey: .usedPercent)
-        limitWindowSeconds = try container.decodeFlexibleInt(forKey: .limitWindowSeconds)
+        limitWindowSeconds = try container.decodeFlexibleOptionalInt(forKey: .limitWindowSeconds)
         resetAt = try container.decodeFlexibleOptionalDate(forKey: .resetAt)
         resetAfterSeconds = try container.decodeFlexibleOptionalInt(forKey: .resetAfterSeconds)
     }
