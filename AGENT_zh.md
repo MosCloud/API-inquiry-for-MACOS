@@ -79,6 +79,8 @@ API Inquiry 的 UI 应保持简洁、克制、轻科技感。优先服务快速�
 - 不得将兼容性或测试用途的 `SDKROOT` 带入 UI 验收或发布构建。本地脚本必须显式使用 active SDK；只有 `API_INQUIRY_APP_SDKROOT` 可以有意覆盖它。
 - 使用 `xcrun vtool -show-build` 验证可执行文件链接的 SDK，并使用 `codesign --verify --deep --strict` 验证完整 app bundle。bundle 经过 Desktop 或 FileProvider 路径后，必须延迟再次验证签名。
 - Desktop 和 FileProvider 路径会持续写入 FinderInfo 元数据。签名后的 app 实体必须保留在 `/private/tmp`；`.build/APIInquiry.app` 只能作为入口 symlink。
+- 每个本地运行根目录必须基于 worktree 的规范化完整路径生成，权限仅限当前用户；清理时只处理当前入口所指向、且已验证属于当前用户的目标。清理必须同时删除入口与运行 bundle，覆盖 dangling link，并拒绝不可信目标；不得用通配符删除当前 UID 的运行命名空间。
+- `dist/` 下的实体 app 不能因为即时验签通过就视为可发布。只要延迟后出现 FileProvider 签名失败，就必须阻止发布，直到最终 DMG 内的 app 通过严格验签。
 - 将 `slash.circle` 视为 `SMAppService` 不可用或 identity 问题的信号，而非普通的禁用开机自启状态；正常禁用状态使用 `bolt.circle`。
 - 源码 diff 不能证明系统原生 UI 一致性。必须核对 built artifact，以及真实菜单栏面板截图或可访问性状态。
 - 不要使用自定义圆角或背景去掩盖 linked-SDK 回归。

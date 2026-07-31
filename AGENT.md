@@ -81,6 +81,8 @@ First release excludes:
 - Never carry a compatibility or test `SDKROOT` into a UI acceptance or release build. Local scripts must explicitly use the active SDK; only `API_INQUIRY_APP_SDKROOT` may intentionally override it.
 - Verify the executable's linked SDK with `xcrun vtool -show-build`, and verify the complete app bundle with `codesign --verify --deep --strict`. Repeat the signature check after a delay when the bundle has passed through a Desktop or FileProvider path.
 - Desktop and FileProvider paths can continually write FinderInfo metadata. Keep the signed app entity in `/private/tmp`; expose `.build/APIInquiry.app` only as an entry-point symlink.
+- Derive each local runtime root from the canonical full worktree path, keep it owner-only, and clean only the current entry's validated current-user target. Cleanup must remove both the entry and runtime bundle, handle dangling links, and refuse untrusted targets; never wildcard-delete the current UID's runtime namespace.
+- A physical app under `dist/` is not release-ready merely because its immediate signature check passed. A delayed FileProvider signature failure is a release blocker until the final DMG-contained app passes strict verification.
 - Treat `slash.circle` as an unavailable `SMAppService` identity signal, not a normal disabled auto-start state. A normal disabled state uses `bolt.circle`.
 - A source diff cannot prove native system UI parity. Inspect the built artifact and a real menu bar panel screenshot or accessibility state.
 - Do not use custom corners or backgrounds to conceal a linked-SDK regression.
