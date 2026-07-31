@@ -1,12 +1,12 @@
 # API Inquiry Roadmap
 
-Last updated: 2026-07-07
+Last updated: 2026-07-31
 
 ## 中文
 
 ### 当前状态
 
-- 最新已发布版本：`v0.3.11`
+- 最新已发布版本：`v0.3.14`
 - 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、Console 管理、系统时区自适应时间展示、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、质量修复与 CI 基线、DMG 打包发布。
 - 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
 
@@ -158,7 +158,7 @@ Last updated: 2026-07-07
 
 ### Current Status
 
-- Latest released version: `v0.3.11`
+- Latest released version: `v0.3.14`
 - Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, quality fixes with a CI baseline, and DMG release packaging.
 - Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
 
