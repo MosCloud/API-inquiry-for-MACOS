@@ -74,6 +74,15 @@ API Inquiry 的 UI 应保持简洁、克制、轻科技感。优先服务快速�
 - 每个任务之后先做 spec compliance review，再做 code quality review，之后才能进入下一任务。
 - 声称完成前必须运行新的验证命令，并报告真实证据。
 
+## 本地 UI 验收构建
+
+- 不得将兼容性或测试用途的 `SDKROOT` 带入 UI 验收或发布构建。本地脚本必须显式使用 active SDK；只有 `API_INQUIRY_APP_SDKROOT` 可以有意覆盖它。
+- 使用 `xcrun vtool -show-build` 验证可执行文件链接的 SDK，并使用 `codesign --verify --deep --strict` 验证完整 app bundle。bundle 经过 Desktop 或 FileProvider 路径后，必须延迟再次验证签名。
+- Desktop 和 FileProvider 路径会持续写入 FinderInfo 元数据。签名后的 app 实体必须保留在 `/private/tmp`；`.build/APIInquiry.app` 只能作为入口 symlink。
+- 将 `slash.circle` 视为 `SMAppService` 不可用或 identity 问题的信号，而非普通的禁用开机自启状态；正常禁用状态使用 `bolt.circle`。
+- 源码 diff 不能证明系统原生 UI 一致性。必须核对 built artifact，以及真实菜单栏面板截图或可访问性状态。
+- 不要使用自定义圆角或背景去掩盖 linked-SDK 回归。
+
 ## 本地命令
 
 实现开始后的预期命令：
