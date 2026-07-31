@@ -179,16 +179,13 @@ public enum ProviderValueFormatter {
         guard let window else {
             return "--"
         }
-        let label: String
+        let percentage = "\(formatPercentage(window.remainingPercentage))%"
         switch window.resolvedKind {
-        case .fiveHour:
-            label = "5H"
-        case .week:
-            label = "1W"
+        case .fiveHour, .week:
+            return percentage
         case nil:
-            label = window.label
+            return "\(window.label) \(percentage)"
         }
-        return "\(label) \(formatPercentage(window.remainingPercentage))%"
     }
 
     private static func formatAmount(

@@ -26,6 +26,7 @@ enum MenuBarBalanceViewModelTests {
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
         await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
         await testCodexPrimaryProviderFormatsWeekOnlyQuotaUsage(using: harness)
+        await testCodexWeeklyOnlyHTTPResultFlowsToMenuBar(using: harness)
         await testCodexPrimaryProviderFormatsChineseQuotaLabels(using: harness)
         await testCodexSecondaryProviderRowsExposeQuotaUsage(using: harness)
         await testSecondaryProviderRowsExposeOtherProviders(using: harness)
@@ -43,8 +44,8 @@ enum MenuBarBalanceViewModelTests {
             lastRefreshTimeFormatter: fixedTimeFormatter
         )
 
-        harness.expectEqual(viewModel.menuBarValueText, "5H 72%", "codex menu bar value")
-        harness.expectEqual(viewModel.menuBarTitle, "5H 72%", "codex menu bar title has no provider prefix")
+        harness.expectEqual(viewModel.menuBarValueText, "72%", "codex menu bar value omits quota window label")
+        harness.expectEqual(viewModel.menuBarTitle, "72%", "codex menu bar title has no provider or quota window prefix")
         harness.expectEqual(viewModel.primaryDisplayParts.providerID, .codex, "codex primary display id")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5h", "codex primary display caption")
         harness.expectEqual(viewModel.primaryDisplayParts.amountText, "72", "codex primary display amount")
@@ -89,8 +90,36 @@ enum MenuBarBalanceViewModelTests {
             lastRefreshTimeFormatter: fixedTimeFormatter
         )
 
-        harness.expectEqual(viewModel.menuBarValueText, "1W 48%", "codex weekly menu bar value")
-        harness.expectEqual(viewModel.menuBarTitle, "1W 48%", "codex weekly menu bar title")
+        harness.expectEqual(viewModel.menuBarValueText, "48%", "codex weekly-only menu bar value omits window label")
+        harness.expectEqual(viewModel.menuBarTitle, "48%", "codex weekly-only menu bar title omits window label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.count, 1, "codex weekly-only detail row count")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "7d", "codex weekly-only detail row label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.amountText, "48", "codex weekly-only detail row amount")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.resetText, "Resets: 05/18", "codex weekly-only detail row reset")
+    }
+
+    @MainActor
+    private static func testCodexWeeklyOnlyHTTPResultFlowsToMenuBar(using harness: TestHarness) async {
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: [
+            "codex-session-token": "test-token"
+        ])
+        let provider = CodexQuotaProvider(httpClient: WeeklyOnlyCodexMockHTTPClient())
+        let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
+        let coordinator = makeSingleProviderCoordinator(
+            provider: provider,
+            credentialStore: credentialStore,
+            controller: controller
+        )
+        let viewModel = MenuBarBalanceViewModel(coordinator: coordinator)
+
+        let refreshSucceeded = await viewModel.refresh()
+
+        harness.expectTrue(refreshSucceeded, "codex weekly-only HTTP result refreshes successfully")
+        harness.expectEqual(viewModel.menuBarValueText, "72%", "codex weekly-only HTTP result reaches menu bar")
+        harness.expectEqual(viewModel.menuBarTitle, "72%", "codex weekly-only HTTP result reaches menu bar title")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.count, 1, "codex weekly-only HTTP result exposes one detail row")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "7d", "codex weekly-only HTTP result keeps weekly detail label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.amountText, "72", "codex weekly-only HTTP result keeps detail amount")
     }
 
     @MainActor
@@ -131,7 +160,7 @@ enum MenuBarBalanceViewModelTests {
 
         harness.expectEqual(deepSeekViewModel.menuBarTitle, "DS ¥68.6", "deepseek primary title keeps DS prefix")
         harness.expectEqual(zhipuViewModel.menuBarTitle, "GLM 5h 17%", "zhipu primary title keeps GLM prefix")
-        harness.expectEqual(codexViewModel.menuBarTitle, "5H 72%", "codex primary title omits GPT prefix")
+        harness.expectEqual(codexViewModel.menuBarTitle, "72%", "codex primary title omits GPT and quota window prefixes")
         harness.expectEqual(deepSeekViewModel.menuBarIconFallbackText, "DS", "deepseek menu bar image fallback uses descriptor prefix")
         harness.expectEqual(zhipuViewModel.menuBarIconFallbackText, "GLM", "zhipu menu bar image fallback uses descriptor prefix")
         harness.expectEqual(codexViewModel.menuBarIconFallbackText, "GPT", "codex menu bar image fallback keeps descriptor prefix")
@@ -148,8 +177,8 @@ enum MenuBarBalanceViewModelTests {
         )
 
         harness.expectEqual(viewModel.statusText, "额度可用", "chinese codex status")
-        harness.expectEqual(viewModel.menuBarValueText, "5H 72%", "chinese codex menu bar keeps compact official label")
-        harness.expectEqual(viewModel.menuBarTitle, "5H 72%", "chinese codex menu bar title keeps compact official label")
+        harness.expectEqual(viewModel.menuBarValueText, "72%", "chinese codex menu bar omits quota window label")
+        harness.expectEqual(viewModel.menuBarTitle, "72%", "chinese codex menu bar title omits quota window label")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5 时", "chinese codex primary caption")
         harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% 剩余", "chinese codex trailing")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "5 时", "chinese codex first quota label")
@@ -667,6 +696,26 @@ enum MenuBarBalanceViewModelTests {
                 )
             ],
             fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+    }
+}
+
+private final class WeeklyOnlyCodexMockHTTPClient: HTTPClient {
+    func data(for request: URLRequest) async throws -> HTTPResponse {
+        HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 604800
+                },
+                "secondary_window": null
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
         )
     }
 }
