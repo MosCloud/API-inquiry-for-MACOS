@@ -25,6 +25,7 @@ enum MenuBarBalanceViewModelTests {
         testPrimaryQuotaWindowAmountToneBoundaries(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
         await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
+        await testCodexPrimaryProviderPrefersFiveHourQuotaWhenWindowsAreReversed(using: harness)
         await testCodexPrimaryProviderFormatsWeekOnlyQuotaUsage(using: harness)
         await testCodexWeeklyOnlyHTTPResultFlowsToMenuBar(using: harness)
         await testCodexPrimaryProviderFormatsChineseQuotaLabels(using: harness)
@@ -65,6 +66,40 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.suffixText, "% remg", "codex weekly quota row suffix")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.detailText, "48% remg", "codex weekly quota row detail")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.resetText, "Resets: 05/18", "codex weekly quota reset")
+    }
+
+    @MainActor
+    private static func testCodexPrimaryProviderPrefersFiveHourQuotaWhenWindowsAreReversed(using harness: TestHarness) async {
+        let reversedSnapshot = QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(
+                    label: "Week",
+                    kind: .week,
+                    remainingPercentage: Decimal(48),
+                    resetAt: sampleWeeklyResetDate,
+                    isAvailable: true
+                ),
+                QuotaWindowSnapshot(
+                    label: "5h",
+                    kind: .fiveHour,
+                    remainingPercentage: Decimal(72),
+                    resetAt: sampleResetDate,
+                    isAvailable: true
+                )
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, codexSnapshot: reversedSnapshot)
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(viewModel.menuBarValueText, "72%", "codex menu prefers five-hour quota regardless of window order")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.map(\.amountText), ["48", "72"], "codex detail rows preserve reversed provider order")
     }
 
     @MainActor

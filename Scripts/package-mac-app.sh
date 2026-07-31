@@ -15,6 +15,8 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 EXECUTABLE_NAME="APIInquiry"
 PRODUCT_NAME="APIInquiryApp"
 RESOURCE_BUNDLE_NAME="APIInquiry_APIInquiryApp.bundle"
+ACTIVE_MACOS_SDK_PATH="$(xcrun --sdk macosx --show-sdk-path)"
+APP_SDK_PATH="${API_INQUIRY_APP_SDKROOT:-$ACTIVE_MACOS_SDK_PATH}"
 
 cleanup_staging() {
     rm -rf "$STAGING_ROOT"
@@ -24,8 +26,8 @@ trap cleanup_staging EXIT
 
 cd "$ROOT_DIR"
 
-swift Scripts/generate-app-icon.swift
-swift build --configuration "$CONFIGURATION" --product "$PRODUCT_NAME"
+SDKROOT="$APP_SDK_PATH" swift Scripts/generate-app-icon.swift
+SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --configuration "$CONFIGURATION" --product "$PRODUCT_NAME"
 
 rm -rf "$STAGING_ROOT" "$APP_DIR"
 CONTENTS_DIR="$STAGED_APP_DIR/Contents"
