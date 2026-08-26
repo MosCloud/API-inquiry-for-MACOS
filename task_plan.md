@@ -2,38 +2,56 @@
 
 ## Goal
 
-Prepare the `v0.3.11` branch from `main` and record a detailed quality-fix plan for the highest-priority issues identified in the 2026-07-07 quality assessment, while keeping `v0.4.0` provider-generalization work out of scope.
+Build and verify v0.3.15 so that the OpenAI/Codex card on Console Home replaces the redundant `Status` metric with a raw `Credits balance` metric sourced from the existing `/backend-api/wham/usage` response, without currency conversion or unrelated UI changes.
 
-## Current Status
+## Confirmed Product Decisions
 
-- [x] Create isolated worktree branch `v0.3.11` from current `main`.
-- [x] Confirm the root `main` worktree has unrelated untracked files and leave them untouched.
-- [x] Review the 2026-07-07 quality assessment and current roadmap/release state.
-- [x] Verify fresh `v0.3.11` baseline with `swift run APIInquiryCoreTestsRunner`.
-- [x] Verify fresh `v0.3.11` baseline with `swift build`.
-- [x] Record the v0.3.11 implementation plan in paired English and Chinese plan docs.
-- [x] Refresh root `task_plan.md`, `findings.md`, and `progress.md` for the new branch context.
-- [ ] Review the recorded plan with the user before implementation starts.
-- [ ] Implement v0.3.11 tasks in small, reviewable commits.
-- [ ] Verify final release candidate with `git diff --check`, `swift run APIInquiryCoreTestsRunner`, `swift build`, local app launch, DMG packaging, Info.plist version checks, codesign verification, `hdiutil verify`, and checksum verification.
+- The metric title is `Credits balance` in English and `Credits 余额` in Chinese.
+- Display the raw `credits.balance` value with the `Credits` unit; do not convert it to money.
+- If `credits.unlimited` is true, display localized `Unlimited` / `无限`.
+- If credits are absent or invalid, display `--` while preserving successfully decoded 5h/1W quota data.
+- Only the OpenAI/Codex Console Home card replaces `Status`; other providers remain unchanged.
+- The existing top status badge remains the availability/status signal.
+- Menubar output, detail-sheet content, panel geometry, corner radius, materials, and transparency are out of scope.
+- Reuse the existing `/wham/usage` request and authentication path; add no account, currency, pricing, or conversion endpoints.
 
-## Decisions
+## Execution Plan
 
-- `v0.3.11` is a quality-fix release after `v0.3.10`, not the `v0.4.0` provider-expansion release.
-- Immediate scope: CI baseline, quota-window semantics, Codex manual-reset credential fingerprinting, Codex auth-file diagnostics, Console feedback/window-size cleanup, key light-mode contrast fixes, shared refresh feedback state, and release docs.
-- Deferred scope: full Codex auxiliary-feed integration, `ProviderSnapshot` display-adapter rewrite, complete `MenuBarContentView` split, full menu-panel tokenization, Sparkle, Homebrew Cask, and low-balance notifications.
-- The root `main` worktree currently has untracked `CLAUDE.md` and `docs/reviews/`; those files remain untouched from this branch setup.
-- SwiftPM verification needs user-level Swift/Clang module cache access in this environment; sandboxed Swift runs can fail until rerun with approved escalation.
+- [ ] Phase 1 — Create `.worktrees/v0.3.15` from the existing `v0.3.15` branch and verify a clean baseline.
+- [ ] Phase 2 — Code implementation agent uses TDD to model/decode optional raw Credits, format the value, expose it in Console Home, localize labels, and bump v0.3.15 metadata.
+- [ ] Phase 3 — Initial acceptance agent independently reviews the completed diff, model boundaries, parser behavior, localization, and test coverage.
+- [ ] Phase 4 — UI guardian independently verifies that only the intended Console Home metric changes and that Menubar/detail/material/radius/transparency behavior remains untouched.
+- [ ] Phase 5 — Primary agent resolves findings, runs full Core tests, build, diff checks, local app bundle build, version checks, and targeted UI evidence collection.
+- [ ] Phase 6 — Commit the verified v0.3.15 implementation in reviewable commits and deliver the final acceptance report. Publishing/release remains a separate explicit step.
+
+## Acceptance Criteria
+
+- `/wham/usage` fixtures with numeric or string Credits balance decode successfully.
+- Explicit zero renders as `0 Credits`; unlimited renders localized unlimited text; absent/malformed credits render `--`.
+- Credits decode/format failures do not discard valid 5h/1W quota data.
+- OpenAI/Codex Console Home displays `Credits balance` / `Credits 余额` in place of `Status`.
+- Other providers retain their existing Status metric.
+- Existing OpenAI/Codex header status badge and quota detail metric remain unchanged.
+- Menubar and detail panel outputs remain unchanged under regression tests/review.
+- Chinese and English strings are covered.
+- `swift run APIInquiryCoreTestsRunner`, `swift build`, and `Scripts/build-local-app.sh` pass.
+- Built application reports v0.3.15 metadata.
+
+## Agent Ownership
+
+- Primary `/root`: overall design boundary, worktree/plan coordination, integration, remediation, final build and acceptance.
+- `credits_implementation`: TDD implementation in the v0.3.15 worktree; recommended model `gpt-5.6-luna`, reasoning `max`.
+- `initial_acceptance`: independent code/model/test acceptance; no edits unless explicitly reassigned.
+- `ui_guardian`: UI regression guard for Console Home, Menubar, detail panel, corner radius and transparency; no edits unless explicitly reassigned.
 
 ## Errors Encountered
 
 | Error | Attempt | Resolution |
 | --- | --- | --- |
-| SwiftPM/Clang cache write blocked in sandbox | `swift run APIInquiryCoreTestsRunner` and `swift build` attempted to write under `/Users/zbw/.cache/clang/ModuleCache` | Re-ran the commands serially with approved escalation; both passed |
-| Parallel Swift commands contended on `.build` | `swift run APIInquiryCoreTestsRunner` and `swift build` were started together | Switched to serial verification |
-| Initial patch applied to root worktree | `apply_patch` used the default root cwd instead of the new worktree | Restored the root tracked docs and deleted the mistakenly added root plan files, then re-applied patches with absolute paths into `.worktrees/v0.3.11` |
+| Stale planning files described v0.3.11 | Planning-session recovery | Replaced them with this v0.3.15 plan before implementation. |
+| First patch tried deleting and adding the same paths in one operation | Plan-file refresh | Split deletion and creation into separate patches. |
+| Git could not create `.git/index.lock` in the sandbox | First root-to-worktree migration attempt | Commit the plan on v0.3.15, then rerun the Git-only migration with approved repository-metadata access. |
 
-## Next Suggested Work
+## Current Status
 
-- Review `docs/superpowers/plans/2026-07-07-v0.3.11-quality-fixes_zh.md` with the user.
-- After approval, execute Task 1 through Task 9 in order, with tests and commits at each task boundary.
+Phase 1 is in progress.
