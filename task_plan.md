@@ -22,7 +22,7 @@ Build and verify v0.3.15 so that the OpenAI/Codex card on Console Home replaces 
 - [x] Phase 3 — Initial acceptance agent independently reviews the completed diff, model boundaries, parser behavior, localization, and test coverage.
 - [x] Phase 4 — UI guardian independently verifies that only the intended Console Home metric changes and that Menubar/detail/material/radius/transparency behavior remains untouched.
 - [x] Phase 5 — Primary agent resolves findings, runs full Core tests, build, diff checks, local app bundle build, version checks, and targeted UI evidence collection.
-- [ ] Phase 6 — Commit the verified v0.3.15 implementation in reviewable commits and deliver the final acceptance report. Publishing/release remains a separate explicit step.
+- [x] Phase 6 — Commit the verified v0.3.15 implementation in reviewable commits and deliver the final acceptance report. Publishing/release remains a separate explicit step.
 
 ## Acceptance Criteria
 
@@ -56,4 +56,4 @@ Build and verify v0.3.15 so that the OpenAI/Codex card on Console Home replaces 
 
 ## Current Status
 
-Phase 6 is in progress. Implementation, independent reviews, tests, full build, local app bundle, metadata, signature, and static UI guard checks all passed.
+All phases are complete. Feature implementation was committed as `54d38b6`; publishing/release remains a separate explicit step.

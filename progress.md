@@ -23,13 +23,14 @@
 - `Scripts/build-local-app.sh` passed and produced `.build/APIInquiry.app`.
 - Built app reports version `0.3.15`, build `20`; strict deep codesign verification passed.
 - Final protected-file query and `git diff --check` produced no findings.
+- Committed the reviewed v0.3.15 implementation as `54d38b6` (`feat: show Codex Credits balance in console`).
 
 ## Current State
 
-- Phases 1–5 are complete.
-- Phase 6 final commit and handoff is in progress.
+- Phases 1–6 are complete.
+- The v0.3.15 branch is ready for user review; publishing/release has not started.
 - No live authenticated OpenAI/Codex request has been made.
 
 ## Next Actions
 
-- Commit the final reviewed implementation and planning evidence.
+- Enter the standard release flow only after an explicit user request.
