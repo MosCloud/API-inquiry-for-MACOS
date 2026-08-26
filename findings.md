@@ -67,3 +67,22 @@
 - `codesign --verify --deep --strict`: passed.
 - `git diff --check`: passed.
 - Visual behavior was guarded through protected-file zero diff and UI-agent static review; no live authenticated app session was launched.
+
+## Manual Acceptance
+
+- The user launched v0.3.15 and confirmed the Console UI works normally.
+- Screenshot evidence showed `Credits 余额` displaying `2500 Credits`, weekly quota detail remaining visible, the status badge intact, and manual-reset information unchanged.
+
+## Release Boundaries
+
+- Target release tag: `release/v0.3.15`.
+- GitHub Release must be non-draft and non-prerelease and contain exactly `API-Inquiry-v0.3.15.dmg` plus its `.sha256` file.
+- Release notes must be user-facing and use only non-empty New Features / App Optimization / Bug Fixes sections.
+- Root checkout must retain its pre-existing untracked `AGENTS.md`, `CLAUDE.md`, and `docs/reviews/` throughout merge and cleanup.
+- Publishing is allowed only after RC tests, merged-main tests, DMG mount/codesign/checksum verification, and remote tag/release absence checks all pass.
+
+## Stage A Release-Preparation Evidence
+
+- Commit `e04ca3f` contains the synchronized v0.3.15 release plans, bilingual GitHub notes, README/roadmap references, and the existing release-stage planning records.
+- The repository's English README path is `README_en.md`; package names, checksum examples, current release references, and the documented runner result are synchronized to v0.3.15 / `PASS: 679 expectations`.
+- `git diff --check` and the targeted version-metadata scan passed. Stage A stopped before RC merge, packaging, tag creation, push, and GitHub Release publication.

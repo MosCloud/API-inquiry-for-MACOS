@@ -23,6 +23,11 @@ Build and verify v0.3.15 so that the OpenAI/Codex card on Console Home replaces 
 - [x] Phase 4 — UI guardian independently verifies that only the intended Console Home metric changes and that Menubar/detail/material/radius/transparency behavior remains untouched.
 - [x] Phase 5 — Primary agent resolves findings, runs full Core tests, build, diff checks, local app bundle build, version checks, and targeted UI evidence collection.
 - [x] Phase 6 — Commit the verified v0.3.15 implementation in reviewable commits and deliver the final acceptance report. Publishing/release remains a separate explicit step.
+- [x] Phase 7 — Prepare bilingual v0.3.15 release documentation, README/roadmap release references, and user-facing GitHub release notes; commit the release-preparation changes on `v0.3.15` as `e04ca3f`.
+- [ ] Phase 8 — Re-run release-candidate tests/build and confirm branch, version, diff, remote, and GitHub authentication gates.
+- [ ] Phase 9 — Fast-forward `v0.3.15` into the root `main` checkout without touching its pre-existing untracked files; re-run merged-main verification.
+- [ ] Phase 10 — Package the macOS app and DMG from merged `main`; validate bundle metadata, strict codesign, DMG structure/mount, SHA-256, and exact artifact names.
+- [ ] Phase 11 — Create annotated tag `release/v0.3.15`, push main and tag, publish a non-draft/non-prerelease GitHub Release with exactly the DMG and `.sha256`, verify remote state/assets, then perform only the documented release cleanup.
 
 ## Acceptance Criteria
 
@@ -43,6 +48,7 @@ Build and verify v0.3.15 so that the OpenAI/Codex card on Console Home replaces 
 - `credits_implementation`: TDD implementation in the v0.3.15 worktree; recommended model `gpt-5.6-luna`, reasoning `max`.
 - `initial_acceptance`: independent code/model/test acceptance; no edits unless explicitly reassigned.
 - `ui_guardian`: UI regression guard for Console Home, Menubar, detail panel, corner radius and transparency; no edits unless explicitly reassigned.
+- `github_release_operator`: execute the standard release flow under primary-agent gates using `gpt-5.6-luna` with max reasoning.
 
 ## Errors Encountered
 
@@ -53,7 +59,8 @@ Build and verify v0.3.15 so that the OpenAI/Codex card on Console Home replaces 
 | Git could not create `.git/index.lock` in the sandbox | First root-to-worktree migration attempt | Commit the plan on v0.3.15, then rerun the Git-only migration with approved repository-metadata access. |
 | Process-list diagnostic was blocked by the sandbox | Attempted to check whether Swift was already running | Avoided further process inspection; agents coordinate test execution through completion messages and Git state. |
 | Primary-agent SwiftPM run failed at manifest `sandbox-exec` | First local-cache test attempt | Re-run the identical test in the approved host environment while retaining worktree-local module/scratch caches. |
+| New release-agent spawn hit the thread limit | Attempted to create a fourth historical sub-agent | Reuse the completed `credits_implementation` agent, which already runs `gpt-5.6-luna` with max reasoning, and assign it the release operation. |
 
 ## Current Status
 
-All phases are complete. Feature implementation was committed as `54d38b6`; publishing/release remains a separate explicit step.
+Phases 1–7 are complete. Phase 8 RC verification is pending the next explicitly authorized release stage.

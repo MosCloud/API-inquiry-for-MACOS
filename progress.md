@@ -24,13 +24,18 @@
 - Built app reports version `0.3.15`, build `20`; strict deep codesign verification passed.
 - Final protected-file query and `git diff --check` produced no findings.
 - Committed the reviewed v0.3.15 implementation as `54d38b6` (`feat: show Codex Credits balance in console`).
+- User manually validated the running app and confirmed `2500 Credits`, quota detail, status badge, manual-reset content, and overall UI behavior are correct.
+- User explicitly authorized the standard GitHub commit and release flow with a Luna Max sub-agent and primary-agent final acceptance.
+- A new release-agent spawn was blocked by the thread limit; reassigned the existing Luna Max implementation agent to the release operation instead.
+- Stage A release preparation completed as `e04ca3f` (`chore: prepare v0.3.15 release`): paired plans, bilingual GitHub notes, README/roadmap references, and the existing release-stage records were committed after version and diff checks.
 
 ## Current State
 
 - Phases 1–6 are complete.
-- The v0.3.15 branch is ready for user review; publishing/release has not started.
+- Phase 7 release preparation is complete (`e04ca3f`).
+- Phase 8 RC verification has not started; no merge, package, tag, push, or GitHub release has been performed.
 - No live authenticated OpenAI/Codex request has been made.
 
 ## Next Actions
 
-- Enter the standard release flow only after an explicit user request.
+- Await explicit authorization for the next release stage before running RC verification or any merge/package/tag/push/GitHub release action.
