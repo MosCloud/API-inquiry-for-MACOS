@@ -95,22 +95,30 @@ public struct QuotaWindowSnapshot: Equatable {
     }
 }
 
+public enum CodexCredits: Equatable {
+    case balance(Decimal)
+    case unlimited
+}
+
 public struct QuotaUsageSnapshot: Equatable {
     public let providerID: ProviderID
     public let planName: String
     public let windows: [QuotaWindowSnapshot]
     public let fetchedAt: Date
+    public let credits: CodexCredits?
 
     public init(
         providerID: ProviderID,
         planName: String,
         windows: [QuotaWindowSnapshot],
-        fetchedAt: Date
+        fetchedAt: Date,
+        credits: CodexCredits? = nil
     ) {
         self.providerID = providerID
         self.planName = planName
         self.windows = windows
         self.fetchedAt = fetchedAt
+        self.credits = credits
     }
 
     public var isAvailable: Bool {

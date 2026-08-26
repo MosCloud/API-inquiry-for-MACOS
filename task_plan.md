@@ -17,11 +17,11 @@ Build and verify v0.3.15 so that the OpenAI/Codex card on Console Home replaces 
 
 ## Execution Plan
 
-- [ ] Phase 1 — Create `.worktrees/v0.3.15` from the existing `v0.3.15` branch and verify a clean baseline.
-- [ ] Phase 2 — Code implementation agent uses TDD to model/decode optional raw Credits, format the value, expose it in Console Home, localize labels, and bump v0.3.15 metadata.
-- [ ] Phase 3 — Initial acceptance agent independently reviews the completed diff, model boundaries, parser behavior, localization, and test coverage.
-- [ ] Phase 4 — UI guardian independently verifies that only the intended Console Home metric changes and that Menubar/detail/material/radius/transparency behavior remains untouched.
-- [ ] Phase 5 — Primary agent resolves findings, runs full Core tests, build, diff checks, local app bundle build, version checks, and targeted UI evidence collection.
+- [x] Phase 1 — Create `.worktrees/v0.3.15` from the existing `v0.3.15` branch and verify a clean baseline.
+- [x] Phase 2 — Code implementation agent uses TDD to model/decode optional raw Credits, format the value, expose it in Console Home, localize labels, and bump v0.3.15 metadata.
+- [x] Phase 3 — Initial acceptance agent independently reviews the completed diff, model boundaries, parser behavior, localization, and test coverage.
+- [x] Phase 4 — UI guardian independently verifies that only the intended Console Home metric changes and that Menubar/detail/material/radius/transparency behavior remains untouched.
+- [x] Phase 5 — Primary agent resolves findings, runs full Core tests, build, diff checks, local app bundle build, version checks, and targeted UI evidence collection.
 - [ ] Phase 6 — Commit the verified v0.3.15 implementation in reviewable commits and deliver the final acceptance report. Publishing/release remains a separate explicit step.
 
 ## Acceptance Criteria
@@ -51,7 +51,9 @@ Build and verify v0.3.15 so that the OpenAI/Codex card on Console Home replaces 
 | Stale planning files described v0.3.11 | Planning-session recovery | Replaced them with this v0.3.15 plan before implementation. |
 | First patch tried deleting and adding the same paths in one operation | Plan-file refresh | Split deletion and creation into separate patches. |
 | Git could not create `.git/index.lock` in the sandbox | First root-to-worktree migration attempt | Commit the plan on v0.3.15, then rerun the Git-only migration with approved repository-metadata access. |
+| Process-list diagnostic was blocked by the sandbox | Attempted to check whether Swift was already running | Avoided further process inspection; agents coordinate test execution through completion messages and Git state. |
+| Primary-agent SwiftPM run failed at manifest `sandbox-exec` | First local-cache test attempt | Re-run the identical test in the approved host environment while retaining worktree-local module/scratch caches. |
 
 ## Current Status
 
-Phase 1 is in progress.
+Phase 6 is in progress. Implementation, independent reviews, tests, full build, local app bundle, metadata, signature, and static UI guard checks all passed.

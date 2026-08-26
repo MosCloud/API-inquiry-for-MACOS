@@ -65,6 +65,8 @@ public struct LocalizedStrings: Equatable {
     public var showInMenuBar: String { text(en: "Show in Menu Bar", zh: "显示在菜单栏") }
 
     public var apiKeyMetricTitle: String { text(en: "API Key", zh: "API 密钥") }
+    public var creditsBalanceMetricTitle: String { text(en: "Credits balance", zh: "Credits 余额") }
+    public var creditsUnlimited: String { text(en: "Unlimited", zh: "无限") }
     public var statusMetricTitle: String { text(en: "Status", zh: "状态") }
     public var detailMetricTitle: String { text(en: "Detail", zh: "详情") }
     public var planMetricTitle: String { text(en: "Plan", zh: "计划") }

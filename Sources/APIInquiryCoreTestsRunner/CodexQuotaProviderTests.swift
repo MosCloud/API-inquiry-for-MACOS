@@ -4,6 +4,12 @@ import Foundation
 enum CodexQuotaProviderTests {
     static func run(using harness: TestHarness) async {
         await testRawTokenRequestAndQuotaParsing(using: harness)
+        await testCreditsBalanceDecodesAsNumber(using: harness)
+        await testCreditsBalanceDecodesAsString(using: harness)
+        await testMalformedCreditsDoNotDiscardQuota(using: harness)
+        await testNegativeCreditsDoNotDiscardQuota(using: harness)
+        await testUnlimitedCreditsDecode(using: harness)
+        await testUnlimitedCreditsIgnoreNegativeBalance(using: harness)
         await testPrimaryWeekWindowUsesWeekKind(using: harness)
         await testFractionalWindowDurationMapsToMissingBalanceInfo(using: harness)
         await testWindowWithoutDurationDoesNotDiscardRecognizedSecondaryWindow(using: harness)
@@ -80,6 +86,197 @@ enum CodexQuotaProviderTests {
             )
         } catch {
             harness.expectTrue(false, "codex usage should not throw: \(error)")
+        }
+    }
+
+    private static func testCreditsBalanceDecodesAsNumber(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 18000
+                },
+                "secondary_window": {
+                  "used_percent": 52,
+                  "limit_window_seconds": 604800
+                }
+              },
+              "credits": {
+                "balance": 12.5,
+                "unlimited": false
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        )))
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            let usage = snapshot.lastQuotaUsageSnapshot
+            harness.expectEqual(usage?.credits, .balance(Decimal(string: "12.5")!), "codex numeric credits balance")
+            harness.expectEqual(usage?.windows.count, 2, "codex numeric credits preserves quota windows")
+        } catch {
+            harness.expectTrue(false, "codex numeric credits should not throw: \(error)")
+        }
+    }
+
+    private static func testCreditsBalanceDecodesAsString(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 18000
+                }
+              },
+              "credits": {
+                "balance": "7.25",
+                "unlimited": false
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        )))
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            harness.expectEqual(
+                snapshot.lastQuotaUsageSnapshot?.credits,
+                .balance(Decimal(string: "7.25")!),
+                "codex string credits balance"
+            )
+        } catch {
+            harness.expectTrue(false, "codex string credits should not throw: \(error)")
+        }
+    }
+
+    private static func testMalformedCreditsDoNotDiscardQuota(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 18000
+                },
+                "secondary_window": {
+                  "used_percent": 52,
+                  "limit_window_seconds": 604800
+                }
+              },
+              "credits": {
+                "balance": "not-a-number",
+                "unlimited": false
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        )))
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            let usage = snapshot.lastQuotaUsageSnapshot
+            harness.expectEqual(usage?.credits, nil, "malformed credits are omitted")
+            harness.expectEqual(usage?.windows.count, 2, "malformed credits preserve both quota windows")
+            harness.expectEqual(usage?.windows.first?.remainingPercentage, Decimal(72), "malformed credits preserve 5h quota")
+            harness.expectEqual(usage?.windows.last?.remainingPercentage, Decimal(48), "malformed credits preserve 1W quota")
+        } catch {
+            harness.expectTrue(false, "malformed credits should not discard valid quota: \(error)")
+        }
+    }
+
+    private static func testNegativeCreditsDoNotDiscardQuota(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 18000
+                }
+              },
+              "credits": {
+                "balance": -1,
+                "unlimited": false
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        )))
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            harness.expectEqual(snapshot.lastQuotaUsageSnapshot?.credits, nil, "negative credits are omitted")
+            harness.expectEqual(
+                snapshot.lastQuotaUsageSnapshot?.windows.first?.remainingPercentage,
+                Decimal(72),
+                "negative credits preserve quota"
+            )
+        } catch {
+            harness.expectTrue(false, "negative credits should not discard valid quota: \(error)")
+        }
+    }
+
+    private static func testUnlimitedCreditsDecode(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 18000
+                }
+              },
+              "credits": {
+                "balance": "not-a-number",
+                "unlimited": true
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        )))
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            harness.expectEqual(snapshot.lastQuotaUsageSnapshot?.credits, .unlimited, "codex unlimited credits")
+        } catch {
+            harness.expectTrue(false, "codex unlimited credits should not throw: \(error)")
+        }
+    }
+
+    private static func testUnlimitedCreditsIgnoreNegativeBalance(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 28,
+                  "limit_window_seconds": 18000
+                }
+              },
+              "credits": {
+                "balance": -1,
+                "unlimited": true
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        )))
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            harness.expectEqual(snapshot.lastQuotaUsageSnapshot?.credits, .unlimited, "unlimited credits ignore negative balance")
+        } catch {
+            harness.expectTrue(false, "unlimited credits should ignore negative balance: \(error)")
         }
     }
 

@@ -66,7 +66,8 @@ public final class CodexQuotaProvider: BalanceProvider {
             providerID: id,
             planName: normalizedPlanName(payload.planType),
             windows: windows,
-            fetchedAt: now()
+            fetchedAt: now(),
+            credits: payload.credits
         )
     }
 
@@ -162,10 +163,55 @@ private struct CodexUsageEnvelope: Decodable {
 private struct CodexUsagePayload: Decodable {
     let planType: String?
     let rateLimit: CodexRateLimit
+    let credits: CodexCredits?
 
     enum CodingKeys: String, CodingKey {
         case planType = "plan_type"
         case rateLimit = "rate_limit"
+        case credits
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        planType = try container.decodeIfPresent(String.self, forKey: .planType)
+        rateLimit = try container.decode(CodexRateLimit.self, forKey: .rateLimit)
+        credits = (try? container.decode(CodexCreditsPayload.self, forKey: .credits))?.value
+    }
+}
+
+private struct CodexCreditsPayload: Decodable {
+    let value: CodexCredits?
+
+    enum CodingKeys: String, CodingKey {
+        case balance
+        case unlimited
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let unlimited: Bool
+        if container.contains(.unlimited) {
+            unlimited = try container.decode(Bool.self, forKey: .unlimited)
+        } else {
+            unlimited = false
+        }
+
+        if unlimited {
+            value = .unlimited
+            return
+        }
+
+        guard let balance = try container.decodeFlexibleOptionalDecimal(forKey: .balance) else {
+            value = nil
+            return
+        }
+
+        guard balance >= 0 else {
+            value = nil
+            return
+        }
+
+        value = .balance(balance)
     }
 }
 
@@ -247,6 +293,35 @@ private extension KeyedDecodingContainer {
             return nil
         }
         return try decodeFlexibleInt(forKey: key)
+    }
+
+    func decodeFlexibleOptionalDecimal(forKey key: Key) throws -> Decimal? {
+        guard contains(key) else {
+            return nil
+        }
+        if try decodeNil(forKey: key) {
+            return nil
+        }
+        if let decimalValue = try? decode(Decimal.self, forKey: key) {
+            return decimalValue
+        }
+        if let doubleValue = try? decode(Double.self, forKey: key),
+           let decimalValue = Decimal(
+               string: String(describing: doubleValue),
+               locale: Locale(identifier: "en_US_POSIX")
+           ) {
+            return decimalValue
+        }
+        if let stringValue = try? decode(String.self, forKey: key),
+           let decimalValue = Decimal(string: stringValue, locale: Locale(identifier: "en_US_POSIX")) {
+            return decimalValue
+        }
+
+        throw DecodingError.dataCorruptedError(
+            forKey: key,
+            in: self,
+            debugDescription: "Expected a decimal number or decimal string."
+        )
     }
 
     func decodeFlexibleOptionalDate(forKey key: Key) throws -> Date? {

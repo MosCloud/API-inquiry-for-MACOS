@@ -76,6 +76,26 @@ public enum ProviderValueFormatter {
         }
     }
 
+    public static func creditsBalanceText(
+        for snapshot: ProviderSnapshot?,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
+        guard case .quotaUsage(let usage) = snapshot,
+              let credits = usage.credits else {
+            return "--"
+        }
+
+        switch credits {
+        case .balance(let balance):
+            guard balance >= 0 else {
+                return "--"
+            }
+            return "\(formatCredits(balance)) Credits"
+        case .unlimited:
+            return strings.creditsUnlimited
+        }
+    }
+
     public static func primaryDisplayParts(
         descriptor: ProviderDescriptor,
         state: BalanceState,
@@ -206,6 +226,13 @@ public enum ProviderValueFormatter {
 
     private static func formatPercentage(_ percentage: Decimal) -> String {
         formatNumber(truncate(percentage, scale: 0), fractionDigits: 0)
+    }
+
+    private static func formatCredits(_ balance: Decimal) -> String {
+        if balance == 0 {
+            return "0"
+        }
+        return NSDecimalNumber(decimal: balance).stringValue
     }
 
     private static func formatNumber(_ amount: Decimal, fractionDigits: Int) -> String {

@@ -23,6 +23,7 @@ public struct APIProviderSummary: Equatable {
     public let statusTone: ProviderStatusTone
     public let healthTone: ProviderAmountTone
     public let balanceText: String
+    public let creditsBalanceText: String?
     public let planNextResetText: String?
     public let planNameText: String?
     public let manualResetCreditsText: String?
@@ -45,6 +46,7 @@ public struct APIProviderSummary: Equatable {
         statusTone: ProviderStatusTone = .neutral,
         healthTone: ProviderAmountTone = .neutral,
         balanceText: String,
+        creditsBalanceText: String? = nil,
         planNextResetText: String? = nil,
         planNameText: String? = nil,
         manualResetCreditsText: String? = nil,
@@ -66,6 +68,7 @@ public struct APIProviderSummary: Equatable {
         self.statusTone = statusTone
         self.healthTone = healthTone
         self.balanceText = balanceText
+        self.creditsBalanceText = creditsBalanceText
         self.planNextResetText = planNextResetText
         self.planNameText = planNameText
         self.manualResetCreditsText = manualResetCreditsText
@@ -191,6 +194,9 @@ public final class UsageConsoleViewModel: ObservableObject {
                 statusTone: providerSummaryStatusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
+                creditsBalanceText: isCodexProvider
+                    ? ProviderDisplayFormatter.creditsBalanceText(for: state.lastSnapshot, strings: strings)
+                    : nil,
                 planNextResetText: timeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
                 planNameText: isCodexProvider ? nil : state.lastQuotaUsageSnapshot?.planName,
                 manualResetCreditsText: isCodexProvider && isCredentialConfigured

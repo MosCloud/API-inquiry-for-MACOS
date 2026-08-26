@@ -12,6 +12,11 @@ enum UsageConsoleViewModelTests {
         testProviderSummariesExposeUnconfiguredAPIAccessCopy(using: harness)
         testProviderSummariesExposeCodexConfigTarget(using: harness)
         testProviderSummariesExposeCodexAuthFileConfigurationFeedback(using: harness)
+        await testCodexSummaryExposesCreditsBalance(using: harness)
+        await testCodexCreditsBalancePreservesExplicitZero(using: harness)
+        await testCodexCreditsBalanceMissingUsesPlaceholder(using: harness)
+        await testCodexCreditsBalanceUsesLocalizedUnlimitedText(using: harness)
+        await testNonCodexSummaryDoesNotExposeCreditsBalance(using: harness)
         await testProviderSummariesExposeInvalidProvider(using: harness)
         await testProviderSummariesExposeBalanceHealthToneBoundaries(using: harness)
         await testProviderSummariesExposePlanHealthToneBoundaries(using: harness)
@@ -69,6 +74,101 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(codexSummary?.isManualResetCreditsRefreshing, false, "codex manual reset not refreshing")
         harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex console status")
         harness.expectEqual(codexSummary?.supportsAPIKeyManagement, false, "codex console hides api key management")
+    }
+
+    @MainActor
+    private static func testCodexSummaryExposesCreditsBalance(using harness: TestHarness) async {
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+        let coordinator = makeCodexCoordinator(
+            primaryProviderID: .codex,
+            credentialStore: credentialStore,
+            credits: .balance(Decimal(string: "12.50")!)
+        )
+        await coordinator.refresh(.codex)
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+
+        let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
+        harness.expectEqual(codexSummary?.creditsBalanceText, "12.5 Credits", "codex console credits balance")
+        harness.expectEqual(codexSummary?.balanceText, "5h 72% remg", "codex detail remains quota text")
+        harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex status remains service status")
+    }
+
+    @MainActor
+    private static func testCodexCreditsBalancePreservesExplicitZero(using harness: TestHarness) async {
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+        let coordinator = makeCodexCoordinator(
+            primaryProviderID: .codex,
+            credentialStore: credentialStore,
+            credits: .balance(0)
+        )
+        await coordinator.refresh(.codex)
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+
+        harness.expectEqual(
+            viewModel.providerSummaries.first { $0.id == .codex }?.creditsBalanceText,
+            "0 Credits",
+            "codex explicit zero credits"
+        )
+    }
+
+    @MainActor
+    private static func testCodexCreditsBalanceMissingUsesPlaceholder(using harness: TestHarness) async {
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, credentialStore: credentialStore)
+        await coordinator.refresh(.codex)
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+
+        harness.expectEqual(
+            viewModel.providerSummaries.first { $0.id == .codex }?.creditsBalanceText,
+            "--",
+            "codex missing credits placeholder"
+        )
+    }
+
+    @MainActor
+    private static func testCodexCreditsBalanceUsesLocalizedUnlimitedText(using harness: TestHarness) async {
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+        let coordinator = makeCodexCoordinator(
+            primaryProviderID: .codex,
+            credentialStore: credentialStore,
+            credits: .unlimited
+        )
+        await coordinator.refresh(.codex)
+
+        let englishViewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+        let chineseViewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: credentialStore,
+            languageStore: makeLanguageStore(selection: .zh)
+        )
+        harness.expectEqual(
+            englishViewModel.providerSummaries.first { $0.id == .codex }?.creditsBalanceText,
+            "Unlimited",
+            "english unlimited credits"
+        )
+        harness.expectEqual(
+            chineseViewModel.providerSummaries.first { $0.id == .codex }?.creditsBalanceText,
+            "无限",
+            "chinese unlimited credits"
+        )
+    }
+
+    @MainActor
+    private static func testNonCodexSummaryDoesNotExposeCreditsBalance(using harness: TestHarness) async {
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "deepseek-token"])
+        let coordinator = makeMultiProviderCoordinator(
+            addedProviderIDs: [.deepseek],
+            primaryProviderID: .deepseek,
+            credentialStore: credentialStore
+        )
+        await coordinator.refresh(.deepseek)
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+
+        harness.expectEqual(
+            viewModel.providerSummaries.first { $0.id == .deepseek }?.creditsBalanceText,
+            nil,
+            "non-Codex provider does not expose credits balance"
+        )
     }
 
     @MainActor
@@ -1143,13 +1243,14 @@ enum UsageConsoleViewModelTests {
     @MainActor
     private static func makeCodexCoordinator(
         primaryProviderID: ProviderID,
-        credentialStore: CredentialStore
+        credentialStore: CredentialStore,
+        credits: CodexCredits? = nil
     ) -> MultiProviderBalanceCoordinator {
         MultiProviderBalanceCoordinator(
             registrations: testRegistrations(for: [
                 MockBalanceProvider(
                     id: .codex,
-                    results: [.success(.quotaUsage(makeCodexSnapshot()))]
+                    results: [.success(.quotaUsage(makeCodexSnapshot(credits: credits)))]
                 )
             ]),
             credentialStore: credentialStore,
@@ -1175,7 +1276,7 @@ enum UsageConsoleViewModelTests {
         )
     }
 
-    private static func makeCodexSnapshot() -> QuotaUsageSnapshot {
+    private static func makeCodexSnapshot(credits: CodexCredits? = nil) -> QuotaUsageSnapshot {
         QuotaUsageSnapshot(
             providerID: .codex,
             planName: "Plus",
@@ -1193,7 +1294,8 @@ enum UsageConsoleViewModelTests {
                     isAvailable: true
                 )
             ],
-            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000),
+            credits: credits
         )
     }
 

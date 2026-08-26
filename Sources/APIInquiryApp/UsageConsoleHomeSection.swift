@@ -82,9 +82,15 @@ struct ProviderStatusRow: View {
     }
 
     private var providerMetricItems: [ProviderMetricItem] {
+        let statusMetric = summary.id == .codex
+            ? ProviderMetricItem(
+                title: strings.creditsBalanceMetricTitle,
+                value: summary.creditsBalanceText ?? "--"
+            )
+            : ProviderMetricItem(title: strings.statusMetricTitle, value: summary.validationStatusText)
         var metrics = [
             ProviderMetricItem(title: strings.apiKeyMetricTitle, value: summary.apiKeyStatusText),
-            ProviderMetricItem(title: strings.statusMetricTitle, value: summary.validationStatusText),
+            statusMetric,
             ProviderMetricItem(title: strings.detailMetricTitle, value: summary.balanceText)
         ]
 

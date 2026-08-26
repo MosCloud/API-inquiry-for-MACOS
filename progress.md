@@ -8,15 +8,28 @@
 - Replaced the planning files with the v0.3.15 execution strategy, acceptance criteria, agent roles, and UI guardrails.
 - Confirmed root checkout is on `v0.3.15` at `1620f9d`, with existing unrelated untracked files preserved.
 - The first worktree migration attempt was blocked by sandboxed `.git/index.lock` access; no branch or worktree state changed.
+- Committed the v0.3.15 orchestration plan as `0e48cf6`.
+- Switched the root checkout back to `main` and mounted branch `v0.3.15` at `.worktrees/v0.3.15`.
+- Started three agents: Credits implementation, independent initial acceptance, and UI regression guard.
+- Independently traced the current provider-to-Console path and confirmed the version file still contains v0.3.14/build 19.
+- UI guardian completed the baseline audit and identified protected Menubar, detail-sheet, material, transparency, sizing, and metric-box files for final no-diff verification.
+- Initial acceptance agent completed the architecture/test baseline; its P0 requirements were sent to the implementation agent before code changes.
+- Implementation agent completed the TDD change and reported `PASS: 679 expectations`, successful `swift build`, and clean `git diff --check`.
+- Initial acceptance agent independently reran the Core runner and reported `PASS: 679 expectations` with no P0/P1 findings.
+- UI guardian completed final static review with UI PASS and confirmed all protected UI/style files have zero diff.
+- Primary-agent test attempt with worktree-local caches reached SwiftPM manifest compilation but was blocked by nested `sandbox-exec`; scheduled the same test for approved host execution.
+- Primary-agent host test passed with `PASS: 679 expectations`.
+- Primary-agent full `swift build` passed, including the App target.
+- `Scripts/build-local-app.sh` passed and produced `.build/APIInquiry.app`.
+- Built app reports version `0.3.15`, build `20`; strict deep codesign verification passed.
+- Final protected-file query and `git diff --check` produced no findings.
 
 ## Current State
 
-- Phase 1: worktree creation and baseline verification is in progress.
-- No application source files have been modified yet.
+- Phases 1–5 are complete.
+- Phase 6 final commit and handoff is in progress.
 - No live authenticated OpenAI/Codex request has been made.
 
 ## Next Actions
 
-- Move the existing v0.3.15 branch into `.worktrees/v0.3.15`.
-- Start the implementation, initial-acceptance, and UI-guardian agents.
-- Run baseline tests before behavior changes.
+- Commit the final reviewed implementation and planning evidence.

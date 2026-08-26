@@ -15,32 +15,32 @@ enum ReleaseVersionConsistencyTests {
         let versionEnv = (try? String(contentsOf: versionEnvPath, encoding: .utf8)) ?? ""
 
         harness.expectTrue(
-            appVersionSource.contains("static let displayVersion = \"v0.3.14\""),
-            "settings app version is v0.3.14"
+            appVersionSource.contains("static let displayVersion = \"v0.3.15\""),
+            "settings app version is v0.3.15"
         )
         harness.expectTrue(
-            versionEnv.contains("APP_VERSION=\"0.3.14\""),
-            "packaging app version is 0.3.14"
+            versionEnv.contains("APP_VERSION=\"0.3.15\""),
+            "packaging app version is 0.3.15"
         )
         harness.expectTrue(
-            versionEnv.contains("RELEASE_TAG=\"release/v0.3.14\""),
-            "release tag is v0.3.14"
+            versionEnv.contains("RELEASE_TAG=\"release/v0.3.15\""),
+            "release tag is v0.3.15"
         )
         harness.expectTrue(
-            versionEnv.contains("RELEASE_VERSION=\"0.3.14\""),
-            "release version is 0.3.14"
+            versionEnv.contains("RELEASE_VERSION=\"0.3.15\""),
+            "release version is 0.3.15"
         )
         harness.expectTrue(
-            versionEnv.contains("DMG_BASENAME=\"API-Inquiry-v0.3.14\""),
-            "dmg basename is v0.3.14"
+            versionEnv.contains("DMG_BASENAME=\"API-Inquiry-v0.3.15\""),
+            "dmg basename is v0.3.15"
         )
         harness.expectTrue(
-            versionEnv.contains("VOLUME_NAME=\"API Inquiry v0.3.14\""),
-            "volume name is v0.3.14"
+            versionEnv.contains("VOLUME_NAME=\"API Inquiry v0.3.15\""),
+            "volume name is v0.3.15"
         )
         harness.expectTrue(
-            versionEnv.contains("BUILD_NUMBER=\"19\""),
-            "build number is 19"
+            versionEnv.contains("BUILD_NUMBER=\"20\""),
+            "build number is 20"
         )
     }
 

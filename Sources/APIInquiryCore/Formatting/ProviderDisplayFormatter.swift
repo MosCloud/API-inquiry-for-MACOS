@@ -34,6 +34,13 @@ public enum ProviderDisplayFormatter {
         ProviderValueFormatter.consoleDetailText(for: snapshot, strings: strings)
     }
 
+    public static func creditsBalanceText(
+        for snapshot: ProviderSnapshot?,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
+        ProviderValueFormatter.creditsBalanceText(for: snapshot, strings: strings)
+    }
+
     public static func primaryDisplayParts(
         descriptor: ProviderDescriptor,
         state: BalanceState,
