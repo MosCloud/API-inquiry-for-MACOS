@@ -23,7 +23,7 @@ Build and verify v0.3.15 so that the OpenAI/Codex card on Console Home replaces 
 - [x] Phase 4 — UI guardian independently verifies that only the intended Console Home metric changes and that Menubar/detail/material/radius/transparency behavior remains untouched.
 - [x] Phase 5 — Primary agent resolves findings, runs full Core tests, build, diff checks, local app bundle build, version checks, and targeted UI evidence collection.
 - [x] Phase 6 — Commit the verified v0.3.15 implementation in reviewable commits and deliver the final acceptance report. Publishing/release remains a separate explicit step.
-- [x] Phase 7 — Prepare bilingual v0.3.15 release documentation, README/roadmap release references, and user-facing GitHub release notes; commit the release-preparation changes on `v0.3.15` as `e04ca3f`.
+- [x] Phase 7 — Prepare bilingual v0.3.15 release documentation, README/roadmap release references, and user-facing GitHub release notes; commit the release-preparation changes on `v0.3.15`.
 - [ ] Phase 8 — Re-run release-candidate tests/build and confirm branch, version, diff, remote, and GitHub authentication gates.
 - [ ] Phase 9 — Fast-forward `v0.3.15` into the root `main` checkout without touching its pre-existing untracked files; re-run merged-main verification.
 - [ ] Phase 10 — Package the macOS app and DMG from merged `main`; validate bundle metadata, strict codesign, DMG structure/mount, SHA-256, and exact artifact names.
@@ -63,4 +63,4 @@ Build and verify v0.3.15 so that the OpenAI/Codex card on Console Home replaces 
 
 ## Current Status
 
-Phases 1–7 are complete. Phase 8 RC verification is pending the next explicitly authorized release stage.
+Phases 1–7 are complete. Phase 8 RC verification is in progress.

@@ -83,6 +83,6 @@
 
 ## Stage A Release-Preparation Evidence
 
-- Commit `e04ca3f` contains the synchronized v0.3.15 release plans, bilingual GitHub notes, README/roadmap references, and the existing release-stage planning records.
+- Commit `7e34952` contains the synchronized v0.3.15 release plans, bilingual GitHub notes, README/roadmap references, and the existing release-stage planning records.
 - The repository's English README path is `README_en.md`; package names, checksum examples, current release references, and the documented runner result are synchronized to v0.3.15 / `PASS: 679 expectations`.
 - `git diff --check` and the targeted version-metadata scan passed. Stage A stopped before RC merge, packaging, tag creation, push, and GitHub Release publication.
