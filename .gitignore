@@ -4,3 +4,6 @@
 .worktrees/
 .build/
 dist/
+AGENTS.md
+CLAUDE.md
+docs/agents/
