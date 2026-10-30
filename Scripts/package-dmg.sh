@@ -74,10 +74,15 @@ if [ ! -d "$STAGING_MOUNT" ]; then
 fi
 
 osascript <<APPLESCRIPT
-with timeout of 20 seconds
+with timeout of 30 seconds
     tell application "Finder"
+        -- Finder only applies (and then persists) window view options while it is
+        -- the frontmost app; scripting it from the background silently drops the
+        -- background picture and icon positions.
+        activate
         set stagingFolder to POSIX file "$STAGING_MOUNT" as alias
         open stagingFolder
+        delay 1
         set stagingWindow to container window of stagingFolder
         set current view of stagingWindow to icon view
         try
@@ -90,13 +95,38 @@ with timeout of 20 seconds
         set viewOptions to the icon view options of stagingWindow
         set arrangement of viewOptions to not arranged
         set icon size of viewOptions to 152
-        try
-            set background picture of viewOptions to POSIX file "$STAGING_MOUNT/.background/dmg-background.png"
-        end try
+        set background picture of viewOptions to POSIX file "$STAGING_MOUNT/.background/dmg-background.png"
         set position of item "$APP_NAME" of stagingFolder to {210, 180}
         set position of item "Applications" of stagingFolder to {550, 180}
-        delay 1
-        close stagingWindow
+        update stagingFolder
+    end tell
+end timeout
+APPLESCRIPT
+
+# Finder only flushes the view options to .DS_Store while the window is still
+# open: polling for the background alias before closing the window keeps a
+# detached volume from ending up as a .DS_Store stub, which would ship a DMG
+# with no background picture and Finder's default icon arrangement.
+LAYOUT_PERSISTED=0
+for _ in $(seq 1 40); do
+    if strings -a "$STAGING_MOUNT/.DS_Store" 2>/dev/null | grep -q "dmg-background.png"; then
+        LAYOUT_PERSISTED=1
+        break
+    fi
+    sleep 0.25
+done
+
+if [ "$LAYOUT_PERSISTED" -ne 1 ]; then
+    echo "Finder did not persist the DMG window layout on $STAGING_MOUNT." >&2
+    exit 1
+fi
+
+osascript <<APPLESCRIPT
+with timeout of 20 seconds
+    tell application "Finder"
+        try
+            close container window of (POSIX file "$STAGING_MOUNT" as alias)
+        end try
     end tell
 end timeout
 APPLESCRIPT
@@ -153,6 +183,12 @@ fi
 
 if [ ! -L "$VERIFY_MOUNT/Applications" ]; then
     echo "Applications shortcut is missing from $DMG_NAME." >&2
+    exit 1
+fi
+
+if [ ! -f "$VERIFY_MOUNT/.DS_Store" ] ||
+   ! strings -a "$VERIFY_MOUNT/.DS_Store" | grep -q "dmg-background.png"; then
+    echo "Window layout is missing from $DMG_NAME: Finder never applied the background and icon positions." >&2
     exit 1
 fi
 
