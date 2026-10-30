@@ -40,7 +40,15 @@ chmod +x "$MACOS_DIR/$EXECUTABLE_NAME"
 
 RESOURCE_BUNDLE="$ROOT_DIR/.build/$CONFIGURATION/$RESOURCE_BUNDLE_NAME"
 if [ -d "$RESOURCE_BUNDLE" ]; then
-    find "$RESOURCE_BUNDLE" -maxdepth 1 -type f \( -name "*.png" -o -name "*.icns" \) -exec cp {} "$RESOURCES_DIR/" \;
+    # SwiftPM writes a flat bundle on its native build system but a macOS-style
+    # bundle with Contents/Resources when it builds through the Xcode build
+    # system, so search the whole bundle instead of only its top level.
+    find "$RESOURCE_BUNDLE" -type f \( -name "*.png" -o -name "*.icns" \) -exec cp {} "$RESOURCES_DIR/" \;
+fi
+
+if [ ! -f "$RESOURCES_DIR/AppIcon.icns" ]; then
+    echo "AppIcon.icns was not copied into $RESOURCES_DIR; the resource bundle layout changed and the app would ship without an icon." >&2
+    exit 1
 fi
 
 cat > "$CONTENTS_DIR/Info.plist" <<PLIST
