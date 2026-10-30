@@ -14,7 +14,7 @@ Anthropic/Claude support existed only in **v0.3.16–v0.3.20** (local login plus
 
 ## CI
 
-`.github/workflows/ci.yml` — added in `1e04433` (2026-07-07) and unchanged since, so it is exactly the workflow of v0.3.15 — runs on pushes to `main` and `v0.3.*` / `v0.4.*` and on pull requests to `main`, on `macos-latest`: `actions/checkout@v4` → `swift --version` → `swift run APIInquiryCoreTestsRunner` → `swift build`. macOS runners queue slowly, so a run can sit queued for a long time.
+`.github/workflows/ci.yml` ("Release verification") runs **only on `release/*` tags** (plus manual dispatch). Every push and PR used to trigger it, but the `macos-latest` runners queue for hours, which cost far more than the check is worth: the same two commands (`swift run APIInquiryCoreTestsRunner`, `swift build`) finish in seconds locally. Day-to-day gating is the local test runner; CI is the independent-environment check at release time. The workflow was disabled on 2026-10-30 while this change landed — after merging, re-enable it with `gh workflow enable ci.yml`, otherwise tag pushes will not run it.
 
 ## Working protocol (staged, not end-to-end)
 
