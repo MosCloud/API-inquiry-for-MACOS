@@ -117,6 +117,8 @@ dist/API-Inquiry-v0.3.16.dmg
 dist/API-Inquiry-v0.3.16.dmg.sha256
 ```
 
+发版前的版本号同步、产物验收与常见故障，见 [docs/release-runbook_zh.md](docs/release-runbook_zh.md)。
+
 完成发布验证和上传后，删除本机开发态 app bundle，避免 Launchpad 将非正式副本索引成重复图标：
 
 ```bash
