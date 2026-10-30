@@ -20,8 +20,16 @@ enum ProviderVisualCatalog {
         return image
     }()
 
+    /// OpenCode brand lockup: the official mark (`opencode-logo-dark.svg`) composed with
+    /// the official wordmark (`opencode-wordmark-simple-dark.svg`), both MIT licensed,
+    /// © 2025 opencode. Source: github.com/anomalyco/opencode,
+    /// packages/console/app/src/asset/brand/. Re-rasterised as `opencode-logo-header.svg`.
     static let openCodeHeaderLogoTemplate: NSImage = {
-        let image = loadPNG(named: "opencode-logo-header") ?? textTemplateImage("OpenCode", fontSize: 24, height: 30)
+        // Load the vector asset so the pixel-block wordmark rasterises at the exact
+        // frame size; a pre-shrunk PNG loses the block edges when macOS resamples it.
+        let image = loadVector(named: "opencode-logo-header")
+            ?? loadPNG(named: "opencode-logo-header")
+            ?? textTemplateImage("OpenCode", fontSize: 24, height: 30)
         image.isTemplate = true
         return image
     }()
@@ -40,29 +48,23 @@ enum ProviderVisualCatalog {
     }
 
     static func headerLogoSize(for providerID: ProviderID) -> NSSize {
-        switch providerID {
-        case .deepseek:
-            return NSSize(width: 96, height: 21)
-        case .zhipuCodingPlan:
-            return NSSize(width: 140, height: 29)
-        case .codex:
-            return NSSize(width: 116, height: 32)
-        case .opencode:
-            return NSSize(width: 92, height: 30)
-        }
+        logoSize(for: providerID, on: .menuPanel)
     }
 
     static func consoleLogoSize(for providerID: ProviderID) -> NSSize {
-        switch providerID {
-        case .deepseek:
-            return NSSize(width: 106, height: 23)
-        case .zhipuCodingPlan:
-            return NSSize(width: 152, height: 32)
-        case .codex:
-            return NSSize(width: 108, height: 30)
-        case .opencode:
-            return NSSize(width: 104, height: 34)
+        logoSize(for: providerID, on: .console)
+    }
+
+    /// Sizes every lockup so its wordmark renders at the surface's target height,
+    /// instead of hand-tuned per-provider frames that left the wordmarks at four
+    /// different visual sizes.
+    private static func logoSize(for providerID: ProviderID, on surface: ProviderLogoSurface) -> NSSize {
+        guard let size = ProviderLogoMetrics.size(for: providerID, on: surface) else {
+            return NSSize(width: 96, height: 21)
         }
+        // Whole-point frames keep the template image on the pixel grid; fractional
+        // sizes smear the lockup's hard edges when macOS resamples it.
+        return NSSize(width: size.width.rounded(), height: size.height.rounded())
     }
 
     static func menuIconSize(for providerID: ProviderID) -> NSSize {
@@ -137,6 +139,17 @@ enum ProviderVisualCatalog {
         }
     }
 
+    /// Loads an SVG asset. AppKit keeps it vector-backed, so the image is rasterised
+    /// at the size SwiftUI actually draws it at instead of being resampled.
+    private static func loadVector(named name: String) -> NSImage? {
+        for url in resourceURLs(named: name, extension: "svg") {
+            if let image = NSImage(contentsOf: url) {
+                return image
+            }
+        }
+        return nil
+    }
+
     private static func loadPNG(named name: String) -> NSImage? {
         for url in resourceURLs(named: name) {
             if let image = NSImage(contentsOf: url) {
@@ -146,16 +159,16 @@ enum ProviderVisualCatalog {
         return nil
     }
 
-    private static func resourceURLs(named name: String) -> [URL] {
+    private static func resourceURLs(named name: String, extension ext: String = "png") -> [URL] {
         var urls: [URL] = []
 
-        if let mainURL = Bundle.main.url(forResource: name, withExtension: "png") {
+        if let mainURL = Bundle.main.url(forResource: name, withExtension: ext) {
             urls.append(mainURL)
         }
 
         let bundleURL = Bundle.main.bundleURL.appendingPathComponent("APIInquiry_APIInquiryApp.bundle")
         if let resourceBundle = Bundle(url: bundleURL),
-           let bundledURL = resourceBundle.url(forResource: name, withExtension: "png") {
+           let bundledURL = resourceBundle.url(forResource: name, withExtension: ext) {
             urls.append(bundledURL)
         }
 

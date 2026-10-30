@@ -48,7 +48,7 @@ if [ -d "$RESOURCE_BUNDLE" ]; then
     # SwiftPM writes a flat bundle on its native build system but a macOS-style
     # bundle with Contents/Resources when it builds through the Xcode build
     # system, so search the whole bundle instead of only its top level.
-    find "$RESOURCE_BUNDLE" -type f \( -name "*.png" -o -name "*.icns" \) -exec cp {} "$RESOURCES_DIR/" \;
+    find "$RESOURCE_BUNDLE" -type f \( -name "*.png" -o -name "*.icns" -o -name "*.svg" \) -exec cp {} "$RESOURCES_DIR/" \;
 fi
 
 if [ ! -f "$RESOURCES_DIR/AppIcon.icns" ]; then

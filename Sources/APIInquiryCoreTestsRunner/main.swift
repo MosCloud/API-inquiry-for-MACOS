@@ -2,6 +2,7 @@ import Foundation
 
 let harness = TestHarness()
 TestHarnessTests.run(using: harness)
+ProviderLogoMetricsTests.run(using: harness)
 KeychainCredentialStoreTests.run(using: harness)
 CodexCredentialStoreTests.run(using: harness)
 CodexCredentialParserTests.run(using: harness)
