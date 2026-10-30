@@ -159,10 +159,10 @@ enum ProviderVisualCatalog {
             urls.append(bundledURL)
         }
 
-        if urls.isEmpty, let moduleURL = Bundle.module.url(forResource: name, withExtension: "png") {
-            urls.append(moduleURL)
-        }
-
+        // Do not fall back to `Bundle.module`: SwiftPM's generated accessor calls
+        // fatalError when the resource bundle is not next to the executable, and the
+        // packaged app flattens the resources into Bundle.main instead. Missing images
+        // must stay optional so provider views can fall back to text.
         return urls
     }
 

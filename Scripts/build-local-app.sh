@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source "$ROOT_DIR/Scripts/version.env"
+BUILD_ROOT="${API_INQUIRY_BUILD_ROOT:-$ROOT_DIR/.build}"
 APP_DIR="$ROOT_DIR/.build/APIInquiry.app"
 ACTIVE_MACOS_SDK_PATH="$(xcrun --sdk macosx --show-sdk-path)"
 APP_SDK_PATH="${API_INQUIRY_APP_SDKROOT:-$ACTIVE_MACOS_SDK_PATH}"
@@ -101,18 +102,28 @@ SDKROOT="$APP_SDK_PATH" swift Scripts/generate-app-icon.swift
 # macOS 26 design (legacy pop-up buttons, old panel chrome). The native build system
 # records the real SDK, matching v0.3.15. Verify with:
 #   otool -l "<app>/Contents/MacOS/APIInquiry" | grep -A4 LC_BUILD_VERSION
-SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --build-system native --product APIInquiryApp
+if [ "$BUILD_ROOT" = "$ROOT_DIR/.build" ]; then
+    SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --build-system native --product APIInquiryApp
+else
+    # Scratch paths outside the checkout keep SwiftPM's bundle signing away from
+    # Desktop/FileProvider metadata, which otherwise fails with "resource fork,
+    # Finder information, or similar detritus".
+    SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --build-system native --scratch-path "$BUILD_ROOT" --product APIInquiryApp
+fi
 
 CONTENTS_DIR="$STAGED_APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
-cp "$ROOT_DIR/.build/debug/APIInquiryApp" "$MACOS_DIR/$EXECUTABLE_NAME"
+cp "$BUILD_ROOT/debug/APIInquiryApp" "$MACOS_DIR/$EXECUTABLE_NAME"
 chmod +x "$MACOS_DIR/$EXECUTABLE_NAME"
 
-RESOURCE_BUNDLE="$ROOT_DIR/.build/debug/APIInquiry_APIInquiryApp.bundle"
+RESOURCE_BUNDLE="$BUILD_ROOT/debug/APIInquiry_APIInquiryApp.bundle"
 if [ -d "$RESOURCE_BUNDLE" ]; then
-    find "$RESOURCE_BUNDLE" -maxdepth 1 -type f \( -name "*.png" -o -name "*.icns" \) -exec cp {} "$RESOURCES_DIR/" \;
+    # SwiftPM emits a flat bundle on its native build system but a macOS-style
+    # bundle with Contents/Resources when it builds through the Xcode build
+    # system, so search the whole bundle instead of only its top level.
+    find "$RESOURCE_BUNDLE" -type f \( -name "*.png" -o -name "*.icns" \) -exec cp {} "$RESOURCES_DIR/" \;
 fi
 
 cat > "$CONTENTS_DIR/Info.plist" <<PLIST
