@@ -260,12 +260,12 @@ struct MenuBarContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(viewModel.primaryQuotaWindowRows, id: \.label) { row in
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text(row.label)
+                    Text(row.heroLabel)
                         .font(.system(size: 20, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
-                        .frame(width: 32, alignment: .leading)
+                        .frame(width: strings.quotaHeroLabelColumnWidth, alignment: .leading)
 
                     Text(row.amountText)
                         .font(.system(size: 36, weight: .medium, design: .rounded))
@@ -286,13 +286,13 @@ struct MenuBarContentView: View {
 
                     Spacer(minLength: 6)
 
-                    if let resetText = row.resetText {
+                    if let resetText = row.resetShortText {
                         Text(resetText)
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
-                            .frame(minWidth: 82, alignment: .trailing)
+                            .frame(minWidth: 62, alignment: .trailing)
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)

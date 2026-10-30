@@ -170,12 +170,14 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             let amountText = ProviderDisplayFormatter.quotaWindowAmountText(for: window)
             return QuotaWindowDisplayRow(
                 label: quotaWindowDisplayLabel(for: window.label),
+                heroLabel: strings.quotaWindowHeroLabel(window.label),
                 amountText: amountText,
                 amountValue: ProviderValueFormatter.quotaWindowAmountValue(for: window),
                 amountTone: ProviderDisplayFormatter.quotaWindowAmountTone(for: window),
                 suffixText: suffixText,
                 detailText: "\(amountText)\(suffixText)",
                 resetText: quotaWindowResetText(for: window),
+                resetShortText: quotaWindowResetShortText(for: window),
                 isAvailable: window.isAvailable
             )
         }
@@ -187,6 +189,15 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             return timeFormatter.resetDateText(for: window.resetAt)
         case .fiveHour, .none:
             return timeFormatter.resetText(for: window.resetAt)
+        }
+    }
+
+    private func quotaWindowResetShortText(for window: QuotaWindowSnapshot) -> String? {
+        switch window.resolvedKind {
+        case .week, .month:
+            return timeFormatter.resetShortDateText(for: window.resetAt)
+        case .fiveHour, .none:
+            return timeFormatter.resetShortText(for: window.resetAt)
         }
     }
 

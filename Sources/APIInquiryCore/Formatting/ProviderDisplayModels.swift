@@ -22,12 +22,16 @@ public struct ProviderDetailRow: Equatable {
 
 public struct QuotaWindowDisplayRow: Equatable {
     public let label: String
+    /// Shorter variant for the menu bar hero rows (English uses Week/Month).
+    public let heroLabel: String
     public let amountText: String
     public let amountValue: Double?
     public let amountTone: ProviderAmountTone
     public let suffixText: String
     public let detailText: String
     public let resetText: String?
+    /// Same instant as `resetText`, without the "Resets:" prefix.
+    public let resetShortText: String?
     public let isAvailable: Bool
 }
 

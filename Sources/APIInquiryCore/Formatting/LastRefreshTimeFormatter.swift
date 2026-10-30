@@ -46,6 +46,22 @@ public struct LastRefreshTimeFormatter {
         return "\(strings.resetsPrefix)\(labelSeparator)\(timeText(for: date))"
     }
 
+    /// Reset time without the "Resets:" prefix — the hero rows repeat three of them,
+    /// so the prefix only eats horizontal room.
+    public func resetShortText(for date: Date?) -> String? {
+        guard let date else {
+            return nil
+        }
+        return timeText(for: date)
+    }
+
+    public func resetShortDateText(for date: Date?) -> String? {
+        guard let date else {
+            return nil
+        }
+        return dateText(for: date)
+    }
+
     public func resetDateText(for date: Date?) -> String? {
         guard let date else {
             return nil
