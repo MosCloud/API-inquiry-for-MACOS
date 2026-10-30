@@ -48,7 +48,7 @@ enum ProviderVisualCatalog {
         case .codex:
             return NSSize(width: 116, height: 32)
         case .opencode:
-            return NSSize(width: 132, height: 30)
+            return NSSize(width: 92, height: 30)
         }
     }
 
@@ -61,7 +61,7 @@ enum ProviderVisualCatalog {
         case .codex:
             return NSSize(width: 108, height: 30)
         case .opencode:
-            return NSSize(width: 140, height: 30)
+            return NSSize(width: 104, height: 34)
         }
     }
 
@@ -74,7 +74,7 @@ enum ProviderVisualCatalog {
         case .codex:
             return NSSize(width: 16, height: 16)
         case .opencode:
-            return NSSize(width: 20, height: 20)
+            return NSSize(width: 18, height: 18)
         }
     }
 

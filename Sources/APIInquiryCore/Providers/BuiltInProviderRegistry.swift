@@ -67,7 +67,7 @@ public extension BuiltInProviderRegistry {
                     credentialManagement: .localExternalConfiguration,
                     accessPurpose: .planQuota,
                     menuTitlePrefix: "OC",
-                    secondaryDisplayName: "OpenCode Go"
+                    secondaryDisplayName: "OpenCode"
                 ),
                 makeProvider: { OpenCodeGoUsageProvider() }
             )

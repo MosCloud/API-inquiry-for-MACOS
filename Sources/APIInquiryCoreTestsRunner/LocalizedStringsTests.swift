@@ -113,8 +113,8 @@ enum LocalizedStringsTests {
         let strings = LocalizedStrings(language: .zh)
 
         harness.expectEqual(strings.quotaWindowLabel("5h"), "5 时", "chinese 5h compact label")
-        harness.expectEqual(strings.quotaWindowLabel("Week"), "1 周", "chinese week compact label")
-        harness.expectEqual(strings.quotaWindowLabel("7d"), "1 周", "chinese 7d compact label")
+        harness.expectEqual(strings.quotaWindowLabel("Week"), "每周", "chinese week compact label")
+        harness.expectEqual(strings.quotaWindowLabel("7d"), "每周", "chinese 7d compact label")
     }
 
     private static func testChineseProviderGuidanceUsesLocalizedPlaceholder(using harness: TestHarness) {

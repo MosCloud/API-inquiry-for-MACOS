@@ -24,6 +24,7 @@ enum MenuBarBalanceViewModelTests {
         testPrimaryPlanUsageAmountToneBoundaries(using: harness)
         testPrimaryQuotaWindowAmountToneBoundaries(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
+        await testOpenCodeWindowsUseWeeklyAndMonthlyLabelsWithDateResets(using: harness)
         await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
         await testCodexPrimaryProviderPrefersFiveHourQuotaWhenWindowsAreReversed(using: harness)
         await testCodexPrimaryProviderFormatsWeekOnlyQuotaUsage(using: harness)
@@ -60,12 +61,73 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.suffixText, "% remg", "codex primary quota row suffix")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.detailText, "72% remg", "codex primary quota row detail")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.resetText, "Resets: 23:05", "codex primary quota reset")
-        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.label, "7d", "codex weekly quota row label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.label, "Weekly", "codex weekly quota row label")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.amountText, "48", "codex weekly quota row amount")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.amountValue, 48, "codex weekly quota row amount value")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.suffixText, "% remg", "codex weekly quota row suffix")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.detailText, "48% remg", "codex weekly quota row detail")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.resetText, "Resets: 05/18", "codex weekly quota reset")
+    }
+
+    @MainActor
+    private static func testOpenCodeWindowsUseWeeklyAndMonthlyLabelsWithDateResets(using harness: TestHarness) async {
+        let snapshot = QuotaUsageSnapshot(
+            providerID: .opencode,
+            planName: "OpenCode Go",
+            windows: [
+                QuotaWindowSnapshot(
+                    label: "5h",
+                    kind: .fiveHour,
+                    remainingPercentage: Decimal(94),
+                    resetAt: sampleResetDate,
+                    isAvailable: true
+                ),
+                QuotaWindowSnapshot(
+                    label: "Week",
+                    kind: .week,
+                    remainingPercentage: Decimal(86),
+                    resetAt: sampleWeeklyResetDate,
+                    isAvailable: true
+                ),
+                QuotaWindowSnapshot(
+                    label: "Month",
+                    kind: .month,
+                    remainingPercentage: Decimal(73),
+                    resetAt: sampleMonthlyResetDate,
+                    isAvailable: true
+                )
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        let coordinator = MultiProviderBalanceCoordinator(
+            registrations: testRegistrations(for: [
+                MockBalanceProvider(id: .opencode, results: [.success(.quotaUsage(snapshot))])
+            ]),
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [
+                "opencode-api-key": "opencode-key"
+            ]),
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.opencode],
+                primaryProviderID: .opencode
+            )
+        )
+        await coordinator.refresh(.opencode)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(
+            viewModel.primaryQuotaWindowRows.map(\.label),
+            ["5h", "Weekly", "Monthly"],
+            "opencode windows use weekly and monthly labels"
+        )
+        harness.expectEqual(
+            viewModel.primaryQuotaWindowRows.map(\.resetText),
+            ["Resets: 23:05", "Resets: 05/18", "Resets: 06/30"],
+            "opencode month window resets on a date"
+        )
+        harness.expectEqual(viewModel.menuBarValueText, "94%", "opencode menu bar uses the five-hour window")
     }
 
     @MainActor
@@ -128,7 +190,7 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.menuBarValueText, "48%", "codex weekly-only menu bar value omits window label")
         harness.expectEqual(viewModel.menuBarTitle, "48%", "codex weekly-only menu bar title omits window label")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.count, 1, "codex weekly-only detail row count")
-        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "7d", "codex weekly-only detail row label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "Weekly", "codex weekly-only detail row label")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.amountText, "48", "codex weekly-only detail row amount")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.resetText, "Resets: 05/18", "codex weekly-only detail row reset")
     }
@@ -153,7 +215,7 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.menuBarValueText, "72%", "codex weekly-only HTTP result reaches menu bar")
         harness.expectEqual(viewModel.menuBarTitle, "72%", "codex weekly-only HTTP result reaches menu bar title")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.count, 1, "codex weekly-only HTTP result exposes one detail row")
-        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "7d", "codex weekly-only HTTP result keeps weekly detail label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "Weekly", "codex weekly-only HTTP result keeps weekly detail label")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.amountText, "72", "codex weekly-only HTTP result keeps detail amount")
     }
 
@@ -173,7 +235,7 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(codexRow?.quotaWindowRows.first?.label, "5h", "codex secondary first quota label")
         harness.expectEqual(codexRow?.quotaWindowRows.first?.detailText, "72%", "codex secondary first quota detail")
         harness.expectEqual(codexRow?.quotaWindowRows.first?.resetText, "Resets: 23:05", "codex secondary first quota reset")
-        harness.expectEqual(codexRow?.quotaWindowRows.last?.label, "7d", "codex secondary weekly quota label")
+        harness.expectEqual(codexRow?.quotaWindowRows.last?.label, "Weekly", "codex secondary weekly quota label")
         harness.expectEqual(codexRow?.quotaWindowRows.last?.detailText, "48%", "codex secondary weekly quota detail")
         harness.expectEqual(codexRow?.quotaWindowRows.last?.resetText, "Resets: 05/18", "codex secondary weekly quota reset")
         harness.expectEqual(codexRow?.statusText, "Quota available", "codex secondary row status")
@@ -220,7 +282,7 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.suffixText, "% 剩余", "chinese codex first quota suffix")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.detailText, "72% 剩余", "chinese codex first quota detail")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.resetText, "重置于：23:05", "chinese codex first quota reset")
-        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.label, "1 周", "chinese codex weekly quota label")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.label, "每周", "chinese codex weekly quota label")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.last?.resetText, "重置于：05/18", "chinese codex weekly quota reset")
     }
 
@@ -697,6 +759,18 @@ enum MenuBarBalanceViewModelTests {
         components.day = 15
         components.hour = 23
         components.minute = 5
+        return components.date!
+    }
+
+    private static var sampleMonthlyResetDate: Date {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = TimeZone(secondsFromGMT: 0)
+        components.year = 2026
+        components.month = 6
+        components.day = 30
+        components.hour = 14
+        components.minute = 18
         return components.date!
     }
 
