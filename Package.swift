@@ -22,7 +22,10 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "APIInquiryCore"
+            name: "APIInquiryCore",
+            linkerSettings: [
+                .linkedLibrary("sqlite3")
+            ]
         ),
         .executableTarget(
             name: "APIInquiryCoreTestsRunner",

@@ -13,7 +13,9 @@ struct APIInquiryApp: App {
     init() {
         let languageStore = AppLanguageStore()
         let registry = BuiltInProviderRegistry.default
-        let credentialStore = CodexCredentialStore(delegate: KeychainCredentialStore())
+        let credentialStore = OpenCodeCredentialStore(
+            delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
+        )
         let coordinator = MultiProviderBalanceCoordinator(
             registrations: registry.registrations,
             credentialStore: credentialStore,

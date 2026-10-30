@@ -55,6 +55,21 @@ public extension BuiltInProviderRegistry {
                     secondaryDisplayName: "OpenAI"
                 ),
                 makeProvider: { CodexQuotaProvider() }
+            ),
+            ProviderRegistration(
+                descriptor: ProviderDescriptor(
+                    id: .opencode,
+                    displayName: "OpenCode",
+                    menuPrefix: "OC",
+                    credentialAccount: OpenCodeCredentialStore.defaultOpenCodeAccount,
+                    homepageURL: URL(string: "https://opencode.ai/console")!,
+                    detailKind: .quotaUsage,
+                    credentialManagement: .localExternalConfiguration,
+                    accessPurpose: .planQuota,
+                    menuTitlePrefix: "OC",
+                    secondaryDisplayName: "OpenCode Go"
+                ),
+                makeProvider: { OpenCodeGoUsageProvider() }
             )
         ],
         defaultProviderID: .deepseek
