@@ -614,17 +614,18 @@ public final class UsageConsoleViewModel: ObservableObject {
     }
 
     private func codexConfigTargetURL(for descriptor: ProviderDescriptor) -> URL? {
-        guard descriptor.credentialManagement == .localExternalConfiguration else {
+        guard descriptor.id == .codex,
+              descriptor.credentialManagement == .localExternalConfiguration else {
             return nil
         }
 
-        return (credentialStore as? CodexCredentialStore)?.codexConfigTargetURL()
+        return (credentialStore as? CodexCredentialProviding)?.codexConfigTargetURL()
     }
 
     private func codexConfigurationFeedback(for descriptor: ProviderDescriptor) -> SettingsFeedback? {
         guard descriptor.id == .codex,
               descriptor.credentialManagement == .localExternalConfiguration,
-              let codexCredentialStore = credentialStore as? CodexCredentialStore else {
+              let codexCredentialStore = credentialStore as? CodexCredentialProviding else {
             return nil
         }
 
