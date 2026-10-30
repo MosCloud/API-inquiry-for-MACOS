@@ -4,11 +4,13 @@
 
 ## Stale instruction files
 
-`AGENT.md` / `AGENT_zh.md` describe the **first release only** (DeepSeek balance-only) and are out of date. The app is now v0.3.15, multi-provider (DeepSeek + Zhipu GLM Coding Plan + Codex session quota + Codex manual-reset credits). Do **not** trust scope or architecture claims in `AGENT.md` — trust the code (and the local `CLAUDE.md`).
+`AGENT.md` / `AGENT_zh.md` describe the **first release only** (DeepSeek balance-only) and are out of date. The app is now v0.3.16, multi-provider (DeepSeek + Zhipu GLM Coding Plan + Codex session quota + Codex manual-reset credits). Do **not** trust scope or architecture claims in `AGENT.md` — trust the code (and the local `CLAUDE.md`).
 
 ## Withdrawn Anthropic support
 
 Anthropic/Claude support existed only in **v0.3.16–v0.3.20** (local login plus a browser-session source). On 2026-10-13 those releases and tags were withdrawn, `main` was reset to **v0.3.15** (`3052715`), and the newer objects were purged locally. So this codebase has **no Anthropic provider**: `ProviderID` has no `claude` case and no Claude credential/browser code exists. Do not assume, re-add, or document Claude support; docs that mention it describe withdrawn work. The last version with Anthropic support in local history no longer exists — if it is ever needed, it must be rebuilt from scratch.
+
+**v0.3.16 was reused.** On 2026-10-30 the number `0.3.16` (build 21) was released again for the Codex Credits display fix. The current `release/v0.3.16` tag and GitHub Release carry that fix, not the withdrawn Anthropic work.
 
 ## CI
 
