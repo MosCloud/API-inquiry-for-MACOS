@@ -1,14 +1,13 @@
-name: CI
+name: Release verification
 
+# Runs only for release tags. Day-to-day changes rely on the local test runner
+# (`swift run APIInquiryCoreTestsRunner`, ~3s); the macOS runners queue for hours,
+# which cost far more than the check is worth on every push.
 on:
   push:
-    branches:
-      - main
-      - "v0.3.*"
-      - "v0.4.*"
-  pull_request:
-    branches:
-      - main
+    tags:
+      - "release/*"
+  workflow_dispatch:
 
 jobs:
   build-and-test:
