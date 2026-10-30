@@ -14,7 +14,7 @@ Anthropic/Claude support existed only in **v0.3.16–v0.3.20** (local login plus
 
 ## CI
 
-`.github/workflows/ci.yml` ("Release verification") runs **only on `release/*` tags** (plus manual dispatch). Every push and PR used to trigger it, but the `macos-latest` runners queue for hours, which cost far more than the check is worth: the same two commands (`swift run APIInquiryCoreTestsRunner`, `swift build`) finish in seconds locally. Day-to-day gating is the local test runner; CI is the independent-environment check at release time. The workflow was disabled on 2026-10-30 while this change landed — after merging, re-enable it with `gh workflow enable ci.yml`, otherwise tag pushes will not run it.
+`.github/workflows/ci.yml` ("Release verification") runs **only on `release/*` tags** (plus manual dispatch). Every push and PR used to trigger it, but the `macos-latest` runners queue for hours, which cost far more than the check is worth: the same two commands (`swift run APIInquiryCoreTestsRunner`, `swift build`) finish in seconds locally. Day-to-day gating is the local test runner; CI is the independent-environment check at release time. It was briefly disabled on 2026-10-30 while the trigger change landed, and is active again; if `gh workflow list` ever shows it as `disabled_manually`, run `gh workflow enable ci.yml`, otherwise tag pushes will not run it.
 
 ## Working protocol (staged, not end-to-end)
 
