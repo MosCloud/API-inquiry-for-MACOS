@@ -25,7 +25,16 @@ Scripts/run-local-app.sh               # build + launch .build/APIInquiry.app
 Scripts/build-local-app.sh             # build local app bundle, no launch
 ```
 
-Release packaging only at release-candidate stage: `Scripts/package-mac-app.sh` → `dist/API Inquiry.app` (ad-hoc signed), `Scripts/package-dmg.sh` → `dist/API-Inquiry-vX.Y.Z.dmg` + `.sha256`, then `Scripts/clean-development-apps.sh`.
+Release packaging only at release-candidate stage: `Scripts/package-mac-app.sh` → `dist/API Inquiry.app` (ad-hoc signed), `Scripts/package-dmg.sh` → `dist/API-Inquiry-vX.Y.Z.dmg` + `.sha256`, then `Scripts/clean-development-apps.sh`. Full checklist and failure table: `docs/release-runbook.md` / `docs/release-runbook_zh.md`.
+
+## Release packaging gotchas (learned the hard way in v0.3.16)
+
+- **Build with the Xcode toolchain.** This machine's Command Line Tools SDK does not match `/usr/bin/swift`; Release builds then fail with bogus semantic errors such as `cannot assign to property: 'self' is immutable` on a `@State` assignment. Prefix packaging with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
+- **SwiftPM's default build system is the Xcode one now.** Products land in `.build/out/Products/<Configuration>/` and the resource bundle is `APIInquiry_APIInquiryApp.bundle/Contents/Resources/`, not the flat layout older releases had. Never copy resources with `find -maxdepth 1`; the script searches recursively and aborts when `AppIcon.icns` is missing, because an empty `Contents/Resources` silently ships a generic Finder icon and text-only provider logos.
+- **Never trust a scripted Finder to lay out the DMG window.** Finder only applies and persists view options (background picture, 152 pt icons, positions) while it is frontmost and the window is open; scripted from the background it drops them with no error and the volume gets a ~6 KB `.DS_Store` stub. `package-dmg.sh` activates Finder, waits for the window, polls `.DS_Store` for the `dmg-background.png` alias before closing and detaching, and rejects any DMG whose `.DS_Store` lacks that alias. A 10 KB `.DS_Store` is the healthy size.
+- **Acceptance is the app inside the mounted DMG**, not `dist/API Inquiry.app`: the Desktop copy keeps picking up FileProvider/Finder metadata and then fails `codesign --verify --deep --strict` with "resource fork, Finder information, or similar detritus". Strip it with `xattr -cr` before verifying local copies.
+- **Sandboxed automation needs relaxed permissions**: SwiftPM's own sandbox fails with `sandbox-exec: sandbox_apply: Operation not permitted` (use `--disable-sandbox`), `hdiutil` cannot create images, and the three Keychain expectations fail with `unexpectedStatus(100001)`. `PASS: N expectations` requires running outside that sandbox; CI is the release gate otherwise.
+- **Version numbers can be reused deliberately.** `0.3.16` was released again on 2026-10-30 after the withdrawn `0.3.16`–`0.3.20` Anthropic builds; check `git ls-remote --tags origin` and the releases API before bumping, and record any reuse here.
 
 ## Tests (critical: non-XCTest)
 

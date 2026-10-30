@@ -117,6 +117,8 @@ dist/API-Inquiry-v0.3.16.dmg
 dist/API-Inquiry-v0.3.16.dmg.sha256
 ```
 
+Version sync, artifact acceptance, and known failure modes are documented in [docs/release-runbook.md](docs/release-runbook.md).
+
 After release validation and upload, remove local development app bundles so Launchpad only indexes the installed app:
 
 ```bash
