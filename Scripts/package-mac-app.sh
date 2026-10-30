@@ -94,6 +94,11 @@ codesign --verify --deep --strict "$STAGED_APP_DIR"
 
 mkdir -p "$DIST_DIR"
 ditto "$STAGED_APP_DIR" "$APP_DIR"
+# On a Desktop/FileProvider path the copy can pick up Finder metadata shortly
+# after it lands, which makes strict verification fail with "resource fork,
+# Finder information, or similar detritus". Strip it before verifying; the DMG
+# built from this copy is verified again after its own xattr cleanup.
+xattr -cr "$APP_DIR"
 codesign --verify --deep --strict "$APP_DIR"
 
 echo "Packaged $APP_DIR"
