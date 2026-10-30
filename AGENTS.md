@@ -16,6 +16,18 @@ Anthropic/Claude support existed only in **v0.3.16–v0.3.20** (local login plus
 
 `.github/workflows/ci.yml` — added in `1e04433` (2026-07-07) and unchanged since, so it is exactly the workflow of v0.3.15 — runs on pushes to `main` and `v0.3.*` / `v0.4.*` and on pull requests to `main`, on `macos-latest`: `actions/checkout@v4` → `swift --version` → `swift run APIInquiryCoreTestsRunner` → `swift build`. macOS runners queue slowly, so a run can sit queued for a long time.
 
+## Working protocol (staged, not end-to-end)
+
+Unless the user explicitly asks for a one-shot end-to-end delivery, every change — features, fixes, and polish — moves through these five stages, and the agent **stops and reports at each stage** instead of silently running 1→5:
+
+1. **Issue first.** File the problem as a GitHub issue (`gh issue create`) with the observed behaviour, expected behaviour, and where in the code it lives. No implementation before there is an issue (or the user explicitly waives it).
+2. **Joint diagnosis.** Locate the cause *with* the user: read the code, then prove the hypothesis with a measurement, a demo, or a failing test. Present evidence (numbers, screenshots, test output) and 2–3 candidate solutions with trade-offs. **Wait for the user to choose** before writing production code.
+3. **Implement + PR.** Only then change code, keep the diff scoped to the chosen issue, run `swift run APIInquiryCoreTestsRunner`, and open a PR that states the evidence and the verification steps.
+4. **Joint testing.** The agent verifies what it can (tests, local build, screenshots); the user verifies the perceptible behaviour (menu bar, Console, DMG). Both must pass.
+5. **Merge.** Rebase-merge only after stage 4 sign-off, delete the branch, and confirm CI on `main`.
+
+Why: the user wants to learn the reasoning (diagnosis, trade-offs, verification), not only receive finished diffs. Short-circuiting stages hides exactly that reasoning. Asking for "just fix it" or "one-shot" is the explicit opt-out.
+
 ## Commands
 
 ```bash
