@@ -15,7 +15,7 @@ public enum OpenCodeCredentialStatus: Equatable {
 /// The database is only ever opened read-only; when it is missing or the schema no
 /// longer matches, the store falls back to the Keychain so a manually pasted key still
 /// works.
-public final class OpenCodeCredentialStore: CredentialStore {
+public final class OpenCodeCredentialStore: CredentialStore, CodexCredentialProviding {
     public static let defaultOpenCodeAccount = "opencode-api-key"
 
     private let delegate: CredentialStore
@@ -58,6 +58,14 @@ public final class OpenCodeCredentialStore: CredentialStore {
 
     public func deleteCredential(forAccount account: String) throws {
         try delegate.deleteCredential(forAccount: account)
+    }
+
+    public func codexAuthFileStatus() -> CodexAuthFileStatus {
+        (delegate as? CodexCredentialProviding)?.codexAuthFileStatus() ?? .missing
+    }
+
+    public func codexConfigTargetURL() -> URL? {
+        (delegate as? CodexCredentialProviding)?.codexConfigTargetURL()
     }
 
     public func credentialStatus() -> OpenCodeCredentialStatus {

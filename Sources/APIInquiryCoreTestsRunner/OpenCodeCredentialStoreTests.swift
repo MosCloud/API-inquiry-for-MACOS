@@ -12,6 +12,7 @@ enum OpenCodeCredentialStoreTests {
         testReadsCredentialWithCurrentIntegrationID(using: harness)
         testParsesOAuthAccessToken(using: harness)
         testCredentialStatusReportsDatabaseState(using: harness)
+        testForwardsCodexIntrospection(using: harness)
         testOtherAccountsDelegateToTheWrappedStore(using: harness)
     }
 
@@ -157,6 +158,32 @@ enum OpenCodeCredentialStoreTests {
         )
         let store = OpenCodeCredentialStore(delegate: InMemoryCredentialStore(), databaseURL: fixture.databaseURL)
         harness.expectEqual(store.credentialStatus(), .usable, "database fixture is usable")
+    }
+
+    private static func testForwardsCodexIntrospection(using harness: TestHarness) {
+        let fixture = makeFixture(value: #"{"type":"key","key":"opencode-key"}"#)
+        defer { fixture.cleanup() }
+
+        let codexStore = CodexCredentialStore(
+            delegate: InMemoryCredentialStore(),
+            authFileURLs: []
+        )
+        let store = OpenCodeCredentialStore(delegate: codexStore, databaseURL: fixture.databaseURL)
+
+        harness.expectEqual(
+            store.codexAuthFileStatus(),
+            codexStore.codexAuthFileStatus(),
+            "opencode store forwards the codex auth file status"
+        )
+        harness.expectEqual(
+            store.codexConfigTargetURL(),
+            codexStore.codexConfigTargetURL(),
+            "opencode store forwards the codex config target"
+        )
+
+        let detached = OpenCodeCredentialStore(delegate: InMemoryCredentialStore(), databaseURL: fixture.databaseURL)
+        harness.expectEqual(detached.codexAuthFileStatus(), .missing, "store without codex delegate reports missing auth file")
+        harness.expectEqual(detached.codexConfigTargetURL(), nil, "store without codex delegate has no config target")
     }
 
     private static func testOtherAccountsDelegateToTheWrappedStore(using harness: TestHarness) {

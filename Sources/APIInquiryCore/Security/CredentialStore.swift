@@ -32,6 +32,14 @@ public extension CredentialStoreError {
     }
 }
 
+/// Credential stores that can describe the local Codex login state. Decorators such as
+/// `OpenCodeCredentialStore` forward this so Console keeps its Codex hints when another
+/// store wraps the Codex one.
+public protocol CodexCredentialProviding {
+    func codexAuthFileStatus() -> CodexAuthFileStatus
+    func codexConfigTargetURL() -> URL?
+}
+
 public final class KeychainCredentialStore: CredentialStore {
     private let service: String
 

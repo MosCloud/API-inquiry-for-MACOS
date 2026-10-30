@@ -7,7 +7,7 @@ public enum CodexAuthFileStatus: Equatable {
     case missingAccessToken(URL)
 }
 
-public final class CodexCredentialStore: CredentialStore {
+public final class CodexCredentialStore: CredentialStore, CodexCredentialProviding {
     private let delegate: CredentialStore
     private let codexAccount: String
     private let authFileURLs: [URL]
