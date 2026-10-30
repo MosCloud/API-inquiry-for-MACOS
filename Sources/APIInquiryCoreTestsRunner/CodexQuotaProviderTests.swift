@@ -6,6 +6,7 @@ enum CodexQuotaProviderTests {
         await testRawTokenRequestAndQuotaParsing(using: harness)
         await testCreditsBalanceDecodesAsNumber(using: harness)
         await testCreditsBalanceDecodesAsString(using: harness)
+        await testCreditsBalanceKeepsFullPrecision(using: harness)
         await testMalformedCreditsDoNotDiscardQuota(using: harness)
         await testNegativeCreditsDoNotDiscardQuota(using: harness)
         await testUnlimitedCreditsDecode(using: harness)
@@ -152,6 +153,38 @@ enum CodexQuotaProviderTests {
             )
         } catch {
             harness.expectTrue(false, "codex string credits should not throw: \(error)")
+        }
+    }
+
+    private static func testCreditsBalanceKeepsFullPrecision(using harness: TestHarness) async {
+        let provider = CodexQuotaProvider(httpClient: CodexMockHTTPClient(response: HTTPResponse(
+            data: """
+            {
+              "plan_type": "plus",
+              "rate_limit": {
+                "primary_window": {
+                  "used_percent": 6,
+                  "limit_window_seconds": 18000
+                }
+              },
+              "credits": {
+                "balance": "64999.5574150000",
+                "unlimited": false
+              }
+            }
+            """.data(using: .utf8)!,
+            statusCode: 200
+        )))
+
+        do {
+            let snapshot = try await provider.fetchSnapshot(apiKey: "test-token")
+            harness.expectEqual(
+                snapshot.lastQuotaUsageSnapshot?.credits,
+                .balance(Decimal(string: "64999.557415")!),
+                "codex fractional credits balance keeps full precision for display formatting"
+            )
+        } catch {
+            harness.expectTrue(false, "codex fractional credits should not throw: \(error)")
         }
     }
 

@@ -228,11 +228,15 @@ public enum ProviderValueFormatter {
         formatNumber(truncate(percentage, scale: 0), fractionDigits: 0)
     }
 
+    /// Credits are capped at two decimals for display. The backend reports up to ten
+    /// fractional digits (for example `"balance": "64999.5574150000"`), which reads as a
+    /// precision problem in the Console card even though the value is exact. The cap
+    /// truncates instead of rounding so the shown balance never overstates what is left.
     private static func formatCredits(_ balance: Decimal) -> String {
         if balance == 0 {
             return "0"
         }
-        return NSDecimalNumber(decimal: balance).stringValue
+        return NSDecimalNumber(decimal: truncate(balance, scale: 2)).stringValue
     }
 
     private static func formatNumber(_ amount: Decimal, fractionDigits: Int) -> String {
