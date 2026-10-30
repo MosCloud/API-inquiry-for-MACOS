@@ -4,6 +4,7 @@ public enum ProviderID: String, Equatable, Hashable, CaseIterable {
     case deepseek
     case zhipuCodingPlan
     case codex
+    case opencode
 }
 
 public enum ProviderDetailKind: Equatable {
@@ -15,6 +16,7 @@ public enum ProviderDetailKind: Equatable {
 public enum QuotaWindowKind: Equatable, Hashable {
     case fiveHour
     case week
+    case month
 
     public init?(label: String) {
         switch label {
@@ -22,6 +24,8 @@ public enum QuotaWindowKind: Equatable, Hashable {
             self = .fiveHour
         case "Week", "7d":
             self = .week
+        case "Month", "Monthly", "1M":
+            self = .month
         default:
             return nil
         }
@@ -33,6 +37,8 @@ public enum QuotaWindowKind: Equatable, Hashable {
             return "5h"
         case .week:
             return "Week"
+        case .month:
+            return "Month"
         }
     }
 }
@@ -179,6 +185,7 @@ public enum BalanceFailureKind: Equatable {
     case invalidResponse
     case usageLimitReached
     case planExpired
+    case subscriptionRequired
     case unknown
 }
 

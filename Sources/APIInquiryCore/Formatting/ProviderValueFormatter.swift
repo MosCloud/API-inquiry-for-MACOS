@@ -201,7 +201,7 @@ public enum ProviderValueFormatter {
         }
         let percentage = "\(formatPercentage(window.remainingPercentage))%"
         switch window.resolvedKind {
-        case .fiveHour, .week:
+        case .fiveHour, .week, .month:
             return percentage
         case nil:
             return "\(window.label) \(percentage)"

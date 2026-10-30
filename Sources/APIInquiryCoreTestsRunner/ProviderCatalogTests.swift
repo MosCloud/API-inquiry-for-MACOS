@@ -19,7 +19,7 @@ enum ProviderCatalogTests {
 
         harness.expectEqual(
             catalog.descriptors.map(\.id),
-            [.deepseek, .zhipuCodingPlan, .codex],
+            [.deepseek, .zhipuCodingPlan, .codex, .opencode],
             "default provider catalog order"
         )
         harness.expectEqual(catalog.descriptors.map(\.id), ProviderID.allCases, "default catalog follows provider id case order")
@@ -55,7 +55,8 @@ enum ProviderCatalogTests {
             [
                 .deepseek: "deepseek-api-key",
                 .zhipuCodingPlan: "zhipu-coding-plan-api-key",
-                .codex: "codex-session-token"
+                .codex: "codex-session-token",
+                .opencode: "opencode-api-key"
             ],
             "provider keychain accounts are preserved"
         )

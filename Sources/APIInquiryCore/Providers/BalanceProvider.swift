@@ -26,6 +26,7 @@ public enum BalanceProviderError: Error, Equatable, LocalizedError {
     case invalidResponseKind
     case usageLimitReached
     case planExpired
+    case subscriptionRequired
     case decodingFailed
 
     public var errorDescription: String? {
@@ -48,6 +49,8 @@ public enum BalanceProviderError: Error, Equatable, LocalizedError {
             return "Plan usage limit reached. Wait for the next reset."
         case .planExpired:
             return "Plan has expired. Renew it in the provider console."
+        case .subscriptionRequired:
+            return "No active subscription was found for this provider."
         case .decodingFailed:
             return "Balance API response could not be decoded."
         }
@@ -75,6 +78,8 @@ public extension BalanceProviderError {
             return strings.planUsageLimitReached
         case .planExpired:
             return strings.planHasExpired
+        case .subscriptionRequired:
+            return strings.subscriptionRequired
         case .decodingFailed:
             return strings.balanceAPIResponseCouldNotBeDecoded
         }
@@ -94,6 +99,8 @@ public extension BalanceProviderError {
             return .usageLimitReached
         case .planExpired:
             return .planExpired
+        case .subscriptionRequired:
+            return .subscriptionRequired
         case .missingBalanceInfo, .invalidBalanceAmount, .invalidResponseKind:
             return .invalidResponse
         case .invalidURL:

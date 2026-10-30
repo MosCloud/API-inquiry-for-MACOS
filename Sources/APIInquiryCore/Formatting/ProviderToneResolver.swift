@@ -27,7 +27,7 @@ public enum ProviderToneResolver {
         }
 
         switch kind {
-        case .usageLimitReached, .planExpired:
+        case .usageLimitReached, .planExpired, .subscriptionRequired:
             return .warning
         case .authenticationFailed, .rateLimited, .networkUnavailable, .serverError, .decodingFailed, .invalidResponse, .unknown:
             return .neutral

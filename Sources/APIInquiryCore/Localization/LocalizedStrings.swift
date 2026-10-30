@@ -186,6 +186,10 @@ public struct LocalizedStrings: Equatable {
         text(en: "Plan has expired. Renew it in the provider console.", zh: "计划已过期，请在供应商控制台续订。")
     }
 
+    public var subscriptionRequired: String {
+        text(en: "Not subscribed", zh: "未订阅")
+    }
+
     public var balanceAPIResponseCouldNotBeDecoded: String {
         text(en: "Balance API response could not be decoded.", zh: "无法解析 Balance API 响应。")
     }
@@ -247,10 +251,14 @@ public struct LocalizedStrings: Equatable {
             return "5 时"
         case (.zh, .week):
             return "1 周"
+        case (.zh, .month):
+            return "每月"
         case (.en, .week):
             return "7d"
         case (.en, .fiveHour):
             return "5h"
+        case (.en, .month):
+            return "Monthly"
         }
     }
 

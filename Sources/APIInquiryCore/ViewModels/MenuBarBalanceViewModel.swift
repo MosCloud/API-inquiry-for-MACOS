@@ -243,7 +243,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         }
 
         switch kind {
-        case .authenticationFailed, .usageLimitReached, .planExpired:
+        case .authenticationFailed, .usageLimitReached, .planExpired, .subscriptionRequired:
             return [.openConsole]
         case .rateLimited, .networkUnavailable, .serverError, .decodingFailed, .invalidResponse, .unknown:
             return [.retry]

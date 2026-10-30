@@ -20,6 +20,12 @@ enum ProviderVisualCatalog {
         return image
     }()
 
+    static let openCodeHeaderLogoTemplate: NSImage = {
+        let image = loadPNG(named: "opencode-logo-header") ?? textTemplateImage("OpenCode", fontSize: 24, height: 30)
+        image.isTemplate = true
+        return image
+    }()
+
     static func headerLogoTemplate(for providerID: ProviderID) -> NSImage? {
         switch providerID {
         case .deepseek:
@@ -28,6 +34,8 @@ enum ProviderVisualCatalog {
             return zhipuHeaderLogoTemplate
         case .codex:
             return chatGPTHeaderLogoTemplate
+        case .opencode:
+            return openCodeHeaderLogoTemplate
         }
     }
 
@@ -39,6 +47,8 @@ enum ProviderVisualCatalog {
             return NSSize(width: 140, height: 29)
         case .codex:
             return NSSize(width: 116, height: 32)
+        case .opencode:
+            return NSSize(width: 132, height: 30)
         }
     }
 
@@ -50,6 +60,8 @@ enum ProviderVisualCatalog {
             return NSSize(width: 152, height: 32)
         case .codex:
             return NSSize(width: 108, height: 30)
+        case .opencode:
+            return NSSize(width: 140, height: 30)
         }
     }
 
@@ -61,6 +73,8 @@ enum ProviderVisualCatalog {
             return NSSize(width: 20, height: 18)
         case .codex:
             return NSSize(width: 16, height: 16)
+        case .opencode:
+            return NSSize(width: 20, height: 20)
         }
     }
 
@@ -118,6 +132,8 @@ enum ProviderVisualCatalog {
             return loadPNG(named: "zhipu-menu-icon-template")
         case .codex:
             return loadPNG(named: "chatgpt-menu-icon-template")
+        case .opencode:
+            return loadPNG(named: "opencode-menu-icon-template")
         }
     }
 
