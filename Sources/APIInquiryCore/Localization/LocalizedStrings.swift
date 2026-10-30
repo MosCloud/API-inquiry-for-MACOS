@@ -250,11 +250,11 @@ public struct LocalizedStrings: Equatable {
         case (.zh, .fiveHour):
             return "5 时"
         case (.zh, .week):
-            return "1 周"
+            return "每周"
         case (.zh, .month):
             return "每月"
         case (.en, .week):
-            return "7d"
+            return "Weekly"
         case (.en, .fiveHour):
             return "5h"
         case (.en, .month):
