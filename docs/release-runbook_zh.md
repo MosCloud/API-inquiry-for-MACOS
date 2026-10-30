@@ -24,6 +24,7 @@
 
 - **打包请用 Xcode 工具链。** 本机 Command Line Tools 的 SDK 与 `/usr/bin/swift` 版本不匹配，Release 编译会报莫名其妙语义错误（例如对 `@State` 赋值报 `cannot assign to property: 'self' is immutable`）。打包时加上 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`。
 - **SwiftPM 现在的默认构建系统是 Xcode 那套。** 产物落在 `.build/out/Products/<Configuration>/`，`.build/<configuration>` 是指向它的符号链接；资源包变成 macOS bundle（`APIInquiry_APIInquiryApp.bundle/Contents/Resources/*.png|icns`），**不是**老版本那种扁平结构。打包脚本必须递归搜索，不能假设 `maxdepth 1`。
+- **必须带 `--build-system native` 构建。** SwiftPM 的 Xcode 构建系统会把 `LC_BUILD_VERSION sdk` 记成部署目标（13.0），这等于让 app 退出 macOS 26 新设计：Console 的「添加供应商」会变成整条旧式弹出按钮（宽灰条 + 蓝箭头），菜单栏面板也退回旧窗口外观。原生构建系统记录真实 SDK（26.x/27.x），才会和 v0.3.15 一致。可用 `otool -l "…/MacOS/APIInquiry" | grep -A4 LC_BUILD_VERSION` 校验：健康产物是 `sdk 26.x`/`27.x`，坏产物是 `sdk 13.0`。
 - **SwiftPM 自带沙箱**，在受限的 agent 沙箱里会失败并报 `sandbox-exec: sandbox_apply: Operation not permitted`。用 `--disable-sandbox`，或直接给完整文件权限。`hdiutil`（创建/挂载 DMG）同样需要完整权限。
 - **Keychain 用例**（保存/替换/删除凭据）在钥匙串不可达时会以 `unexpectedStatus(100001)` 失败。这是环境限制而非回归：要拿到 `PASS: N expectations`，必须在沙箱外跑；否则预期正好这三条红。
 - 仓库位于 `Desktop`，FileProvider/Finder 会在文件写入后几秒补上元数据。任何在该路径上签名的产物，严格验签前都要先 `xattr -cr`。
@@ -102,6 +103,7 @@ hdiutil info                               # 确认没有遗留挂载的镜像
 |---|---|---|
 | Finder 里 app 图标是灰色占位图，Console logo 退化成纯文字 | `Contents/Resources` 为空——资源复制只匹配老的扁平 bundle 布局 | `package-mac-app.sh` 递归查找；`AppIcon.icns` 缺失即失败 |
 | 安装窗口没有背景/箭头、图标默认排列，`.DS_Store` 约 6148 字节 | 后台脚本化 Finder 丢弃视图选项；且在写入前就关窗 | 先激活 Finder、等窗口出现、轮询 `.DS_Store` 出现背景别名后再关窗 |
+| Console 的「添加供应商」变成整条旧式弹出按钮、面板失去玻璃外观 | 用了 Xcode 构建系统，二进制记录的 `sdk 13.0` 让 app 退出 macOS 26 设计 | 用 `--build-system native` 重新构建并校验记录的 SDK |
 | `codesign --verify` 报 "resource fork, Finder information, or similar detritus" | Desktop 副本被 FileProvider 打上 Finder 元数据 | 验签前 `xattr -cr`；验收以挂载的 DMG 为准 |
 | Release 编译出现不可能的语义错误（`@State` 赋值报 `'self' is immutable`） | CLT 的 SDK 与 `/usr/bin/swift` 不匹配 | 用 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` 构建 |
 | `sandbox-exec: sandbox_apply: Operation not permitted` | SwiftPM 内层沙箱被外层沙箱拦截 | `swift build/run --disable-sandbox`，或给完整文件权限 |
