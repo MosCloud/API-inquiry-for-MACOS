@@ -127,6 +127,16 @@ enum MenuBarBalanceViewModelTests {
             ["Resets: 23:05", "Resets: 05/18", "Resets: 06/30"],
             "opencode month window resets on a date"
         )
+        harness.expectEqual(
+            viewModel.primaryQuotaWindowRows.map(\.heroLabel),
+            ["5h", "Week", "Month"],
+            "opencode hero rows use the compact english labels"
+        )
+        harness.expectEqual(
+            viewModel.primaryQuotaWindowRows.map(\.resetShortText),
+            ["23:05", "05/18", "06/30"],
+            "opencode hero rows drop the repeated reset prefix"
+        )
         harness.expectEqual(viewModel.menuBarValueText, "94%", "opencode menu bar uses the five-hour window")
     }
 

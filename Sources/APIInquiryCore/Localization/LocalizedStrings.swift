@@ -262,6 +262,37 @@ public struct LocalizedStrings: Equatable {
         }
     }
 
+    /// Compact label used in the menu bar panel's hero rows, where horizontal room is
+    /// scarce: English drops the "-ly" suffix, Chinese keeps the full word.
+    public func quotaWindowHeroLabel(_ kind: QuotaWindowKind) -> String {
+        switch (language, kind) {
+        case (.en, .week):
+            return "Week"
+        case (.en, .month):
+            return "Month"
+        default:
+            return quotaWindowLabel(kind)
+        }
+    }
+
+    public func quotaWindowHeroLabel(_ label: String) -> String {
+        if let kind = QuotaWindowKind(label: label) {
+            return quotaWindowHeroLabel(kind)
+        }
+        return label
+    }
+
+    /// Width of the hero label column. English needs more room than Chinese because
+    /// "Month" is wider than 每月 at the same point size.
+    public var quotaHeroLabelColumnWidth: Double {
+        switch language {
+        case .en:
+            return 52
+        case .zh:
+            return 46
+        }
+    }
+
     public func quotaWindowLabel(_ label: String) -> String {
         if let kind = QuotaWindowKind(label: label) {
             return quotaWindowLabel(kind)
