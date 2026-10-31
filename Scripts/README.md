@@ -40,6 +40,7 @@ Notes:
 
 - The two app scripts select the Xcode toolchain themselves; a bare `swift build` still needs `DEVELOPER_DIR`.
 - They build with SwiftPM's default build system and pass the active SDK to the linker (`-Xlinker -platform_version`); a bare `swift build` records the deployment-target SDK (13.0) and opts the app out of the current design.
+- Both build scripts skip `generate-app-icon.swift` when `AppIcon.icns` is newer than its source and the generator; delete the `.icns` (or touch the generator) to force regeneration.
 - Scripts run outside SwiftPM's sandbox; pass `--disable-sandbox` if you invoke SwiftPM directly under one.
 - Release packaging is a release-candidate step. The full checklist is
   `docs/release-runbook.md` / `docs/release-runbook_zh.md`.

@@ -156,7 +156,9 @@ prepare_runtime_root() {
 
 cd "$ROOT_DIR"
 
-SDKROOT="$APP_SDK_PATH" swift Scripts/generate-app-icon.swift
+if ! app_icon_is_current "$ROOT_DIR"; then
+    SDKROOT="$APP_SDK_PATH" swift Scripts/generate-app-icon.swift
+fi
 # SwiftPM's default build system records LC_BUILD_VERSION sdk = the deployment target
 # (13.0), which opts the app out of the macOS 26 design. Pass the real SDK version to
 # the linker instead; `assert_modern_build_sdk` fails the build if that ever regresses.
