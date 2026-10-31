@@ -28,6 +28,9 @@ public enum AutoStartStatus: Equatable {
             )
 
         case .unavailable:
+            // `SMAppService` cannot resolve the app identity (for example when the
+            // bundle is not registered). This is not the user turning auto-start
+            // off: that is `.disabled`, which uses `bolt.circle`.
             return AutoStartControlDisplay(
                 title: "AutoStart",
                 systemImageName: "slash.circle",
