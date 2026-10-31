@@ -30,6 +30,7 @@ enum MenuBarBalanceViewModelTests {
         testPlanUsageRemainingIsClamped(using: harness)
         testPrimaryQuotaWindowAmountToneBoundaries(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
+        await testPlanUsageProviderUsesTheWindowGridToo(using: harness)
         await testZhipuMenuBarOmitsTheWindowLabel(using: harness)
         await testOpenCodeWindowsUseWeeklyAndMonthlyLabelsWithDateResets(using: harness)
         await testReversedWindowOrderStillFocusesFiveHour(using: harness)
@@ -324,6 +325,27 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(codexRow?.statusText, "Quota available", "codex secondary row status")
     }
 
+
+    @MainActor
+    private static func testPlanUsageProviderUsesTheWindowGridToo(using harness: TestHarness) async {
+        let coordinator = makeMultiProviderCoordinator(
+            primaryProviderID: .deepseek,
+            resetAt: sampleResetDate
+        )
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        // Zhipu describes its window with PlanUsageSnapshot, not QuotaUsageSnapshot; the
+        // panel still has to draw it with the same three columns as OpenAI and OpenCode.
+        let zhipuRow = viewModel.secondaryProviderRows.first { $0.providerID == .zhipuCodingPlan }
+        harness.expectEqual(zhipuRow?.quotaWindowRows.count, 1, "plan usage provider exposes one window row")
+        harness.expectEqual(zhipuRow?.quotaWindowRows.first?.label, "5h", "plan usage row keeps the window label")
+        harness.expectEqual(zhipuRow?.quotaWindowRows.first?.amountText, "83", "plan usage row shows the remaining share")
+        harness.expectEqual(zhipuRow?.quotaWindowRows.first?.resetShortText, "23:05", "plan usage row carries the short reset")
+    }
 
     @MainActor
     private static func testZhipuMenuBarOmitsTheWindowLabel(using harness: TestHarness) async {

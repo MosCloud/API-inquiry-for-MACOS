@@ -201,15 +201,34 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         return QuotaWindowSummary(text: text, resetText: resetText.isEmpty ? nil : resetText)
     }
 
+    /// A single-window plan (Zhipu) is described by `PlanUsageSnapshot` rather than
+    /// `QuotaUsageSnapshot`; turn it into the same row shape so the panel draws it with
+    /// the same three columns instead of a separate style.
     private func quotaWindowRows(for state: BalanceState, suffixText: String) -> [QuotaWindowDisplayRow] {
-        guard let quota = state.lastQuotaUsageSnapshot else {
+        if let quota = state.lastQuotaUsageSnapshot {
+            return quotaWindowRows(for: quota.windows, suffixText: suffixText)
+        }
+
+        guard let plan = state.lastPlanUsageSnapshot else {
             return []
         }
-        return quotaWindowRows(for: quota, suffixText: suffixText)
+
+        let window = QuotaWindowSnapshot(
+            label: plan.windowLabel,
+            kind: plan.windowKind,
+            remainingPercentage: plan.remainingPercentage,
+            resetAt: plan.resetAt,
+            isAvailable: plan.isAvailable
+        )
+        return quotaWindowRows(for: [window], suffixText: suffixText)
     }
 
     private func quotaWindowRows(for quota: QuotaUsageSnapshot, suffixText: String) -> [QuotaWindowDisplayRow] {
-        quota.windows.map { window in
+        quotaWindowRows(for: quota.windows, suffixText: suffixText)
+    }
+
+    private func quotaWindowRows(for windows: [QuotaWindowSnapshot], suffixText: String) -> [QuotaWindowDisplayRow] {
+        windows.map { window in
             let amountText = ProviderDisplayFormatter.quotaWindowAmountText(for: window)
             return QuotaWindowDisplayRow(
                 label: quotaWindowDisplayLabel(for: window.label),
