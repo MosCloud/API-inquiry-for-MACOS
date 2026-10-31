@@ -172,6 +172,34 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         return quotaWindowRows(for: quota, suffixText: "% \(strings.compactRemainingSuffix)")
     }
 
+    /// The window the hero gives full prominence to: the five-hour one when the provider
+    /// reports it (providers may list windows in any order), otherwise the first window.
+    public var primaryQuotaWindowRow: QuotaWindowDisplayRow? {
+        let rows = primaryQuotaWindowRows
+        return rows.first { $0.kind == .fiveHour } ?? rows.first
+    }
+
+    /// Everything but `primaryQuotaWindowRow`, compressed onto one line. `nil` when the
+    /// provider only reports a single window.
+    public var secondaryQuotaWindowSummary: QuotaWindowSummary? {
+        guard let focused = primaryQuotaWindowRow else {
+            return nil
+        }
+
+        let secondary = primaryQuotaWindowRows.filter { $0 != focused }
+        guard !secondary.isEmpty else {
+            return nil
+        }
+
+        let text = secondary
+            .map { "\($0.heroLabel) \($0.amountText)%" }
+            .joined(separator: " · ")
+        let resetText = secondary
+            .compactMap(\.resetShortText)
+            .joined(separator: "·")
+        return QuotaWindowSummary(text: text, resetText: resetText.isEmpty ? nil : resetText)
+    }
+
     private func quotaWindowRows(for state: BalanceState, suffixText: String) -> [QuotaWindowDisplayRow] {
         guard let quota = state.lastQuotaUsageSnapshot else {
             return []
@@ -184,6 +212,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             let amountText = ProviderDisplayFormatter.quotaWindowAmountText(for: window)
             return QuotaWindowDisplayRow(
                 label: quotaWindowDisplayLabel(for: window.label),
+                kind: window.resolvedKind,
                 heroLabel: strings.quotaWindowHeroLabel(window.label),
                 amountText: amountText,
                 amountValue: ProviderValueFormatter.quotaWindowAmountValue(for: window),

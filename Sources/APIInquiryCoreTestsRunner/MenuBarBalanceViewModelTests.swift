@@ -32,6 +32,8 @@ enum MenuBarBalanceViewModelTests {
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
         await testZhipuMenuBarOmitsTheWindowLabel(using: harness)
         await testOpenCodeWindowsUseWeeklyAndMonthlyLabelsWithDateResets(using: harness)
+        await testReversedWindowOrderStillFocusesFiveHour(using: harness)
+        await testSingleWindowProviderHasNoSecondarySummary(using: harness)
         await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
         await testCodexPrimaryProviderPrefersFiveHourQuotaWhenWindowsAreReversed(using: harness)
         await testCodexPrimaryProviderFormatsWeekOnlyQuotaUsage(using: harness)
@@ -145,6 +147,70 @@ enum MenuBarBalanceViewModelTests {
             "opencode hero rows drop the repeated reset prefix"
         )
         harness.expectEqual(viewModel.menuBarValueText, "94%", "opencode menu bar uses the five-hour window")
+
+        // Hero hierarchy (#19): the five-hour window keeps the focus, the rest collapse
+        // onto one summary line whose dates line up with the focused reset column.
+        harness.expectEqual(viewModel.primaryQuotaWindowRow?.heroLabel, "5h", "hero focuses the five-hour window")
+        harness.expectEqual(
+            viewModel.secondaryQuotaWindowSummary?.text,
+            "Week 86% · Month 73%",
+            "secondary windows collapse onto one summary line"
+        )
+        harness.expectEqual(
+            viewModel.secondaryQuotaWindowSummary?.resetText,
+            "05/18·06/30",
+            "summary dates keep the reset column ordering"
+        )
+    }
+
+    @MainActor
+    private static func testReversedWindowOrderStillFocusesFiveHour(using harness: TestHarness) async {
+        let reversed = QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: Decimal(48),
+                                    resetAt: sampleWeeklyResetDate, isAvailable: true),
+                QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: Decimal(72),
+                                    resetAt: sampleResetDate, isAvailable: true)
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, codexSnapshot: reversed)
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(viewModel.primaryQuotaWindowRow?.amountText, "72",
+                            "hero focuses the five-hour window even when listed second")
+        harness.expectEqual(viewModel.secondaryQuotaWindowSummary?.text, "Week 48%",
+                            "the remaining window becomes the summary line")
+        harness.expectEqual(viewModel.secondaryQuotaWindowSummary?.resetText, "05/18",
+                            "summary keeps the remaining window's reset date")
+    }
+
+    @MainActor
+    private static func testSingleWindowProviderHasNoSecondarySummary(using harness: TestHarness) async {
+        let single = QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: Decimal(72),
+                                    resetAt: sampleResetDate, isAvailable: true)
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, codexSnapshot: single)
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(viewModel.primaryQuotaWindowRow?.heroLabel, "5h", "single window is focused")
+        harness.expectEqual(viewModel.secondaryQuotaWindowSummary, nil, "single window has no summary line")
     }
 
     @MainActor
