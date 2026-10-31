@@ -54,22 +54,11 @@ public enum ProviderStatusFormatter {
             return fallbackText
         }
 
-        switch snapshot {
-        case .balance(let balance):
-            return balanceSummaryBadgeText(
-                for: ProviderToneResolver.balanceAmountTone(for: balance.totalBalance),
-                fallbackText: fallbackText,
-                strings: strings
-            )
-        case .quotaUsage(let usage):
-            return quotaSummaryBadgeText(
-                for: ProviderToneResolver.aggregateAmountTone(
-                    usage.windows.map { ProviderToneResolver.remainingQuotaAmountTone(for: $0.remainingPercentage) }
-                ),
-                fallbackText: fallbackText,
-                strings: strings
-            )
+        let healthTone = ProviderSnapshotPresentation.make(from: snapshot, strings: strings).healthTone
+        if snapshot.isQuotaUsage {
+            return quotaSummaryBadgeText(for: healthTone, fallbackText: fallbackText, strings: strings)
         }
+        return balanceSummaryBadgeText(for: healthTone, fallbackText: fallbackText, strings: strings)
     }
 
     private static func balanceSummaryBadgeText(

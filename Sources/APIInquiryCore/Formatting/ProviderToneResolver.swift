@@ -8,12 +8,7 @@ public enum ProviderToneResolver {
         case .loading:
             return .refreshing
         case .loaded(let snapshot):
-            switch snapshot {
-            case .balance(let balance):
-                return balance.isAvailable ? .success : .warning
-            case .quotaUsage(let usage):
-                return usage.isAvailable ? .success : .warning
-            }
+            return snapshot.isAvailable ? .success : .warning
         case .failed:
             return .warning
         }
@@ -37,12 +32,7 @@ public enum ProviderToneResolver {
             return .neutral
         }
 
-        switch snapshot {
-        case .balance(let balance):
-            return balanceAmountTone(for: balance.totalBalance)
-        case .quotaUsage(let usage):
-            return aggregateAmountTone(usage.windows.map { remainingQuotaAmountTone(for: $0.remainingPercentage) })
-        }
+        return ProviderSnapshotPresentation.make(from: snapshot).healthTone
     }
 
     public static func balanceAmountTone(for amount: Decimal) -> ProviderAmountTone {
