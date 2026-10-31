@@ -212,4 +212,25 @@ enum ProviderVisualCatalog {
         )
         (text as NSString).draw(in: textRect, withAttributes: attributes)
     }
+
+    /// A menu bar label image cannot carry colour: the system recolours template images.
+    /// Draw the stale marker separately and keep it non-template so it stays red.
+    static func staleMarkerImage(height: CGFloat = 22) -> NSImage {
+        let text = "!" as NSString
+        let font = NSFont.systemFont(ofSize: 11, weight: .bold)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.systemRed
+        ]
+        let textSize = text.size(withAttributes: attributes)
+        let image = NSImage(size: NSSize(width: ceil(textSize.width) + 2, height: height))
+
+        image.lockFocus()
+        NSGraphicsContext.current?.imageInterpolation = .high
+        text.draw(at: NSPoint(x: 1, y: (height - textSize.height) / 2), withAttributes: attributes)
+        image.unlockFocus()
+
+        image.isTemplate = false
+        return image
+    }
 }

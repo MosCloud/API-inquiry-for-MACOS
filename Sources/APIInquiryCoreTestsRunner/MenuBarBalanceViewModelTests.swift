@@ -7,6 +7,8 @@ enum MenuBarBalanceViewModelTests {
         testLoadedMenuTitleFormatting(using: harness)
         testLoadedMenuBarValueFormatting(using: harness)
         testFailedStatePreservesMenuTitle(using: harness)
+        testStaleMarkerOnlyWhenFailedWithSnapshot(using: harness)
+        testStaleAccessibilityText(using: harness)
         await testPrimaryProviderMenuTitlesUseCurrentPrefixes(using: harness)
         testPrimaryDisplayAmountValues(using: harness)
         testPanelBalanceTextFormatting(using: harness)
@@ -524,6 +526,55 @@ enum MenuBarBalanceViewModelTests {
         )
 
         harness.expectEqual(viewModel.menuBarTitle, "DS ¥68.6", "failed menu title keeps last balance")
+    }
+
+
+    @MainActor
+    private static func testStaleMarkerOnlyWhenFailedWithSnapshot(using harness: TestHarness) {
+        let failedWithSnapshot = makeViewModel(
+            state: .failed(
+                message: "Refresh failed.",
+                kind: .unknown,
+                last: .balance(makeSnapshot(total: "68.65"))
+            )
+        )
+        harness.expectTrue(failedWithSnapshot.isShowingStaleValue, "failed with a snapshot is stale")
+
+        let failedWithoutSnapshot = makeViewModel(
+            state: .failed(message: "Refresh failed.", kind: .unknown, last: nil)
+        )
+        harness.expectTrue(!failedWithoutSnapshot.isShowingStaleValue, "failed without a snapshot is not stale")
+
+        let loading = makeViewModel(state: .loading(last: .balance(makeSnapshot(total: "68.65"))))
+        harness.expectTrue(!loading.isShowingStaleValue, "loading is not stale")
+
+        let loaded = makeViewModel(state: .loaded(.balance(makeSnapshot(total: "68.65"))))
+        harness.expectTrue(!loaded.isShowingStaleValue, "loaded is not stale")
+    }
+
+    @MainActor
+    private static func testStaleAccessibilityText(using harness: TestHarness) {
+        let staleEnglish = makeViewModel(
+            state: .failed(message: "Refresh failed.", kind: .unknown, last: .balance(makeSnapshot(total: "68.65")))
+        )
+        harness.expectEqual(
+            staleEnglish.menuBarAccessibilityText,
+            "DeepSeek ¥68.6 (stale value)",
+            "english stale accessibility text"
+        )
+
+        let staleChinese = makeViewModel(
+            state: .failed(message: "刷新失败。", kind: .unknown, last: .balance(makeSnapshot(total: "68.65"))),
+            languageSelection: .zh
+        )
+        harness.expectEqual(
+            staleChinese.menuBarAccessibilityText,
+            "DeepSeek ¥68.6（旧值）",
+            "chinese stale accessibility text"
+        )
+
+        let fresh = makeViewModel(state: .loaded(.balance(makeSnapshot(total: "68.65"))))
+        harness.expectEqual(fresh.menuBarAccessibilityText, "DeepSeek ¥68.6", "fresh accessibility text has no suffix")
     }
 
     @MainActor

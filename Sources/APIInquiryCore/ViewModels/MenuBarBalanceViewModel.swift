@@ -99,6 +99,20 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         ProviderDisplayFormatter.menuValueText(for: activeState, isCredentialConfigured: isCredentialConfigured, strings: strings)
     }
 
+    /// A failed refresh keeps the last snapshot on screen; the menu bar needs to say so
+    /// without hiding the value itself.
+    public var isShowingStaleValue: Bool {
+        guard case .failed(_, _, let last) = activeState else {
+            return false
+        }
+        return last != nil
+    }
+
+    public var menuBarAccessibilityText: String {
+        let text = "\(providerDisplayName) \(menuBarValueText)"
+        return isShowingStaleValue ? text + strings.staleValueAccessibilitySuffix : text
+    }
+
     public var panelBalanceText: String {
         ProviderDisplayFormatter.detailText(for: activeState.lastSnapshot, strings: strings)
     }
