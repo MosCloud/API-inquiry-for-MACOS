@@ -8,7 +8,7 @@ repository root; each script resolves `ROOT_DIR` itself.
 | `verify.sh` | PR gate: runs the test suite, then compiles every target (App included); `--release` for release builds | `lib/toolchain.sh` |
 | `build-local-app.sh` | Builds the dev bundle at `.build/APIInquiry.app` (no launch); `--dev` builds the side-by-side copy instead | `generate-app-icon.swift` |
 | `run-local-app.sh` | Builds via the script above, then `pkill -x APIInquiry` and opens the bundle | `build-local-app.sh` |
-| `run-dev-app.sh` | Builds `Development under <checkout>` (`APIInquiryDevelopment`) and launches it without touching the running app | `build-local-app.sh --dev` |
+| `run-dev-app.sh` | Builds `Development under <checkout>` (`APIInquiryDevelopment`) and launches it without touching the running app; refuses a dirty tree so the copy matches a commit. `--fixtures <scenario>` injects in-memory credentials and scripted provider data, so state checks need no keychain prompt | `build-local-app.sh --dev` |
 | `package-mac-app.sh` | Builds the release bundle, writes `Info.plist`, ad-hoc signs → `dist/API Inquiry.app`; refuses a `0.0.0-dev` version | `generate-app-icon.swift` |
 | `package-dmg.sh` | Packages the app, lays out the DMG window through Finder → `dist/API-Inquiry-vX.Y.Z.dmg` + `.sha256` | `package-mac-app.sh` |
 | `install-mac-app.sh` | Packages, then copies into `~/Applications` | `package-mac-app.sh` |
@@ -16,6 +16,17 @@ repository root; each script resolves `ROOT_DIR` itself.
 | `clean-development-apps.sh` | Removes local dev bundles after release verification | — |
 | `generate-app-icon.swift` | Regenerates `Resources/AppIcon.icns`; the build scripts call it automatically | — |
 | `generate-dmg-background.js` | Regenerates `Assets/dmg-background.png` | — |
+
+Fixture scenarios (development copy, `--fixtures`):
+
+| Name | State |
+|---|---|
+| `stale` | first load succeeds, the next refresh fails — shows the stale marker |
+| `failed` | every refresh fails; no snapshot, so the menu bar shows `--` |
+| `loading` | the provider never finishes, so the state stays loading |
+| `multi` | DeepSeek + Zhipu + Codex + OpenCode, primary OpenCode |
+
+Fixtures replace only the credential store and provider factory; the coordinator, view models and views are real. They are `DEBUG`-only and ignored unless `Info.plist` carries a git commit.
 
 Support files:
 
