@@ -155,7 +155,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                 return ProviderDetailRow(
                     providerID: id,
                     displayName: descriptor.secondaryDisplayName,
-                    detailText: ProviderDisplayFormatter.secondaryDetailText(for: state.lastSnapshot, strings: strings),
+                    detailText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot, strings: strings),
                     quotaWindowRows: quotaWindowRows(for: state, suffixText: "%"),
                     statusText: ProviderDisplayFormatter.statusText(
                         for: state,

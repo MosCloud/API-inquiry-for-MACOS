@@ -20,13 +20,6 @@ public enum ProviderDisplayFormatter {
         ProviderValueFormatter.detailText(for: snapshot, strings: strings)
     }
 
-    public static func secondaryDetailText(
-        for snapshot: ProviderSnapshot?,
-        strings: LocalizedStrings = LocalizedStrings(language: .en)
-    ) -> String {
-        ProviderValueFormatter.secondaryDetailText(for: snapshot, strings: strings)
-    }
-
     public static func consoleDetailText(
         for snapshot: ProviderSnapshot?,
         strings: LocalizedStrings = LocalizedStrings(language: .en)

@@ -14,12 +14,7 @@ public enum ProviderValueFormatter {
             return "--"
         }
 
-        switch snapshot {
-        case .balance(let balance):
-            return formatAmount(balance.totalBalance, currency: balance.currency, fractionDigits: 1, includeCurrencyCode: false)
-        case .quotaUsage(let usage):
-            return menuQuotaWindowText(for: primaryQuotaWindow(in: usage))
-        }
+        return ProviderSnapshotPresentation.make(from: snapshot, strings: strings).menuValueText
     }
 
     public static func detailText(
@@ -29,27 +24,7 @@ public enum ProviderValueFormatter {
         guard let snapshot else {
             return "--"
         }
-
-        switch snapshot {
-        case .balance(let balance):
-            return formatAmount(balance.totalBalance, currency: balance.currency, fractionDigits: 2, includeCurrencyCode: true)
-        case .quotaUsage(let usage):
-            return quotaWindowText(for: primaryQuotaWindow(in: usage), strings: strings)
-        }
-    }
-
-    public static func secondaryDetailText(
-        for snapshot: ProviderSnapshot?,
-        strings: LocalizedStrings = LocalizedStrings(language: .en)
-    ) -> String {
-        guard let snapshot else {
-            return "--"
-        }
-
-        switch snapshot {
-        default:
-            return detailText(for: snapshot, strings: strings)
-        }
+        return ProviderSnapshotPresentation.make(from: snapshot, strings: strings).detailText
     }
 
     public static func consoleDetailText(
@@ -59,13 +34,7 @@ public enum ProviderValueFormatter {
         guard let snapshot else {
             return "--"
         }
-
-        switch snapshot {
-        case .quotaUsage(let usage):
-            return "\(quotaWindowText(for: primaryQuotaWindow(in: usage), strings: strings)) \(strings.remainingSuffix(.full))"
-        default:
-            return detailText(for: snapshot, strings: strings)
-        }
+        return ProviderSnapshotPresentation.make(from: snapshot, strings: strings).consoleDetailText
     }
 
     public static func creditsBalanceText(
@@ -107,36 +76,18 @@ public enum ProviderValueFormatter {
             )
         }
 
-        switch snapshot {
-        case .balance(let balance):
-            let currencyCode = balance.currency.uppercased()
-            let amountText = formatNumber(truncate(balance.totalBalance, scale: 2), fractionDigits: 2)
-            return PrimaryProviderDisplayParts(
-                providerID: descriptor.id,
-                displayName: descriptor.displayName,
-                detailKind: .balance,
-                leadingText: currencyCode == "CNY" ? "¥" : "",
-                amountText: amountText,
-                amountValue: amountValue(balance.totalBalance, scale: 2),
-                amountTone: ProviderToneResolver.balanceAmountTone(for: balance.totalBalance),
-                trailingText: currencyCode,
-                captionText: ""
-            )
-        case .quotaUsage(let usage):
-            let window = primaryQuotaWindow(in: usage)
-            let remainingPercentage = window.map { truncate($0.remainingPercentage, scale: 0) }
-            return PrimaryProviderDisplayParts(
-                providerID: descriptor.id,
-                displayName: descriptor.displayName,
-                detailKind: .quotaUsage,
-                leadingText: "",
-                amountText: remainingPercentage.map { formatNumber($0, fractionDigits: 0) } ?? "0",
-                amountValue: remainingPercentage.map(doubleValue),
-                amountTone: window.map { ProviderToneResolver.remainingQuotaAmountTone(for: $0.remainingPercentage) } ?? .neutral,
-                trailingText: "% \(strings.remainingSuffix(.full))",
-                captionText: window.map { strings.quotaWindowLabel($0.label) } ?? ""
-            )
-        }
+        let presentation = ProviderSnapshotPresentation.make(from: snapshot, strings: strings)
+        return PrimaryProviderDisplayParts(
+            providerID: descriptor.id,
+            displayName: descriptor.displayName,
+            detailKind: descriptor.detailKind,
+            leadingText: presentation.leadingText,
+            amountText: presentation.amountText,
+            amountValue: presentation.amountValue,
+            amountTone: presentation.amountTone,
+            trailingText: presentation.trailingText,
+            captionText: presentation.captionText
+        )
     }
 
     public static func quotaWindowDetailText(for window: QuotaWindowSnapshot) -> String {
@@ -151,11 +102,15 @@ public enum ProviderValueFormatter {
         amountValue(window.remainingPercentage, scale: 0)
     }
 
+    static func primaryAmountText(forBalance total: Decimal) -> String {
+        formatNumber(truncate(total, scale: 2), fractionDigits: 2)
+    }
+
     static func primaryQuotaWindow(in usage: QuotaUsageSnapshot) -> QuotaWindowSnapshot? {
         usage.windows.first { $0.resolvedKind == .fiveHour } ?? usage.windows.first
     }
 
-    private static func quotaWindowText(
+    static func quotaWindowText(
         for window: QuotaWindowSnapshot?,
         strings: LocalizedStrings = LocalizedStrings(language: .en)
     ) -> String {
@@ -165,7 +120,7 @@ public enum ProviderValueFormatter {
         return "\(strings.quotaWindowLabel(window.label)) \(formatPercentage(window.remainingPercentage))%"
     }
 
-    private static func menuQuotaWindowText(for window: QuotaWindowSnapshot?) -> String {
+    static func menuQuotaWindowText(for window: QuotaWindowSnapshot?) -> String {
         guard let window else {
             return "--"
         }
@@ -178,7 +133,7 @@ public enum ProviderValueFormatter {
         }
     }
 
-    private static func formatAmount(
+    static func formatAmount(
         _ amount: Decimal,
         currency: String,
         fractionDigits: Int,
@@ -209,7 +164,7 @@ public enum ProviderValueFormatter {
         return NSDecimalNumber(decimal: truncate(balance, scale: 2)).stringValue
     }
 
-    private static func formatNumber(_ amount: Decimal, fractionDigits: Int) -> String {
+    static func formatNumber(_ amount: Decimal, fractionDigits: Int) -> String {
         let formatter = NumberFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.numberStyle = .decimal
@@ -219,7 +174,7 @@ public enum ProviderValueFormatter {
         return formatter.string(from: NSDecimalNumber(decimal: amount)) ?? "--"
     }
 
-    private static func amountValue(_ amount: Decimal, scale: Int) -> Double {
+    static func amountValue(_ amount: Decimal, scale: Int) -> Double {
         doubleValue(truncate(amount, scale: scale))
     }
 

@@ -121,6 +121,15 @@ public enum ProviderSnapshot: Equatable {
         }
     }
 
+    /// Shape check without binding the payload, so formatters can branch on the kind
+    /// while still reading fields off the presentation.
+    public var isQuotaUsage: Bool {
+        if case .quotaUsage = self {
+            return true
+        }
+        return false
+    }
+
     public var isAvailable: Bool {
         switch self {
         case .balance(let snapshot):
