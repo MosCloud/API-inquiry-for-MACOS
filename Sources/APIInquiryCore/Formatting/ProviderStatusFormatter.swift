@@ -49,7 +49,7 @@ public enum ProviderStatusFormatter {
             )
         case .planUsage(let usage):
             return quotaSummaryBadgeText(
-                for: ProviderToneResolver.planUsageAmountTone(for: usage.usagePercentage),
+                for: ProviderToneResolver.remainingQuotaAmountTone(for: usage.remainingPercentage),
                 fallbackText: fallbackText,
                 strings: strings
             )

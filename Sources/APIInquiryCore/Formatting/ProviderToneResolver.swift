@@ -43,7 +43,7 @@ public enum ProviderToneResolver {
         case .balance(let balance):
             return balanceAmountTone(for: balance.totalBalance)
         case .planUsage(let usage):
-            return planUsageAmountTone(for: usage.usagePercentage)
+            return remainingQuotaAmountTone(for: usage.remainingPercentage)
         case .quotaUsage(let usage):
             return aggregateAmountTone(usage.windows.map { remainingQuotaAmountTone(for: $0.remainingPercentage) })
         }
@@ -54,16 +54,6 @@ public enum ProviderToneResolver {
             return .good
         }
         if amount >= Decimal(10) {
-            return .warning
-        }
-        return .critical
-    }
-
-    public static func planUsageAmountTone(for usagePercentage: Decimal) -> ProviderAmountTone {
-        if usagePercentage <= Decimal(40) {
-            return .good
-        }
-        if usagePercentage <= Decimal(80) {
             return .warning
         }
         return .critical

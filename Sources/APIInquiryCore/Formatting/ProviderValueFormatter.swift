@@ -18,7 +18,7 @@ public enum ProviderValueFormatter {
         case .balance(let balance):
             return formatAmount(balance.totalBalance, currency: balance.currency, fractionDigits: 1, includeCurrencyCode: false)
         case .planUsage(let usage):
-            return "\(usage.windowLabel) \(formatPercentage(usage.usagePercentage))%"
+            return "\(usage.windowLabel) \(formatPercentage(usage.remainingPercentage))%"
         case .quotaUsage(let usage):
             return menuQuotaWindowText(for: primaryQuotaWindow(in: usage))
         }
@@ -36,7 +36,7 @@ public enum ProviderValueFormatter {
         case .balance(let balance):
             return formatAmount(balance.totalBalance, currency: balance.currency, fractionDigits: 2, includeCurrencyCode: true)
         case .planUsage(let usage):
-            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.usagePercentage))%"
+            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.remainingPercentage))%"
         case .quotaUsage(let usage):
             return quotaWindowText(for: primaryQuotaWindow(in: usage), strings: strings)
         }
@@ -52,7 +52,7 @@ public enum ProviderValueFormatter {
 
         switch snapshot {
         case .planUsage(let usage):
-            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.usagePercentage))%"
+            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.remainingPercentage))%"
         default:
             return detailText(for: snapshot, strings: strings)
         }
@@ -68,7 +68,7 @@ public enum ProviderValueFormatter {
 
         switch snapshot {
         case .planUsage(let usage):
-            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.usagePercentage))% \(strings.usedSuffix)"
+            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.remainingPercentage))% \(strings.remainingSuffix)"
         case .quotaUsage(let usage):
             return "\(quotaWindowText(for: primaryQuotaWindow(in: usage), strings: strings)) \(strings.compactRemainingSuffix)"
         default:
@@ -131,16 +131,16 @@ public enum ProviderValueFormatter {
                 captionText: ""
             )
         case .planUsage(let usage):
-            let usagePercentage = truncate(usage.usagePercentage, scale: 0)
+            let remainingPercentage = truncate(usage.remainingPercentage, scale: 0)
             return PrimaryProviderDisplayParts(
                 providerID: descriptor.id,
                 displayName: descriptor.displayName,
                 detailKind: .planUsage,
                 leadingText: "",
-                amountText: formatNumber(usagePercentage, fractionDigits: 0),
-                amountValue: doubleValue(usagePercentage),
-                amountTone: ProviderToneResolver.planUsageAmountTone(for: usage.usagePercentage),
-                trailingText: "% \(strings.usedSuffix)",
+                amountText: formatNumber(remainingPercentage, fractionDigits: 0),
+                amountValue: doubleValue(remainingPercentage),
+                amountTone: ProviderToneResolver.remainingQuotaAmountTone(for: usage.remainingPercentage),
+                trailingText: "% \(strings.remainingSuffix)",
                 captionText: strings.quotaWindowLabel(usage.windowLabel)
             )
         case .quotaUsage(let usage):
