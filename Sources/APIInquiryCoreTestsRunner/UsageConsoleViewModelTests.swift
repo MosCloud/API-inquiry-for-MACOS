@@ -1417,27 +1417,26 @@ private final class RecordingManualResetCreditsProvider: CodexManualResetCredits
 
 private final class DelayedManualResetCreditsProvider: CodexManualResetCreditsProviding {
     private var continuation: CheckedContinuation<CodexManualResetCreditsSnapshot, Error>?
-    private var startedContinuation: CheckedContinuation<Void, Never>?
     private var hasStarted = false
 
     func fetchSnapshot(apiKey: String) async throws -> CodexManualResetCreditsSnapshot {
         hasStarted = true
-        startedContinuation?.resume()
-        startedContinuation = nil
 
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
         }
     }
 
+    /// Polls instead of parking a continuation: a waiter whose condition never becomes
+    /// true must fail the following assertion, not hang the whole runner (#70).
     func waitUntilStarted() async {
-        if hasStarted {
-            return
+        for _ in 0..<200 {
+            if hasStarted {
+                return
+            }
+            try? await Task.sleep(nanoseconds: 10_000_000)
         }
-
-        await withCheckedContinuation { continuation in
-            self.startedContinuation = continuation
-        }
+        fputs("warning: waitUntilStarted timed out after 2s\n", stderr)
     }
 
     func complete(with snapshot: CodexManualResetCreditsSnapshot) {
@@ -1448,23 +1447,22 @@ private final class DelayedManualResetCreditsProvider: CodexManualResetCreditsPr
 
 private final class SequencedDelayedManualResetCreditsProvider: CodexManualResetCreditsProviding {
     private var continuations: [CheckedContinuation<CodexManualResetCreditsSnapshot, Error>?] = []
-    private var startedContinuations: [(requestCount: Int, continuation: CheckedContinuation<Void, Never>)] = []
 
     func fetchSnapshot(apiKey: String) async throws -> CodexManualResetCreditsSnapshot {
         try await withCheckedThrowingContinuation { continuation in
             continuations.append(continuation)
-            resumeStartedContinuations()
         }
     }
 
+    /// Same bounded poll as above: never leave a task suspended forever (#70).
     func waitUntilStarted(requestCount: Int) async {
-        if continuations.count >= requestCount {
-            return
+        for _ in 0..<200 {
+            if continuations.count >= requestCount {
+                return
+            }
+            try? await Task.sleep(nanoseconds: 10_000_000)
         }
-
-        await withCheckedContinuation { continuation in
-            startedContinuations.append((requestCount: requestCount, continuation: continuation))
-        }
+        fputs("warning: waitUntilStarted(requestCount: \(requestCount)) timed out after 2s\n", stderr)
     }
 
     func completeRequest(at index: Int, with snapshot: CodexManualResetCreditsSnapshot) {
@@ -1475,13 +1473,5 @@ private final class SequencedDelayedManualResetCreditsProvider: CodexManualReset
 
         continuations[index] = nil
         continuation.resume(returning: snapshot)
-    }
-
-    private func resumeStartedContinuations() {
-        let readyContinuations = startedContinuations.filter { continuations.count >= $0.requestCount }
-        startedContinuations.removeAll { continuations.count >= $0.requestCount }
-        for waiter in readyContinuations {
-            waiter.continuation.resume()
-        }
     }
 }
