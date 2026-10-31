@@ -5,23 +5,58 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source "$ROOT_DIR/Scripts/version.env"
 source "$ROOT_DIR/Scripts/lib/toolchain.sh"
 
+BUILD_VARIANT="local"
+for argument in "$@"; do
+    case "$argument" in
+        --dev)
+            BUILD_VARIANT="dev"
+            ;;
+        -h|--help)
+            cat <<'USAGE'
+usage: Scripts/build-local-app.sh [--test]
+
+  (no option)  dev bundle at .build/APIInquiry.app
+  --dev        side-by-side development copy named after this checkout;
+               never replaces the running app
+USAGE
+            exit 0
+            ;;
+        *)
+            echo "error: unknown argument: $argument" >&2
+            exit 2
+            ;;
+    esac
+done
+
 # The app cannot compile against Command Line Tools; pick Xcode unless the caller did.
 ensure_xcode_toolchain
 
 BUILD_ROOT="${API_INQUIRY_BUILD_ROOT:-$ROOT_DIR/.build}"
-APP_DIR="$ROOT_DIR/.build/APIInquiry.app"
 ACTIVE_MACOS_SDK_PATH="$(xcrun --sdk macosx --show-sdk-path)"
 APP_SDK_PATH="${API_INQUIRY_APP_SDKROOT:-$ACTIVE_MACOS_SDK_PATH}"
-STAGING_ROOT="$(mktemp -d /private/tmp/api-inquiry-local-app.XXXXXX)"
-STAGED_APP_DIR="$STAGING_ROOT/APIInquiry.app"
 WORKTREE_ID="$(
     printf '%s' "$ROOT_DIR" |
         shasum -a 256 |
         awk '{ print substr($1, 1, 12) }'
 )"
-RUNTIME_APP_ROOT="/private/tmp/api-inquiry-local-app-${UID}-${WORKTREE_ID}"
-RUNTIME_APP_DIR="$RUNTIME_APP_ROOT/APIInquiry.app"
-EXECUTABLE_NAME="APIInquiry"
+if [ "$BUILD_VARIANT" = "dev" ]; then
+    CHECKOUT_NAME="$(basename "$ROOT_DIR")"
+    APP_NAME="APIInquiryDevelopment.app"
+    EXECUTABLE_NAME="APIInquiryDevelopment"
+    DISPLAY_NAME="Development under $CHECKOUT_NAME"
+    RUNTIME_APP_ROOT="/private/tmp/api-inquiry-development-${UID}-${WORKTREE_ID}"
+    LINKS_APP_DIR=0
+else
+    APP_NAME="APIInquiry.app"
+    EXECUTABLE_NAME="APIInquiry"
+    DISPLAY_NAME="API Inquiry"
+    RUNTIME_APP_ROOT="/private/tmp/api-inquiry-local-app-${UID}-${WORKTREE_ID}"
+    LINKS_APP_DIR=1
+fi
+APP_DIR="$ROOT_DIR/.build/APIInquiry.app"
+STAGING_ROOT="$(mktemp -d /private/tmp/api-inquiry-local-app.XXXXXX)"
+STAGED_APP_DIR="$STAGING_ROOT/$APP_NAME"
+RUNTIME_APP_DIR="$RUNTIME_APP_ROOT/$APP_NAME"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 CONTROLLED_RUNTIME_TARGET_PATTERN="^/private/tmp/api-inquiry-local-app-${UID}-[^/]+/APIInquiry\\.app$"
 
@@ -140,7 +175,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>API Inquiry</string>
+    <string>$DISPLAY_NAME</string>
     <key>CFBundleExecutable</key>
     <string>$EXECUTABLE_NAME</string>
     <key>CFBundleIdentifier</key>
@@ -150,7 +185,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
     <key>CFBundleName</key>
-    <string>API Inquiry</string>
+    <string>$DISPLAY_NAME</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -190,12 +225,22 @@ xattr -cr "$STAGED_APP_DIR"
 codesign --force --deep --sign - "$STAGED_APP_DIR"
 codesign --verify --deep --strict "$STAGED_APP_DIR"
 
-retire_current_app_entry
+if [ "$LINKS_APP_DIR" = "1" ]; then
+    retire_current_app_entry
+fi
+
 prepare_runtime_root
 rm -rf "$RUNTIME_APP_DIR"
 ditto "$STAGED_APP_DIR" "$RUNTIME_APP_DIR"
 codesign --verify --deep --strict "$RUNTIME_APP_DIR"
-ln -s "$RUNTIME_APP_DIR" "$APP_DIR"
-codesign --verify --deep --strict "$APP_DIR"
 
-echo "Built $APP_DIR"
+if [ "$LINKS_APP_DIR" = "1" ]; then
+    ln -s "$RUNTIME_APP_DIR" "$APP_DIR"
+    codesign --verify --deep --strict "$APP_DIR"
+fi
+
+echo "app: $RUNTIME_APP_DIR"
+
+if [ "$LINKS_APP_DIR" = "1" ]; then
+    echo "Built $APP_DIR"
+fi

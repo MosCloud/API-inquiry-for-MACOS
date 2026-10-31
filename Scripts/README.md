@@ -6,8 +6,9 @@ repository root; each script resolves `ROOT_DIR` itself.
 | Script | What it does | Calls |
 |---|---|---|
 | `verify.sh` | PR gate: runs the test suite, then compiles every target (App included); `--release` for release builds | `lib/toolchain.sh` |
-| `build-local-app.sh` | Builds the dev bundle at `.build/APIInquiry.app` (no launch) | `generate-app-icon.swift` |
+| `build-local-app.sh` | Builds the dev bundle at `.build/APIInquiry.app` (no launch); `--dev` builds the side-by-side copy instead | `generate-app-icon.swift` |
 | `run-local-app.sh` | Builds via the script above, then `pkill -x APIInquiry` and opens the bundle | `build-local-app.sh` |
+| `run-dev-app.sh` | Builds `Development under <checkout>` (`APIInquiryDevelopment`) and launches it without touching the running app | `build-local-app.sh --dev` |
 | `package-mac-app.sh` | Builds the release bundle, writes `Info.plist`, ad-hoc signs → `dist/API Inquiry.app`; refuses a `0.0.0-dev` version | `generate-app-icon.swift` |
 | `package-dmg.sh` | Packages the app, lays out the DMG window through Finder → `dist/API-Inquiry-vX.Y.Z.dmg` + `.sha256` | `package-mac-app.sh` |
 | `install-mac-app.sh` | Packages, then copies into `~/Applications` | `package-mac-app.sh` |
