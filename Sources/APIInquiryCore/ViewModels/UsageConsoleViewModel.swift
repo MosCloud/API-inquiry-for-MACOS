@@ -424,6 +424,7 @@ public final class UsageConsoleViewModel: ObservableObject {
 
         do {
             try credentialStore.deleteCredential(forAccount: descriptor.credentialAccount)
+            coordinator.invalidateCredentialCache(for: id)
             apiKeyInputsByProviderID[id] = ""
             if id == coordinator.primaryProviderID {
                 apiKeyInput = ""
@@ -456,6 +457,7 @@ public final class UsageConsoleViewModel: ObservableObject {
 
         do {
             try credentialStore.saveCredential(apiKey, forAccount: descriptor.credentialAccount)
+            coordinator.invalidateCredentialCache(for: descriptor.id)
             setConfigured(true)
             await refresh()
 

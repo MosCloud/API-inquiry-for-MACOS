@@ -16,6 +16,10 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
     private let defaultProviderID: ProviderID
     private var cancellables: Set<AnyCancellable> = []
     private var isAutoRefreshStarted = false
+    /// `isCredentialConfigured` is read several times per SwiftUI pass, and for OpenCode
+    /// each read opens a SQLite database. Cache the answer until something can change it:
+    /// a refresh, a credential write, or a provider add/remove (#44 C).
+    private var credentialConfiguredCache: [ProviderID: Bool] = [:]
 
     public init(
         registrations: [ProviderRegistration],
@@ -99,11 +103,29 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
     }
 
     public func isCredentialConfigured(for id: ProviderID) -> Bool {
-        guard let descriptor = descriptor(for: id),
-              let credential = try? credentialStore.credential(forAccount: descriptor.credentialAccount) else {
-            return false
+        if let cached = credentialConfiguredCache[id] {
+            return cached
         }
-        return !credential.isEmpty
+
+        let isConfigured: Bool
+        if let descriptor = descriptor(for: id),
+           let credential = try? credentialStore.credential(forAccount: descriptor.credentialAccount) {
+            isConfigured = !credential.isEmpty
+        } else {
+            isConfigured = false
+        }
+        credentialConfiguredCache[id] = isConfigured
+        return isConfigured
+    }
+
+    /// Drop the cached answer for one provider after anything that can change its
+    /// credential (a save, a delete, or a refresh that re-reads the CLI's own store).
+    public func invalidateCredentialCache(for id: ProviderID) {
+        credentialConfiguredCache[id] = nil
+    }
+
+    public func invalidateCredentialCache() {
+        credentialConfiguredCache.removeAll()
     }
 
     public func addProvider(_ id: ProviderID) {
@@ -119,6 +141,7 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
         if isAutoRefreshStarted {
             runtimesByProviderID[id]?.controller.startAutoRefresh()
         }
+        invalidateCredentialCache(for: id)
         objectWillChange.send()
     }
 
@@ -132,6 +155,7 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
             try credentialStore.deleteCredential(forAccount: descriptor.credentialAccount)
         }
 
+        invalidateCredentialCache(for: id)
         runtimesByProviderID[id]?.controller.stopAutoRefresh()
         runtimesByProviderID[id]?.controller.markNotConfigured()
         preferences.addedProviderIDs.removeAll { $0 == id }
@@ -150,10 +174,12 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
     }
 
     public func refresh(_ id: ProviderID) async {
+        invalidateCredentialCache(for: id)
         await runtimesByProviderID[id]?.controller.refresh()
     }
 
     public func refreshAddedProviders() async {
+        invalidateCredentialCache()
         let controllers = addedProviderIDs.compactMap { runtimesByProviderID[$0]?.controller }
 
         await withTaskGroup(of: Void.self) { group in
