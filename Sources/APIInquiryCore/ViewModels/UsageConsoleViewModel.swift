@@ -23,7 +23,6 @@ public struct APIProviderSummary: Equatable {
     public let statusTone: ProviderStatusTone
     public let healthTone: ProviderAmountTone
     public let balanceText: String
-    public let planNextResetValueText: String?
     /// The metric row's first cell: Credits balance for a provider that reports credits,
     /// the plain status otherwise.
     public let statusMetricTitle: String
@@ -49,7 +48,6 @@ public struct APIProviderSummary: Equatable {
         statusTone: ProviderStatusTone = .neutral,
         healthTone: ProviderAmountTone = .neutral,
         balanceText: String,
-        planNextResetValueText: String? = nil,
         statusMetricTitle: String = "",
         statusMetricValue: String = "",
         planNameText: String? = nil,
@@ -72,7 +70,6 @@ public struct APIProviderSummary: Equatable {
         self.statusTone = statusTone
         self.healthTone = healthTone
         self.balanceText = balanceText
-        self.planNextResetValueText = planNextResetValueText
         self.statusMetricTitle = statusMetricTitle
         self.statusMetricValue = statusMetricValue
         self.planNameText = planNameText
@@ -199,7 +196,6 @@ public final class UsageConsoleViewModel: ObservableObject {
                 statusTone: providerSummaryStatusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
-                planNextResetValueText: timeFormatter.planNextResetValueText(for: singleQuotaWindowResetAt(for: state)),
                 statusMetricTitle: isCodexProvider ? strings.creditsBalanceMetricTitle : strings.statusMetricTitle,
                 statusMetricValue: isCodexProvider
                     ? (ProviderDisplayFormatter.creditsBalanceText(for: state.lastSnapshot, strings: strings) ?? "--")
@@ -516,15 +512,6 @@ public final class UsageConsoleViewModel: ObservableObject {
                 return strings.unavailable
             }
         }
-    }
-
-    /// The Console shows a "next reset" only when the provider reports a single window;
-    /// multi-window providers list each window's reset on the Home card instead.
-    private func singleQuotaWindowResetAt(for state: BalanceState) -> Date? {
-        guard let windows = state.lastQuotaUsageSnapshot?.windows, windows.count == 1 else {
-            return nil
-        }
-        return windows.first?.resetAt
     }
 
     private func apiAccessStatusText(
