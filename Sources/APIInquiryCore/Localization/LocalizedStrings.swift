@@ -91,6 +91,8 @@ public struct LocalizedStrings: Equatable {
     public var creditsUnlimited: String { text(en: "Unlimited", zh: "无限") }
     public var statusMetricTitle: String { text(en: "Status", zh: "状态") }
     public var detailMetricTitle: String { text(en: "Detail", zh: "详情") }
+    public var totalBalanceMetricTitle: String { text(en: "Total balance", zh: "总余额") }
+    public var grantedBalanceMetricTitle: String { text(en: "Granted balance", zh: "赠送余额") }
     public var planMetricTitle: String { text(en: "Plan", zh: "计划") }
     public var manualResetMetricTitle: String { text(en: "Manual Reset", zh: "手动重置") }
     public var refreshManualResetCredits: String {

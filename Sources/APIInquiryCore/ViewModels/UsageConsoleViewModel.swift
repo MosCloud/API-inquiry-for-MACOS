@@ -27,6 +27,9 @@ public struct APIProviderSummary: Equatable {
     /// the plain status otherwise.
     public let statusMetricTitle: String
     public let statusMetricValue: String
+    /// "Total balance" for a prepaid balance, "Detail" for a quota provider.
+    public let detailMetricTitle: String
+    public let grantedBalanceText: String?
     public let planNameText: String?
     public let manualResetCreditsText: String?
     public let isManualResetCreditsRefreshing: Bool
@@ -50,6 +53,8 @@ public struct APIProviderSummary: Equatable {
         balanceText: String,
         statusMetricTitle: String = "",
         statusMetricValue: String = "",
+        detailMetricTitle: String = "",
+        grantedBalanceText: String? = nil,
         planNameText: String? = nil,
         manualResetCreditsText: String? = nil,
         isManualResetCreditsRefreshing: Bool = false,
@@ -72,6 +77,8 @@ public struct APIProviderSummary: Equatable {
         self.balanceText = balanceText
         self.statusMetricTitle = statusMetricTitle
         self.statusMetricValue = statusMetricValue
+        self.detailMetricTitle = detailMetricTitle
+        self.grantedBalanceText = grantedBalanceText
         self.planNameText = planNameText
         self.manualResetCreditsText = manualResetCreditsText
         self.isManualResetCreditsRefreshing = isManualResetCreditsRefreshing
@@ -200,6 +207,12 @@ public final class UsageConsoleViewModel: ObservableObject {
                 statusMetricValue: isCodexProvider
                     ? (ProviderDisplayFormatter.creditsBalanceText(for: state.lastSnapshot, strings: strings) ?? "--")
                     : validationStatusText,
+                detailMetricTitle: descriptor.detailKind == .balance
+                    ? strings.totalBalanceMetricTitle
+                    : strings.detailMetricTitle,
+                grantedBalanceText: state.lastSnapshot.map {
+                    ProviderSnapshotPresentation.make(from: $0, strings: strings).grantedBalanceText
+                } ?? nil,
                 planNameText: isCodexProvider ? nil : state.lastQuotaUsageSnapshot?.planName,
                 manualResetCreditsText: isCodexProvider && isCredentialConfigured
                     ? codexManualResetCreditsSummaryText()

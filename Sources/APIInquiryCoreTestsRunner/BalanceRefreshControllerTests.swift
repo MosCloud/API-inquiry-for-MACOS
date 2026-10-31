@@ -299,6 +299,7 @@ func makeSnapshot(
     total: String,
     currency: String = "CNY",
     isAvailable: Bool = true,
+    granted: String? = "10.00",
     fetchedAt: Date = Date(timeIntervalSince1970: 1_715_000_000)
 ) -> BalanceSnapshot {
     BalanceSnapshot(
@@ -306,7 +307,7 @@ func makeSnapshot(
         totalBalance: Decimal(string: total, locale: Locale(identifier: "en_US_POSIX"))!,
         currency: currency,
         isAvailable: isAvailable,
-        grantedBalance: nil,
+        grantedBalance: granted.map { Decimal(string: $0, locale: Locale(identifier: "en_US_POSIX"))! },
         toppedUpBalance: nil,
         fetchedAt: fetchedAt
     )
