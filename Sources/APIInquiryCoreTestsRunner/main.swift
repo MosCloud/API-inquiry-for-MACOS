@@ -1,7 +1,7 @@
 import Foundation
 
 let harness = TestHarness()
-TestHarnessTests.run(using: harness)
+await TestHarnessTests.run(using: harness)
 ProviderLogoMetricsTests.run(using: harness)
 BuildIdentityTests.run(using: harness)
 KeychainCredentialStoreTests.run(using: harness)
