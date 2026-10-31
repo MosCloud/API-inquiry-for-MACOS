@@ -24,9 +24,9 @@ Unless the user explicitly asks for a one-shot end-to-end delivery, every change
 2. **Joint diagnosis.** Locate the cause *with* the user: read the code, then prove the hypothesis with a measurement, a demo, or a failing test. Present evidence (numbers, screenshots, test output) and 2–3 candidate solutions with trade-offs. **Wait for the user to choose** before writing production code.
 3. **Implement + PR.** Only then change code, keep the diff scoped to the chosen issue, run `swift run APIInquiryCoreTestsRunner`, and open a PR that states the evidence and the verification steps.
 4. **Joint testing.** The agent verifies what it can (tests, local build, screenshots); the user verifies the perceptible behaviour (menu bar, Console, DMG). Both must pass.
-5. **Merge.** Rebase-merge only after stage 4 sign-off, delete the branch, and confirm CI on `main`.
+5. **Ask, then merge.** Opening a PR is never permission to merge it. After stage 4 sign-off, **ask the user explicitly** ("可以合入吗？") and wait for a yes. Rebase-merge only on that explicit approval, then delete the branch and confirm the local suite on `main`. This applies to every PR, including docs and chore changes, and it is per-PR: an approval for one PR does not carry to the next. Merging is the irreversible step — it moves `main`, closes issues, and changes what everyone builds from — so the user keeps the pacing.
 
-Why: the user wants to learn the reasoning (diagnosis, trade-offs, verification), not only receive finished diffs. Short-circuiting stages hides exactly that reasoning. Asking for "just fix it" or "one-shot" is the explicit opt-out.
+Why: the user wants to learn the reasoning (diagnosis, trade-offs, verification), not only receive finished diffs. Short-circuiting stages hides exactly that reasoning. Asking for "just fix it" or "one-shot" is the explicit opt-out. The same applies to merging: the user reviews the diff and the evidence before `main` moves, so "提交 PR" means "open the PR", not "merge it".
 
 ## Commands
 
