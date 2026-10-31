@@ -15,5 +15,11 @@ if /usr/bin/pgrep -x "$EXECUTABLE_NAME" >/dev/null; then
     sleep 1
 fi
 
+# LaunchServices hands the caller's environment to the app it starts. Tools that are
+# themselves Electron-based (this harness, for one) export ELECTRON_RUN_AS_NODE=1, which
+# makes any Electron app we later open — VS Code via "Open Config", for example — start
+# in Node mode and exit immediately, with `NSWorkspace.open` still reporting success.
+unset ELECTRON_RUN_AS_NODE NODE_OPTIONS
+
 /usr/bin/open "$APP_DIR"
 echo "Started $APP_DIR"
