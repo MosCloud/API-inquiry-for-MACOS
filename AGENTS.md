@@ -1,10 +1,6 @@
 # AGENTS.md
 
-`CLAUDE.md` (a local companion file, not part of this repository) is the authoritative instruction file — read it for architecture, provider abstraction, credential storage, and release workflow. This file inlines only the facts an agent is most likely to get wrong.
-
-## Stale instruction files
-
-`AGENT.md` / `AGENT_zh.md` describe the **first release only** and are out of date. Do **not** trust their scope or architecture claims — trust the code (and the local `CLAUDE.md`).
+This file is the agent contract. `CLAUDE.md` is a local, untracked companion with more architecture detail; it is not distributed and can lag behind the code, so trust the code when they disagree. `AGENT.md` / `AGENT_zh.md` are redirect stubs kept only so links in older plans still resolve.
 
 ## Withdrawn Anthropic support
 
@@ -58,6 +54,12 @@ Release packaging only at release-candidate stage: `Scripts/package-mac-app.sh` 
 - Local builds carry `0.0.0-dev` plus `APIInquiryGitCommit` / `APIInquiryGitDirty` in `Info.plist`; the Console shows "开发版本 · 提交 abc1234". Release versions come only from `Scripts/version.env` at packaging time, and `package-mac-app.sh` refuses to package a `0.0.0-dev` bundle — do not hard-code a version.
 - A rebuild changes the ad-hoc signature, so the next launch asks for Keychain access. Ask the user to click 始终允许 and wait for that before reading provider data; the prompt is expected, not a bug.
 - `run-local-app.sh` builds first and then runs `pkill -x APIInquiry`, which kills **every** copy — another session's dev build and the installed release. Only one session should launch the app at a time.
+
+## UI and product direction
+
+Keep the UI simple, restrained, and lightly technical: fast quota-state scanning and lightweight configuration, not an analytics dashboard. Use status colour only for critical, warning, and healthy values plus direct feedback; keep surrounding labels and configuration surfaces calm, and prefer stable alignment and generous spacing over visual density.
+
+The menu bar panel is for viewing and lightweight actions only. Multi-provider management belongs in Console: Home owns display strategy (Primary Provider), API owns credentials and local configuration, Settings owns app preferences.
 
 ## Release packaging gotchas (learned the hard way in v0.3.16)
 

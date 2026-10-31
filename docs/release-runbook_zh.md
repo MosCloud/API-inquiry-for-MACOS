@@ -25,9 +25,10 @@
 - **打包请用 Xcode 工具链。** 本机 Command Line Tools 的 SDK 与 `/usr/bin/swift` 版本不匹配，Release 编译会报莫名其妙语义错误（例如对 `@State` 赋值报 `cannot assign to property: 'self' is immutable`）。打包时加上 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`。
 - **SwiftPM 现在的默认构建系统是 Xcode 那套。** 产物落在 `.build/out/Products/<Configuration>/`，`.build/<configuration>` 是指向它的符号链接；资源包变成 macOS bundle（`APIInquiry_APIInquiryApp.bundle/Contents/Resources/*.png|icns`），**不是**老版本那种扁平结构。打包脚本必须递归搜索，不能假设 `maxdepth 1`。
 - **必须带 `--build-system native` 构建。** SwiftPM 的 Xcode 构建系统会把 `LC_BUILD_VERSION sdk` 记成部署目标（13.0），这等于让 app 退出 macOS 26 新设计：Console 的「添加供应商」会变成整条旧式弹出按钮（宽灰条 + 蓝箭头），菜单栏面板也退回旧窗口外观。原生构建系统记录真实 SDK（26.x/27.x），才会和 v0.3.15 一致。可用 `otool -l "…/MacOS/APIInquiry" | grep -A4 LC_BUILD_VERSION` 校验：健康产物是 `sdk 26.x`/`27.x`，坏产物是 `sdk 13.0`。
+- **验收或发布构建绝不能带入兼容或测试用的 `SDKROOT`。** 脚本会自行解析当前 SDK，只有 `API_INQUIRY_APP_SDKROOT` 可以有意覆盖。可用 `xcrun vtool -show-build` 直接检查可执行文件本身（应显示当前 macOS SDK），而不是只看 bundle 的签名。
 - **SwiftPM 自带沙箱**，在受限的 agent 沙箱里会失败并报 `sandbox-exec: sandbox_apply: Operation not permitted`。用 `--disable-sandbox`，或直接给完整文件权限。`hdiutil`（创建/挂载 DMG）同样需要完整权限。
 - **Keychain 用例**（保存/替换/删除凭据）在钥匙串不可达时会以 `unexpectedStatus(100001)` 失败。这是环境限制而非回归：要拿到 `PASS: N expectations`，必须在沙箱外跑；否则预期正好这三条红。
-- 仓库位于 `Desktop`，FileProvider/Finder 会在文件写入后几秒补上元数据。任何在该路径上签名的产物，严格验签前都要先 `xattr -cr`。
+- 仓库位于 `Desktop`，FileProvider/Finder 会在文件写入后几秒补上元数据。任何在该路径上签名的产物，严格验签前都要先 `xattr -cr`。因此本地运行会把签好的 app 放在 `/private/tmp`，`.build/APIInquiry.app` 只作为入口符号链接；签名当场通过、过一会儿却失败，必须等到 DMG 里的 app 通过严格验签才算解决。
 
 ## 3. 打包流水线
 
@@ -66,6 +67,9 @@ hdiutil detach "$M"
 
 健康产物的参考值（`v0.3.15`）：`.DS_Store` 10244 字节、窗口边界 `{{160, 527}, {760, 420}}`、背景别名指向 `.background/dmg-background.png`。
 
+- 原生外观一致性无法用源码 diff 证明：必须看构建产物里的真实菜单栏面板（截图或可访问性状态）。不许用自定义圆角或背景掩盖 linked-SDK 回归。
+- 打开一次打包后的 app，确认 Settings 显示的版本是 `vX.Y.Z`；没看到就不算发布完成。
+
 ## 5. 发布
 
 ```bash
@@ -87,6 +91,8 @@ shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256
 ```
 
 如果在发布后几分钟内就发现产物坏了、且只改了打包逻辑，用 `gh release upload --clobber` 就地替换两个资产是可接受的，但要在说明里讲清校验和已变化。
+
+发布说明写给用户看，不是变更日志：按 New Features / App Optimization / Bug Fixes 分组，没有内容的分组直接省略；不要出现内部类型名、文件路径、测试数量、框架名或重构措辞。优先写用户能感知的说法（"刷新更稳了""状态更好读"），而不是实现细节。
 
 ## 6. 收尾
 

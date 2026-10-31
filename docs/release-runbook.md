@@ -25,9 +25,10 @@ All of these must agree, or `ReleaseVersionConsistencyTests` fails:
 - **Use the Xcode toolchain for packaging.** The Command Line Tools SDK on this machine does not match `/usr/bin/swift`; Release builds fail with bogus semantic errors such as `cannot assign to property: 'self' is immutable` on a `@State` assignment. Run packaging with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 - **SwiftPM's default build system is now the Xcode one.** Products go to `.build/out/Products/<Configuration>/` and `.build/<configuration>` is a symlink to it. The resource bundle is a macOS bundle (`APIInquiry_APIInquiryApp.bundle/Contents/Resources/*.png|icns`), **not** the flat layout older releases had. Packaging must search the bundle recursively; never assume `maxdepth 1`.
 - **Build with `--build-system native`.** SwiftPM's Xcode build system records `LC_BUILD_VERSION sdk` as the deployment target (13.0), which opts the app out of the macOS 26 design: the Console's add-provider control renders as a wide legacy pop-up button instead of the compact glass pill, and the menu bar panel loses its rounded glass chrome. The native build system records the real SDK and matches v0.3.15. Check any candidate build with `otool -l "…/MacOS/APIInquiry" | grep -A4 LC_BUILD_VERSION`; a healthy build reports `sdk 26.x`/`27.x`, a broken one reports `sdk 13.0`.
+- **Never carry a compatibility or test `SDKROOT` into an acceptance or release build.** The scripts resolve the active SDK themselves; only `API_INQUIRY_APP_SDKROOT` may override it on purpose. Check the executable itself with `xcrun vtool -show-build` (expect the current macOS SDK), not only the bundle's signature.
 - **SwiftPM runs its own sandbox**, so `swift build` / `swift run` fail under a restrictive agent sandbox with `sandbox-exec: sandbox_apply: Operation not permitted`. Use `--disable-sandbox`, or run with full file access. `hdiutil` (DMG create/mount) also needs full access.
 - **Keychain tests** (`save/replace/delete credential`) fail with `unexpectedStatus(100001)` when the Keychain is unreachable. That is an environment limit, not a regression: `PASS: N expectations` requires running outside the sandbox, otherwise expect exactly those three failures.
-- The repository lives under `Desktop`, so FileProvider/Finder metadata can land on files seconds after they are written. Anything code-signed on that path must be re-cleaned (`xattr -cr`) before strict verification.
+- The repository lives under `Desktop`, so FileProvider/Finder metadata can land on files seconds after they are written. Anything code-signed on that path must be re-cleaned (`xattr -cr`) before strict verification. Local runs therefore stage the signed app under `/private/tmp` and expose `.build/APIInquiry.app` only as an entry-point symlink; a signature that passes immediately but fails after a delay is a blocker until the DMG-contained copy passes strict verification.
 
 ## 3. Packaging pipeline
 
@@ -66,6 +67,9 @@ hdiutil detach "$M"
 
 Reference values from a good build (`v0.3.15`): `.DS_Store` 10244 bytes, window bounds `{{160, 527}, {760, 420}}`, background alias to `.background/dmg-background.png`.
 
+- Native chrome parity cannot be proven from a source diff: inspect the built app's menu bar panel (screenshot or accessibility state). Do not hide a linked-SDK regression behind custom corners or backgrounds.
+- Open the packaged app once and confirm Settings shows `vX.Y.Z`; a release is not done until it does.
+
 ## 5. Publishing
 
 ```bash
@@ -87,6 +91,8 @@ shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256
 ```
 
 If a bad artifact is caught within minutes of publishing and only the packaging changed, replacing the two assets with `gh release upload --clobber` is acceptable; document that the checksum changed.
+
+Write release notes for users, not as a changelog: New Features / App Optimization / Bug Fixes, empty sections omitted, and no internal type names, file paths, test counts, framework names, or refactor wording. Prefer perceptible phrasing ("refresh feels steadier", "status is easier to read") over implementation wording.
 
 ## 6. Cleanup
 
