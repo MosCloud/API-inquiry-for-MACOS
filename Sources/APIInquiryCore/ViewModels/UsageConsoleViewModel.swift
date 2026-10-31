@@ -197,7 +197,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                 creditsBalanceText: isCodexProvider
                     ? ProviderDisplayFormatter.creditsBalanceText(for: state.lastSnapshot, strings: strings)
                     : nil,
-                planNextResetText: timeFormatter.planNextResetText(for: state.lastPlanUsageSnapshot?.resetAt),
+                planNextResetText: timeFormatter.planNextResetText(for: singleQuotaWindowResetAt(for: state)),
                 planNameText: isCodexProvider ? nil : state.lastQuotaUsageSnapshot?.planName,
                 manualResetCreditsText: isCodexProvider && isCredentialConfigured
                     ? codexManualResetCreditsSummaryText()
@@ -487,8 +487,6 @@ public final class UsageConsoleViewModel: ObservableObject {
             switch snapshot {
             case .balance(let balance):
                 return balance.isAvailable ? strings.active : strings.insufficientBalance
-            case .planUsage(let usage):
-                return usage.isAvailable ? strings.planAvailable : strings.limitReached
             case .quotaUsage(let usage):
                 return usage.isAvailable ? strings.quotaAvailable : strings.quotaExhausted
             }
@@ -504,6 +502,15 @@ public final class UsageConsoleViewModel: ObservableObject {
                 return strings.unavailable
             }
         }
+    }
+
+    /// The Console shows a "next reset" only when the provider reports a single window;
+    /// multi-window providers list each window's reset on the Home card instead.
+    private func singleQuotaWindowResetAt(for state: BalanceState) -> Date? {
+        guard let windows = state.lastQuotaUsageSnapshot?.windows, windows.count == 1 else {
+            return nil
+        }
+        return windows.first?.resetAt
     }
 
     private func apiAccessStatusText(

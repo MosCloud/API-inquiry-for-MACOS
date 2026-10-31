@@ -9,7 +9,6 @@ public enum ProviderID: String, Equatable, Hashable, CaseIterable {
 
 public enum ProviderDetailKind: Equatable {
     case balance
-    case planUsage
     case quotaUsage
 }
 
@@ -40,47 +39,6 @@ public enum QuotaWindowKind: Equatable, Hashable {
         case .month:
             return "Month"
         }
-    }
-}
-
-public struct PlanUsageSnapshot: Equatable {
-    public let providerID: ProviderID
-    public let windowLabel: String
-    public let windowKind: QuotaWindowKind?
-    public let usagePercentage: Decimal
-    public let resetAt: Date?
-    public let isAvailable: Bool
-    public let fetchedAt: Date
-
-    /// Providers report the share they consider used; the UI consistently shows the
-    /// remaining share, so derive it here instead of in every formatter.
-    public var remainingPercentage: Decimal {
-        let remaining = Decimal(100) - usagePercentage
-        if remaining < 0 { return 0 }
-        if remaining > 100 { return 100 }
-        return remaining
-    }
-
-    public init(
-        providerID: ProviderID,
-        windowLabel: String,
-        windowKind: QuotaWindowKind? = nil,
-        usagePercentage: Decimal,
-        resetAt: Date?,
-        isAvailable: Bool,
-        fetchedAt: Date
-    ) {
-        self.providerID = providerID
-        self.windowLabel = windowLabel
-        self.windowKind = windowKind
-        self.usagePercentage = usagePercentage
-        self.resetAt = resetAt
-        self.isAvailable = isAvailable
-        self.fetchedAt = fetchedAt
-    }
-
-    public var resolvedWindowKind: QuotaWindowKind? {
-        windowKind ?? QuotaWindowKind(label: windowLabel)
     }
 }
 
@@ -143,14 +101,11 @@ public struct QuotaUsageSnapshot: Equatable {
 
 public enum ProviderSnapshot: Equatable {
     case balance(BalanceSnapshot)
-    case planUsage(PlanUsageSnapshot)
     case quotaUsage(QuotaUsageSnapshot)
 
     public var providerID: ProviderID {
         switch self {
         case .balance(let snapshot):
-            return snapshot.providerID
-        case .planUsage(let snapshot):
             return snapshot.providerID
         case .quotaUsage(let snapshot):
             return snapshot.providerID
@@ -161,8 +116,6 @@ public enum ProviderSnapshot: Equatable {
         switch self {
         case .balance(let snapshot):
             return snapshot.fetchedAt
-        case .planUsage(let snapshot):
-            return snapshot.fetchedAt
         case .quotaUsage(let snapshot):
             return snapshot.fetchedAt
         }
@@ -171,8 +124,6 @@ public enum ProviderSnapshot: Equatable {
     public var isAvailable: Bool {
         switch self {
         case .balance(let snapshot):
-            return snapshot.isAvailable
-        case .planUsage(let snapshot):
             return snapshot.isAvailable
         case .quotaUsage(let snapshot):
             return snapshot.isAvailable
@@ -254,13 +205,6 @@ public enum BalanceState: Equatable {
 
     public var lastBalanceSnapshot: BalanceSnapshot? {
         guard case .balance(let snapshot) = lastSnapshot else {
-            return nil
-        }
-        return snapshot
-    }
-
-    public var lastPlanUsageSnapshot: PlanUsageSnapshot? {
-        guard case .planUsage(let snapshot) = lastSnapshot else {
             return nil
         }
         return snapshot

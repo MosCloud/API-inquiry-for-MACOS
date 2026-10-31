@@ -76,10 +76,6 @@ public enum ProviderDisplayFormatter {
         )
     }
 
-    public static func resetText(for snapshot: ProviderSnapshot?) -> String? {
-        ProviderValueFormatter.resetText(for: snapshot)
-    }
-
     public static func quotaWindowDetailText(for window: QuotaWindowSnapshot) -> String {
         ProviderValueFormatter.quotaWindowDetailText(for: window)
     }

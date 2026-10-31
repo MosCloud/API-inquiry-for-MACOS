@@ -34,7 +34,7 @@ public extension BuiltInProviderRegistry {
                     menuPrefix: "GLM",
                     credentialAccount: "zhipu-coding-plan-api-key",
                     homepageURL: URL(string: "https://bigmodel.cn/claude-code")!,
-                    detailKind: .planUsage,
+                    detailKind: .quotaUsage,
                     credentialManagement: .appManagedAPIKey,
                     accessPurpose: .planQuota,
                     menuTitlePrefix: "GLM"

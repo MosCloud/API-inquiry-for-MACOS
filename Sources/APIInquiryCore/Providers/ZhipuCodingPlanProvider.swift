@@ -31,7 +31,7 @@ public final class ZhipuCodingPlanProvider: BalanceProvider {
 
         switch response.statusCode {
         case 200:
-            return .planUsage(try decodeUsage(from: response.data))
+            return try decodeUsage(from: response.data)
         case 401:
             throw BalanceProviderError.authenticationFailed
         case 429:
@@ -41,7 +41,7 @@ public final class ZhipuCodingPlanProvider: BalanceProvider {
         }
     }
 
-    private func decodeUsage(from data: Data) throws -> PlanUsageSnapshot {
+    private func decodeUsage(from data: Data) throws -> ProviderSnapshot {
         let response: ZhipuQuotaResponse
         do {
             response = try JSONDecoder().decode(ZhipuQuotaResponse.self, from: data)
@@ -57,14 +57,22 @@ public final class ZhipuCodingPlanProvider: BalanceProvider {
             throw BalanceProviderError.missingBalanceInfo
         }
 
-        return PlanUsageSnapshot(
-            providerID: id,
-            windowLabel: "5h",
-            windowKind: .fiveHour,
-            usagePercentage: tokenLimit.percentage,
+        let used = tokenLimit.percentage
+        let remaining = min(max(Decimal(100) - used, Decimal(0)), Decimal(100))
+        let window = QuotaWindowSnapshot(
+            label: "5h",
+            kind: .fiveHour,
+            remainingPercentage: remaining,
             resetAt: tokenLimit.nextResetTime.map { Date(timeIntervalSince1970: Double($0) / 1000) },
-            isAvailable: tokenLimit.percentage < Decimal(100),
-            fetchedAt: now()
+            isAvailable: used < Decimal(100)
+        )
+        return .quotaUsage(
+            QuotaUsageSnapshot(
+                providerID: id,
+                planName: "GLM Coding Plan",
+                windows: [window],
+                fetchedAt: now()
+            )
         )
     }
 
