@@ -107,7 +107,7 @@ struct UsageConsoleView: View {
     }
 
     private var appVersionText: String {
-        AppVersion.displayVersion
+        AppVersion.identity.displayText(using: strings)
     }
 
     private func triggerManualResetRefresh() {
