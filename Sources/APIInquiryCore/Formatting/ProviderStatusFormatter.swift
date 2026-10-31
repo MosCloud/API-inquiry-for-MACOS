@@ -1,6 +1,7 @@
 public enum ProviderStatusFormatter {
     public static func statusText(
         for state: BalanceState,
+        accessPurpose: ProviderAccessPurpose,
         strings: LocalizedStrings = LocalizedStrings(language: .en)
     ) -> String {
         switch state {
@@ -9,12 +10,7 @@ public enum ProviderStatusFormatter {
         case .loading:
             return strings.refreshing
         case .loaded(let snapshot):
-            switch snapshot {
-            case .balance(let balance):
-                return balance.isAvailable ? strings.available : strings.balanceInsufficient
-            case .quotaUsage(let usage):
-                return usage.isAvailable ? strings.quotaAvailable : strings.quotaExhausted
-            }
+            return loadedStatusText(for: snapshot, accessPurpose: accessPurpose, strings: strings)
         case .failed(_, let kind, _):
             switch kind {
             case .authenticationFailed:
@@ -26,6 +22,26 @@ public enum ProviderStatusFormatter {
             default:
                 return strings.unavailable
             }
+        }
+    }
+
+    /// The loaded-state wording is shared by the menu bar and the Console, and it follows
+    /// what the provider sells — a subscription plan or a prepaid balance — rather than
+    /// which snapshot payload it happens to use.
+    public static func loadedStatusText(
+        for snapshot: ProviderSnapshot,
+        accessPurpose: ProviderAccessPurpose,
+        strings: LocalizedStrings
+    ) -> String {
+        switch (accessPurpose, snapshot) {
+        case (.prepaidBalance, .balance(let balance)):
+            return balance.isAvailable ? strings.available : strings.balanceInsufficient
+        case (.planQuota, .quotaUsage(let usage)):
+            return usage.isAvailable ? strings.planAvailable : strings.planExhausted
+        case (.planQuota, .balance(let balance)):
+            return balance.isAvailable ? strings.available : strings.balanceInsufficient
+        case (.prepaidBalance, .quotaUsage(let usage)):
+            return usage.isAvailable ? strings.quotaAvailable : strings.quotaExhausted
         }
     }
 

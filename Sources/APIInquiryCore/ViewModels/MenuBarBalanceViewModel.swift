@@ -157,7 +157,11 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                     displayName: descriptor.secondaryDisplayName,
                     detailText: ProviderDisplayFormatter.secondaryDetailText(for: state.lastSnapshot, strings: strings),
                     quotaWindowRows: quotaWindowRows(for: state, suffixText: "%"),
-                    statusText: ProviderDisplayFormatter.statusText(for: state, strings: strings),
+                    statusText: ProviderDisplayFormatter.statusText(
+                        for: state,
+                        accessPurpose: descriptor.accessPurpose,
+                        strings: strings
+                    ),
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
                     resetText: nil,
                     resetShortText: nil
@@ -254,7 +258,11 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var statusText: String {
-        ProviderDisplayFormatter.statusText(for: activeState, strings: strings)
+        ProviderDisplayFormatter.statusText(
+            for: activeState,
+            accessPurpose: activeDescriptor?.accessPurpose ?? .planQuota,
+            strings: strings
+        )
     }
 
     public var statusTone: ProviderStatusTone {

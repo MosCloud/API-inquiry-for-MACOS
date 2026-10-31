@@ -36,6 +36,8 @@ public struct LocalizedStrings: Equatable {
     public var balanceCritical: String { text(en: "Balance Critical", zh: "余额告急") }
     public var limitReached: String { text(en: "Limit reached", zh: "已达上限") }
     public var planExpired: String { text(en: "Plan expired", zh: "计划已过期") }
+    public var planAvailable: String { text(en: "Plan available", zh: "计划可用") }
+    public var planExhausted: String { text(en: "Plan exhausted", zh: "计划已用尽") }
     public var quotaAvailable: String { text(en: "Quota available", zh: "额度可用") }
     public var quotaExhausted: String { text(en: "Quota exhausted", zh: "额度已用尽") }
     public var quotaSufficient: String { text(en: "Quota Sufficient", zh: "额度充足") }
