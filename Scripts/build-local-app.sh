@@ -6,18 +6,23 @@ source "$ROOT_DIR/Scripts/version.env"
 source "$ROOT_DIR/Scripts/lib/toolchain.sh"
 
 BUILD_VARIANT="local"
+ALLOW_DIRTY=0
 for argument in "$@"; do
     case "$argument" in
         --dev)
             BUILD_VARIANT="dev"
             ;;
+        --allow-dirty)
+            ALLOW_DIRTY=1
+            ;;
         -h|--help)
             cat <<'USAGE'
-usage: Scripts/build-local-app.sh [--test]
+usage: Scripts/build-local-app.sh [--dev] [--allow-dirty]
 
   (no option)  dev bundle at .build/APIInquiry.app
   --dev        side-by-side development copy named after this checkout;
-               never replaces the running app
+               never replaces the running app; refuses a dirty working tree
+  --allow-dirty  with --dev, build even though the tree has uncommitted changes
 USAGE
             exit 0
             ;;
@@ -29,6 +34,19 @@ USAGE
 done
 
 # The app cannot compile against Command Line Tools; pick Xcode unless the caller did.
+# A copy used to verify a PR must correspond to a commit. Without this guard a
+# dirty build silently tests something that is not in the branch.
+if [ "$BUILD_VARIANT" = "dev" ] && [ "$ALLOW_DIRTY" != "1" ]; then
+    if [ -n "$(git -C "$ROOT_DIR" status --porcelain 2>/dev/null || true)" ]; then
+        cat >&2 <<'MESSAGE'
+error: the working tree has uncommitted changes.
+       A copy used to verify a PR has to match a commit: commit first, or pass
+       --allow-dirty (the copy then carries the "+ 改动" marker).
+MESSAGE
+        exit 1
+    fi
+fi
+
 ensure_xcode_toolchain
 
 BUILD_ROOT="${API_INQUIRY_BUILD_ROOT:-$ROOT_DIR/.build}"

@@ -13,16 +13,46 @@ struct APIInquiryApp: App {
     init() {
         let languageStore = AppLanguageStore()
         let registry = BuiltInProviderRegistry.default
-        let credentialStore = OpenCodeCredentialStore(
-            delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
-        )
-        let coordinator = MultiProviderBalanceCoordinator(
-            registrations: registry.registrations,
-            credentialStore: credentialStore,
-            preferences: UserDefaultsProviderPreferencesStore(),
-            defaultProviderID: registry.defaultProviderID,
-            localizedStrings: { LocalizedStrings(language: languageStore.resolvedLanguage) }
-        )
+
+        // Fixtures replace the credential store and provider factory only: the
+        // coordinator, view models and views are the real ones. They never activate in
+        // a release build, and only when the development copy is launched with
+        // `--fixtures <scenario>`.
+        var fixtureScenario: FixtureScenario?
+        #if DEBUG
+        if let scenario = FixtureMode.scenario(from: CommandLine.arguments),
+           let commit = Bundle.main.object(forInfoDictionaryKey: "APIInquiryGitCommit") as? String,
+           !commit.isEmpty {
+            fixtureScenario = scenario
+        }
+        #endif
+
+        let credentialStore: CredentialStore
+        let coordinator: MultiProviderBalanceCoordinator
+
+        if let fixtureScenario {
+            let fixture = FixtureScenarioData.make(for: fixtureScenario)
+            credentialStore = fixture.credentialStore
+            coordinator = MultiProviderBalanceCoordinator(
+                registrations: fixture.registrations,
+                credentialStore: fixture.credentialStore,
+                preferences: fixture.preferences,
+                defaultProviderID: fixture.defaultProviderID,
+                localizedStrings: { LocalizedStrings(language: languageStore.resolvedLanguage) }
+            )
+        } else {
+            let store = OpenCodeCredentialStore(
+                delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
+            )
+            credentialStore = store
+            coordinator = MultiProviderBalanceCoordinator(
+                registrations: registry.registrations,
+                credentialStore: store,
+                preferences: UserDefaultsProviderPreferencesStore(),
+                defaultProviderID: registry.defaultProviderID,
+                localizedStrings: { LocalizedStrings(language: languageStore.resolvedLanguage) }
+            )
+        }
         let viewModel = MenuBarBalanceViewModel(coordinator: coordinator, languageStore: languageStore)
         let consoleViewModel = UsageConsoleViewModel(
             coordinator: coordinator,
