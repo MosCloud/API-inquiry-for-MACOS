@@ -5,7 +5,7 @@ repository root; each script resolves `ROOT_DIR` itself.
 
 | Script | What it does | Calls |
 |---|---|---|
-| `verify.sh` | PR gate: runs the test suite, then compiles every target (App included); `--release` for release builds | `lib/toolchain.sh` |
+| `verify.sh` | PR gate: runs the test suite, then compiles every target (App included); `--release` for release builds. Both steps run under a deadline (600s tests, 1800s build, overridable with `--test-timeout` / `--build-timeout`) so a stalled step fails instead of hanging | `lib/toolchain.sh` |
 | `build-local-app.sh` | Builds the dev bundle at `.build/APIInquiry.app` (no launch); `--dev` builds the side-by-side copy instead | `generate-app-icon.swift` |
 | `run-local-app.sh` | Builds via the script above, then `pkill -x APIInquiry` and opens the bundle | `build-local-app.sh` |
 | `run-dev-app.sh` | Builds `Development under <checkout>` (`APIInquiryDevelopment`) and launches it without touching the running app; refuses a dirty tree so the copy matches a commit. `--fixtures <scenario>` injects in-memory credentials and scripted provider data, so state checks need no keychain prompt | `build-local-app.sh --dev` |
@@ -44,5 +44,6 @@ Notes:
 - They build with SwiftPM's default build system and pass the active SDK to the linker (`-Xlinker -platform_version`); a bare `swift build` records the deployment-target SDK (13.0) and opts the app out of the current design.
 - Both build scripts skip `generate-app-icon.swift` when `AppIcon.icns` is newer than its source and the generator; delete the `.icns` (or touch the generator) to force regeneration.
 - Scripts run outside SwiftPM's sandbox; pass `--disable-sandbox` if you invoke SwiftPM directly under one.
+- `verify.sh` terminates a step that outlives its deadline and exits non-zero with the failing step named. A gate that blocks forever is worse than one that fails: it looks like a slow build and makes `| tail -3` print nothing.
 - Release packaging is a release-candidate step. The full checklist is
   `docs/release-runbook.md` / `docs/release-runbook_zh.md`.
