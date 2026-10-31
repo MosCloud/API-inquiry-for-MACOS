@@ -56,7 +56,6 @@ public struct LocalizedStrings: Equatable {
     }
 
     public var developmentVersionDirtySuffix: String { text(en: "+ dirty", zh: "+ 改动") }
-    public var planNextResetsPrefix: String { text(en: "Plan Next Resets", zh: "计划下次重置") }
     /// The word after a percentage. `full` is for surfaces with room (Console), `compact`
     /// for the menu bar panel; Chinese reads the same either way.
     public enum RemainingSuffixStyle {
@@ -94,7 +93,6 @@ public struct LocalizedStrings: Equatable {
     public var detailMetricTitle: String { text(en: "Detail", zh: "详情") }
     public var planMetricTitle: String { text(en: "Plan", zh: "计划") }
     public var manualResetMetricTitle: String { text(en: "Manual Reset", zh: "手动重置") }
-    public var planNextResetsMetricTitle: String { text(en: "Plan Next Resets", zh: "计划下次重置") }
     public var refreshManualResetCredits: String {
         text(en: "Refresh manual reset credits", zh: "刷新手动重置信息")
     }

@@ -88,15 +88,6 @@ struct ProviderStatusRow: View {
             ProviderMetricItem(title: strings.detailMetricTitle, value: summary.balanceText)
         ]
 
-        if let planNextResetValueText = summary.planNextResetValueText {
-            metrics.append(
-                ProviderMetricItem(
-                    title: strings.planNextResetsMetricTitle,
-                    value: planNextResetValueText
-                )
-            )
-        }
-
         if let planNameText = summary.planNameText {
             metrics.append(
                 ProviderMetricItem(
