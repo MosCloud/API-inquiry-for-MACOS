@@ -63,7 +63,7 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryDisplayParts.amountText, "72", "codex primary display amount")
         harness.expectEqual(viewModel.primaryDisplayParts.amountValue, 72, "codex primary display amount value")
         harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% remaining", "codex primary display trailing")
-        harness.expectEqual(viewModel.statusText, "Quota available", "codex primary status")
+        harness.expectEqual(viewModel.statusText, "Plan available", "codex primary status")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.count, 2, "codex quota row count")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.label, "5h", "codex primary quota row label")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.amountText, "72", "codex primary quota row amount")
@@ -322,7 +322,7 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(codexRow?.quotaWindowRows.last?.label, "Weekly", "codex secondary weekly quota label")
         harness.expectEqual(codexRow?.quotaWindowRows.last?.detailText, "48%", "codex secondary weekly quota detail")
         harness.expectEqual(codexRow?.quotaWindowRows.last?.resetText, "Resets: 05/18", "codex secondary weekly quota reset")
-        harness.expectEqual(codexRow?.statusText, "Quota available", "codex secondary row status")
+        harness.expectEqual(codexRow?.statusText, "Plan available", "codex secondary row status")
     }
 
 
@@ -393,7 +393,7 @@ enum MenuBarBalanceViewModelTests {
             languageStore: makeLanguageStore(selection: .zh)
         )
 
-        harness.expectEqual(viewModel.statusText, "额度可用", "chinese codex status")
+        harness.expectEqual(viewModel.statusText, "计划可用", "chinese codex status")
         harness.expectEqual(viewModel.menuBarValueText, "72%", "chinese codex menu bar omits quota window label")
         harness.expectEqual(viewModel.menuBarTitle, "72%", "chinese codex menu bar title omits quota window label")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5 时", "chinese codex primary caption")
@@ -423,7 +423,7 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryDisplayParts.amountValue, 83, "zhipu primary display amount value")
         harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% remaining", "zhipu primary display trailing")
         harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.resetShortText, "23:05", "zhipu reset now rides the hero row")
-        harness.expectEqual(viewModel.statusText, "Quota available", "zhipu uses the quota wording now that one shape drives every provider")
+        harness.expectEqual(viewModel.statusText, "Plan available", "zhipu keeps the plan wording through the purpose, not the payload")
     }
 
     @MainActor

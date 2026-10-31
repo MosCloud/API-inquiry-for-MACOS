@@ -51,9 +51,10 @@ public enum ProviderDisplayFormatter {
 
     public static func statusText(
         for state: BalanceState,
+        accessPurpose: ProviderAccessPurpose,
         strings: LocalizedStrings = LocalizedStrings(language: .en)
     ) -> String {
-        ProviderStatusFormatter.statusText(for: state, strings: strings)
+        ProviderStatusFormatter.statusText(for: state, accessPurpose: accessPurpose, strings: strings)
     }
 
     public static func statusTone(for state: BalanceState) -> ProviderStatusTone {

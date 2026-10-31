@@ -73,7 +73,7 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(codexSummary?.planNameText, nil, "codex console plan replaced")
         harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 07/18 expires", "codex console manual reset")
         harness.expectEqual(codexSummary?.isManualResetCreditsRefreshing, false, "codex manual reset not refreshing")
-        harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex console status")
+        harness.expectEqual(codexSummary?.validationStatusText, "Plan available", "codex console status")
         harness.expectEqual(codexSummary?.supportsAPIKeyManagement, false, "codex console hides api key management")
     }
 
@@ -91,7 +91,7 @@ enum UsageConsoleViewModelTests {
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
         harness.expectEqual(codexSummary?.creditsBalanceText, "12.5 Credits", "codex console credits balance")
         harness.expectEqual(codexSummary?.balanceText, "5h 72% remaining", "codex detail remains quota text")
-        harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex status remains service status")
+        harness.expectEqual(codexSummary?.validationStatusText, "Plan available", "codex status remains service status")
     }
 
     @MainActor
@@ -623,7 +623,7 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(viewModel.providerSummaries.last?.id, .zhipuCodingPlan, "multi console zhipu provider id")
         harness.expectEqual(viewModel.providerSummaries.last?.balanceText, "5h 83% remaining", "multi console zhipu usage text")
         harness.expectEqual(viewModel.providerSummaries.last?.planNextResetText, "Plan Next Resets: 23:05", "multi console zhipu plan next reset")
-        harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Quota available", "multi console zhipu status")
+        harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Plan available", "multi console zhipu status")
         harness.expectEqual(viewModel.providerSummaries.first?.supportsAPIKeyManagement, true, "multi console deepseek supports key management")
         harness.expectEqual(viewModel.providerSummaries.last?.supportsAPIKeyManagement, true, "multi console zhipu supports key management")
         harness.expectTrue(viewModel.providerSummaries.last?.isPrimary == true, "multi console zhipu primary")
@@ -990,7 +990,7 @@ enum UsageConsoleViewModelTests {
             await controller.refresh()
 
             harness.expectEqual(viewModel.providerSummaries.first?.summaryBadgeText, item.1, "chinese plan badge \(item.0)")
-            harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "额度可用", "quota wording covers plan providers too")
+            harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "计划可用", "plan wording follows the provider purpose")
         }
 
         let codexCoordinator = makeCodexCoordinator(primaryProviderID: .codex)
@@ -1002,7 +1002,7 @@ enum UsageConsoleViewModelTests {
         )
 
         harness.expectEqual(codexViewModel.providerSummaries.first?.summaryBadgeText, "额度偏低", "chinese quota badge uses quota copy")
-        harness.expectEqual(codexViewModel.providerSummaries.first?.validationStatusText, "额度可用", "quota status metric stays service status")
+        harness.expectEqual(codexViewModel.providerSummaries.first?.validationStatusText, "计划可用", "plan status metric stays service status")
     }
 
     @MainActor

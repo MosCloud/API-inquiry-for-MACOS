@@ -488,7 +488,13 @@ public final class UsageConsoleViewModel: ObservableObject {
             case .balance(let balance):
                 return balance.isAvailable ? strings.active : strings.insufficientBalance
             case .quotaUsage(let usage):
-                return usage.isAvailable ? strings.quotaAvailable : strings.quotaExhausted
+                let providerID = usage.providerID
+                let purpose = coordinator.descriptor(for: providerID)?.accessPurpose ?? .planQuota
+                return ProviderStatusFormatter.loadedStatusText(
+                    for: snapshot,
+                    accessPurpose: purpose,
+                    strings: strings
+                )
             }
         case .failed(_, let kind, _):
             switch kind {
