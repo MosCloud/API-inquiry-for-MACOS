@@ -26,6 +26,9 @@ public struct ProviderSnapshotPresentation: Equatable {
     public let captionText: String
     public let isAvailable: Bool
     public let planName: String?
+    /// Balance providers may report how much of the total is granted credit; formatted
+    /// like `detailText` so both money columns read the same.
+    public let grantedBalanceText: String?
 }
 
 public extension ProviderSnapshotPresentation {
@@ -59,7 +62,15 @@ public extension ProviderSnapshotPresentation {
                 trailingText: currencyCode,
                 captionText: "",
                 isAvailable: balance.isAvailable,
-                planName: nil
+                planName: nil,
+                grantedBalanceText: balance.grantedBalance.map {
+                    ProviderValueFormatter.formatAmount(
+                        $0,
+                        currency: balance.currency,
+                        fractionDigits: 2,
+                        includeCurrencyCode: true
+                    )
+                }
             )
 
         case .quotaUsage(let usage):
@@ -82,7 +93,8 @@ public extension ProviderSnapshotPresentation {
                 trailingText: "% \(strings.remainingSuffix(.full))",
                 captionText: window.map { strings.quotaWindowLabel($0.label) } ?? "",
                 isAvailable: usage.isAvailable,
-                planName: usage.planName
+                planName: usage.planName,
+                grantedBalanceText: nil
             )
         }
     }

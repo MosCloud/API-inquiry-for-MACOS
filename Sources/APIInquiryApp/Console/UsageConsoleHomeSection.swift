@@ -85,8 +85,14 @@ struct ProviderStatusRow: View {
         var metrics = [
             ProviderMetricItem(title: strings.apiKeyMetricTitle, value: summary.apiKeyStatusText),
             ProviderMetricItem(title: summary.statusMetricTitle, value: summary.statusMetricValue),
-            ProviderMetricItem(title: strings.detailMetricTitle, value: summary.balanceText)
+            ProviderMetricItem(title: summary.detailMetricTitle, value: summary.balanceText)
         ]
+
+        if let grantedBalanceText = summary.grantedBalanceText {
+            metrics.append(
+                ProviderMetricItem(title: strings.grantedBalanceMetricTitle, value: grantedBalanceText)
+            )
+        }
 
         if let planNameText = summary.planNameText {
             metrics.append(

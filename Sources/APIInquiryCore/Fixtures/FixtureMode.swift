@@ -182,13 +182,14 @@ public struct FixtureScenarioData {
     }
 
     private static func balance(now: Date, total: Decimal = Decimal(string: "68.65")!) -> ProviderSnapshot {
-        .balance(BalanceSnapshot(
+        let granted = min(total, Decimal(string: "10")!)
+        return .balance(BalanceSnapshot(
             providerID: .deepseek,
             totalBalance: total,
             currency: "CNY",
             isAvailable: true,
-            grantedBalance: nil,
-            toppedUpBalance: nil,
+            grantedBalance: granted,
+            toppedUpBalance: total - granted,
             fetchedAt: now
         ))
     }

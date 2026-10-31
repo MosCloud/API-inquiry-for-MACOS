@@ -16,8 +16,8 @@ enum ProviderSnapshotPresentationTests {
             totalBalance: Decimal(string: "68.65")!,
             currency: "CNY",
             isAvailable: true,
-            grantedBalance: nil,
-            toppedUpBalance: nil,
+            grantedBalance: Decimal(string: "10.00"),
+            toppedUpBalance: Decimal(string: "58.65"),
             fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
         )
         let presentation = ProviderSnapshotPresentation.make(from: .balance(balance))
@@ -31,6 +31,11 @@ enum ProviderSnapshotPresentationTests {
         harness.expectEqual(presentation.captionText, "", "balance has no window caption")
         harness.expectEqual(presentation.planName, nil, "balance has no plan name")
         harness.expectEqual(presentation.isAvailable, true, "balance availability")
+        harness.expectEqual(
+            presentation.grantedBalanceText,
+            "¥10.00 CNY",
+            "granted balance reads like the total: symbol, two decimals, currency code"
+        )
     }
 
     private static func testQuotaPresentationFocusesFiveHourWindow(using harness: TestHarness) {

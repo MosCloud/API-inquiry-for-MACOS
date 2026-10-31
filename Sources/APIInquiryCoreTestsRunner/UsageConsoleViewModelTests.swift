@@ -91,6 +91,18 @@ enum UsageConsoleViewModelTests {
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
         harness.expectEqual(codexSummary?.statusMetricValue, "12.5 Credits", "codex console credits balance")
         harness.expectEqual(codexSummary?.statusMetricTitle, "Credits balance", "codex metric row is titled as credits")
+
+        // A balance provider titles its money column "Total balance" and adds the granted
+        // share, so every card carries four metrics (#78).
+        let deepSeekCoordinator = makeMultiProviderCoordinator(primaryProviderID: .deepseek)
+        await deepSeekCoordinator.refresh(.deepseek)
+        let deepSeekViewModel = UsageConsoleViewModel(
+            coordinator: deepSeekCoordinator,
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "k"])
+        )
+        let deepSeekSummary = deepSeekViewModel.providerSummaries.first { $0.id == .deepseek }
+        harness.expectEqual(deepSeekSummary?.detailMetricTitle, "Total balance", "balance column is titled total balance")
+        harness.expectEqual(deepSeekSummary?.grantedBalanceText, "¥10.00 CNY", "granted balance is formatted like the total")
         harness.expectEqual(codexSummary?.balanceText, "5h 72% remaining", "codex detail remains quota text")
         harness.expectEqual(codexSummary?.validationStatusText, "Plan available", "codex status remains service status")
     }
