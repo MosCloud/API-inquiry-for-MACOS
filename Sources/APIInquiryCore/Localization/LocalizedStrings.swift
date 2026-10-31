@@ -57,9 +57,22 @@ public struct LocalizedStrings: Equatable {
 
     public var developmentVersionDirtySuffix: String { text(en: "+ dirty", zh: "+ 改动") }
     public var planNextResetsPrefix: String { text(en: "Plan Next Resets", zh: "计划下次重置") }
-    public var remainingSuffix: String { text(en: "remaining", zh: "剩余") }
+    /// The word after a percentage. `full` is for surfaces with room (Console), `compact`
+    /// for the menu bar panel; Chinese reads the same either way.
+    public enum RemainingSuffixStyle {
+        case full
+        case compact
+    }
+
+    public func remainingSuffix(_ style: RemainingSuffixStyle) -> String {
+        switch style {
+        case .full:
+            return text(en: "remaining", zh: "剩余")
+        case .compact:
+            return text(en: "remg", zh: "剩余")
+        }
+    }
     public var staleValueAccessibilitySuffix: String { text(en: " (stale value)", zh: "（旧值）") }
-    public var compactRemainingSuffix: String { text(en: "remg", zh: "剩余") }
 
     public var homeSection: String { text(en: "Home", zh: "首页") }
     public var apiSection: String { "API" }

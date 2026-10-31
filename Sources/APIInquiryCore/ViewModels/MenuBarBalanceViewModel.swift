@@ -162,9 +162,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                         accessPurpose: descriptor.accessPurpose,
                         strings: strings
                     ),
-                    statusTone: ProviderDisplayFormatter.statusTone(for: state),
-                    resetText: nil,
-                    resetShortText: nil
+                    statusTone: ProviderDisplayFormatter.statusTone(for: state)
                 )
             }
     }
@@ -174,7 +172,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             return []
         }
 
-        return quotaWindowRows(for: quota, suffixText: "% \(strings.compactRemainingSuffix)")
+        return quotaWindowRows(for: quota, suffixText: "% \(strings.remainingSuffix(.compact))")
     }
 
     /// The window the hero gives full prominence to: the five-hour one when the provider
@@ -228,28 +226,9 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                 amountTone: ProviderDisplayFormatter.quotaWindowAmountTone(for: window),
                 suffixText: suffixText,
                 detailText: "\(amountText)\(suffixText)",
-                resetText: quotaWindowResetText(for: window),
-                resetShortText: quotaWindowResetShortText(for: window),
+                resetLabel: timeFormatter.resetLabel(for: window),
                 isAvailable: window.isAvailable
             )
-        }
-    }
-
-    private func quotaWindowResetText(for window: QuotaWindowSnapshot) -> String? {
-        switch window.resolvedKind {
-        case .week, .month:
-            return timeFormatter.resetDateText(for: window.resetAt)
-        case .fiveHour, .none:
-            return timeFormatter.resetText(for: window.resetAt)
-        }
-    }
-
-    private func quotaWindowResetShortText(for window: QuotaWindowSnapshot) -> String? {
-        switch window.resolvedKind {
-        case .week, .month:
-            return timeFormatter.resetShortDateText(for: window.resetAt)
-        case .fiveHour, .none:
-            return timeFormatter.resetShortText(for: window.resetAt)
         }
     }
 
