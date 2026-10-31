@@ -25,8 +25,11 @@ enum ConsoleMetrics {
     static let projectHomepageURL = URL(string: "https://github.com/MosCloud/API-inquiry-for-MACOS")!
 }
 
+/// App-wide semantic palette. The file sits next to the Console metrics, but the
+/// menu bar uses the same warning/error tokens.
 enum ProviderToneColor {
-    private static let warningAmber = Color(red: 0.94, green: 0.62, blue: 0.12)
+    static let warning = Color.orange
+    static let error = Color.red
 
     static func status(_ tone: ProviderStatusTone) -> Color {
         switch tone {
@@ -35,7 +38,7 @@ enum ProviderToneColor {
         case .refreshing:
             return .blue
         case .warning:
-            return .orange
+            return warning
         case .neutral:
             return .secondary
         }
@@ -48,9 +51,9 @@ enum ProviderToneColor {
         case .good:
             return .green
         case .warning:
-            return warningAmber
+            return warning
         case .critical:
-            return .red
+            return error
         }
     }
 
@@ -61,9 +64,9 @@ enum ProviderToneColor {
         case .good:
             return .green
         case .warning:
-            return warningAmber
+            return warning
         case .critical:
-            return .red
+            return error
         }
     }
 
@@ -72,9 +75,9 @@ enum ProviderToneColor {
         case .success:
             return .green
         case .warning:
-            return .orange
+            return warning
         case .error:
-            return .red
+            return error
         }
     }
 

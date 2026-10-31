@@ -68,6 +68,8 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.resetsPrefix, "重置于", "chinese resets")
         harness.expectEqual(strings.planNextResetsPrefix, "计划下次重置", "chinese plan next resets")
         harness.expectEqual(strings.settingsSection, "设置", "chinese settings section")
+        harness.expectEqual(strings.setup, "配置", "chinese setup placeholder")
+        harness.expectEqual(LocalizedStrings(language: .en).setup, "Set up", "english setup placeholder")
         harness.expectEqual(strings.versionTitle, "版本", "chinese version title")
         harness.expectEqual(strings.projectHomepage, "项目主页", "chinese project homepage")
         harness.expectEqual(strings.apiKeyMetricTitle, "API 密钥", "chinese api key")

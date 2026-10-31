@@ -38,7 +38,7 @@ struct MenuBarContentView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(errorText)
                         .font(.caption)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(ProviderToneColor.error)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if !viewModel.recoveryActions.isEmpty {
@@ -67,7 +67,7 @@ struct MenuBarContentView: View {
             if let autoStartMessage = launchAtLoginController.message {
                 Text(autoStartMessage)
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(ProviderToneColor.warning)
                     .fixedSize(horizontal: false, vertical: true)
                     .apiInquiryTopChangeTransition(reduceMotion: accessibilityReduceMotion)
             }

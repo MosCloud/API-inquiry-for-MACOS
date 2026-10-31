@@ -13,7 +13,7 @@ public struct LocalizedStrings: Equatable {
     public var chineseLanguage: String { "中文" }
     public var englishLanguage: String { "English" }
 
-    public var setup: String { text(en: "Setup", zh: "设置") }
+    public var setup: String { text(en: "Set up", zh: "配置") }
     public var console: String { text(en: "Console", zh: "控制台") }
     public var openConsole: String { text(en: "Open Console", zh: "打开控制台") }
     public var refresh: String { text(en: "Refresh", zh: "刷新") }
