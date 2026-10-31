@@ -62,12 +62,14 @@ if [ "$BUILD_VARIANT" = "dev" ]; then
     APP_NAME="APIInquiryDevelopment.app"
     EXECUTABLE_NAME="APIInquiryDevelopment"
     DISPLAY_NAME="Development under $CHECKOUT_NAME"
+    BUNDLE_IDENTIFIER="com.api-inquiry.APIInquiry.development"
     RUNTIME_APP_ROOT="/private/tmp/api-inquiry-development-${UID}-${WORKTREE_ID}"
     LINKS_APP_DIR=0
 else
     APP_NAME="APIInquiry.app"
     EXECUTABLE_NAME="APIInquiry"
     DISPLAY_NAME="API Inquiry"
+    BUNDLE_IDENTIFIER="com.api-inquiry.APIInquiry"
     RUNTIME_APP_ROOT="/private/tmp/api-inquiry-local-app-${UID}-${WORKTREE_ID}"
     LINKS_APP_DIR=1
 fi
@@ -197,7 +199,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <key>CFBundleExecutable</key>
     <string>$EXECUTABLE_NAME</string>
     <key>CFBundleIdentifier</key>
-    <string>com.api-inquiry.APIInquiry</string>
+    <string>$BUNDLE_IDENTIFIER</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIconName</key>
