@@ -30,7 +30,7 @@ enum MenuBarBalanceViewModelTests {
         testPlanUsageRemainingIsClamped(using: harness)
         testPrimaryQuotaWindowAmountToneBoundaries(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
-        await testZhipuChineseMenuBarLocalizesWindowLabel(using: harness)
+        await testZhipuMenuBarOmitsTheWindowLabel(using: harness)
         await testOpenCodeWindowsUseWeeklyAndMonthlyLabelsWithDateResets(using: harness)
         await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
         await testCodexPrimaryProviderPrefersFiveHourQuotaWhenWindowsAreReversed(using: harness)
@@ -260,7 +260,7 @@ enum MenuBarBalanceViewModelTests {
 
 
     @MainActor
-    private static func testZhipuChineseMenuBarLocalizesWindowLabel(using harness: TestHarness) async {
+    private static func testZhipuMenuBarOmitsTheWindowLabel(using harness: TestHarness) async {
         let coordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan, resetAt: sampleResetDate)
         await coordinator.refresh(.zhipuCodingPlan)
         let viewModel = MenuBarBalanceViewModel(
@@ -269,8 +269,8 @@ enum MenuBarBalanceViewModelTests {
             languageStore: makeLanguageStore(selection: .zh)
         )
 
-        harness.expectEqual(viewModel.menuBarValueText, "5 时 83%", "chinese zhipu menu bar localizes the window label")
-        harness.expectEqual(viewModel.menuBarTitle, "GLM 5 时 83%", "chinese zhipu menu bar title localizes the window label")
+        harness.expectEqual(viewModel.menuBarValueText, "83%", "chinese zhipu menu bar omits the window label")
+        harness.expectEqual(viewModel.menuBarTitle, "GLM 83%", "chinese zhipu menu bar title omits the window label")
     }
 
     @MainActor
@@ -288,7 +288,7 @@ enum MenuBarBalanceViewModelTests {
         let codexViewModel = MenuBarBalanceViewModel(coordinator: codexCoordinator)
 
         harness.expectEqual(deepSeekViewModel.menuBarTitle, "DS ¥68.6", "deepseek primary title keeps DS prefix")
-        harness.expectEqual(zhipuViewModel.menuBarTitle, "GLM 5h 83%", "zhipu primary title keeps GLM prefix")
+        harness.expectEqual(zhipuViewModel.menuBarTitle, "GLM 83%", "zhipu primary title keeps GLM prefix")
         harness.expectEqual(codexViewModel.menuBarTitle, "72%", "codex primary title omits GPT and quota window prefixes")
         harness.expectEqual(deepSeekViewModel.menuBarIconFallbackText, "DS", "deepseek menu bar image fallback uses descriptor prefix")
         harness.expectEqual(zhipuViewModel.menuBarIconFallbackText, "GLM", "zhipu menu bar image fallback uses descriptor prefix")
@@ -327,8 +327,8 @@ enum MenuBarBalanceViewModelTests {
             lastRefreshTimeFormatter: fixedTimeFormatter
         )
 
-        harness.expectEqual(viewModel.menuBarValueText, "5h 83%", "zhipu menu bar value")
-        harness.expectEqual(viewModel.menuBarTitle, "GLM 5h 83%", "zhipu menu bar title")
+        harness.expectEqual(viewModel.menuBarValueText, "83%", "zhipu menu bar value")
+        harness.expectEqual(viewModel.menuBarTitle, "GLM 83%", "zhipu menu bar title")
         harness.expectEqual(viewModel.primaryDisplayParts.providerID, .zhipuCodingPlan, "zhipu primary display id")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5h", "zhipu primary display caption")
         harness.expectEqual(viewModel.primaryDisplayParts.amountText, "83", "zhipu primary display amount")

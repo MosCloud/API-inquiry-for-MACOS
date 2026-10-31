@@ -11,6 +11,8 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     case failed
     case loading
     case multi
+    case warning
+    case unconfigured
 }
 
 public enum FixtureMode {
@@ -94,17 +96,39 @@ public struct FixtureScenarioData {
         case .loading:
             return single(.deepseek, behavior: .suspends, now: now)
         case .multi:
-            let deepSeek = registration(.deepseek, .succeedsThenFails(balance(now: now)))
-            let zhipu = registration(.zhipuCodingPlan, .succeedsThenFails(planUsage(now: now)))
-            let codex = registration(.codex, .succeedsThenFails(codexQuota(now: now)))
-            let openCode = registration(.opencode, .succeedsThenFails(openCodeQuota(now: now)))
             let ids: [ProviderID] = [.deepseek, .zhipuCodingPlan, .codex, .opencode]
-
             return FixtureScenarioData(
-                registrations: [deepSeek, zhipu, codex, openCode],
+                registrations: [
+                    registration(.deepseek, .succeedsThenFails(balance(now: now))),
+                    registration(.zhipuCodingPlan, .succeedsThenFails(planUsage(now: now))),
+                    registration(.codex, .succeedsThenFails(codexQuota(now: now))),
+                    registration(.opencode, .succeedsThenFails(openCodeQuota(now: now)))
+                ],
                 credentialStore: InMemoryCredentialStore(credentialsByAccount: credentials(for: ids)),
                 preferences: InMemoryProviderPreferencesStore(addedProviderIDs: ids, primaryProviderID: .opencode),
                 defaultProviderID: .opencode
+            )
+
+        case .warning:
+            let ids: [ProviderID] = [.deepseek, .zhipuCodingPlan, .codex, .opencode]
+            return FixtureScenarioData(
+                registrations: [
+                    registration(.deepseek, .succeedsThenFails(balance(now: now, total: 30))),
+                    registration(.zhipuCodingPlan, .succeedsThenFails(planUsage(now: now, usagePercentage: 70))),
+                    registration(.codex, .succeedsThenFails(codexQuota(now: now, remaining: [30, 25]))),
+                    registration(.opencode, .succeedsThenFails(openCodeQuota(now: now, remaining: [15, 25, 35])))
+                ],
+                credentialStore: InMemoryCredentialStore(credentialsByAccount: credentials(for: ids)),
+                preferences: InMemoryProviderPreferencesStore(addedProviderIDs: ids, primaryProviderID: .deepseek),
+                defaultProviderID: .deepseek
+            )
+
+        case .unconfigured:
+            return FixtureScenarioData(
+                registrations: [registration(.deepseek, .succeedsThenFails(balance(now: now)))],
+                credentialStore: InMemoryCredentialStore(credentialsByAccount: [:]),
+                preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek], primaryProviderID: .deepseek),
+                defaultProviderID: .deepseek
             )
         }
     }
@@ -143,10 +167,10 @@ public struct FixtureScenarioData {
         Dictionary(uniqueKeysWithValues: ids.map { (descriptor(for: $0).credentialAccount, "fixture-key") })
     }
 
-    private static func balance(now: Date) -> ProviderSnapshot {
+    private static func balance(now: Date, total: Decimal = Decimal(string: "68.65")!) -> ProviderSnapshot {
         .balance(BalanceSnapshot(
             providerID: .deepseek,
-            totalBalance: Decimal(string: "68.65")!,
+            totalBalance: total,
             currency: "CNY",
             isAvailable: true,
             grantedBalance: nil,
@@ -155,38 +179,38 @@ public struct FixtureScenarioData {
         ))
     }
 
-    private static func planUsage(now: Date) -> ProviderSnapshot {
+    private static func planUsage(now: Date, usagePercentage: Decimal = Decimal(17)) -> ProviderSnapshot {
         .planUsage(PlanUsageSnapshot(
             providerID: .zhipuCodingPlan,
             windowLabel: "5h",
             windowKind: .fiveHour,
-            usagePercentage: Decimal(17),
+            usagePercentage: usagePercentage,
             resetAt: now.addingTimeInterval(3_600),
             isAvailable: true,
             fetchedAt: now
         ))
     }
 
-    private static func codexQuota(now: Date) -> ProviderSnapshot {
+    private static func codexQuota(now: Date, remaining: [Decimal] = [72, 88]) -> ProviderSnapshot {
         .quotaUsage(QuotaUsageSnapshot(
             providerID: .codex,
             planName: "ChatGPT",
             windows: [
-                QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: Decimal(72), resetAt: now.addingTimeInterval(3_600), isAvailable: true),
-                QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: Decimal(88), resetAt: now.addingTimeInterval(86_400 * 5), isAvailable: true)
+                QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: remaining[0], resetAt: now.addingTimeInterval(3_600), isAvailable: true),
+                QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: remaining[1], resetAt: now.addingTimeInterval(86_400 * 5), isAvailable: true)
             ],
             fetchedAt: now
         ))
     }
 
-    private static func openCodeQuota(now: Date) -> ProviderSnapshot {
+    private static func openCodeQuota(now: Date, remaining: [Decimal] = [100, 90, 95]) -> ProviderSnapshot {
         .quotaUsage(QuotaUsageSnapshot(
             providerID: .opencode,
             planName: "OpenCode Go",
             windows: [
-                QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: Decimal(100), resetAt: now.addingTimeInterval(3_600), isAvailable: true),
-                QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: Decimal(90), resetAt: now.addingTimeInterval(86_400 * 5), isAvailable: true),
-                QuotaWindowSnapshot(label: "Month", kind: .month, remainingPercentage: Decimal(95), resetAt: now.addingTimeInterval(86_400 * 25), isAvailable: true)
+                QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: remaining[0], resetAt: now.addingTimeInterval(3_600), isAvailable: true),
+                QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: remaining[1], resetAt: now.addingTimeInterval(86_400 * 5), isAvailable: true),
+                QuotaWindowSnapshot(label: "Month", kind: .month, remainingPercentage: remaining[2], resetAt: now.addingTimeInterval(86_400 * 25), isAvailable: true)
             ],
             fetchedAt: now
         ))

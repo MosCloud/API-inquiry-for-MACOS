@@ -18,7 +18,7 @@ public enum ProviderValueFormatter {
         case .balance(let balance):
             return formatAmount(balance.totalBalance, currency: balance.currency, fractionDigits: 1, includeCurrencyCode: false)
         case .planUsage(let usage):
-            return "\(strings.quotaWindowLabel(usage.windowLabel)) \(formatPercentage(usage.remainingPercentage))%"
+            return "\(formatPercentage(usage.remainingPercentage))%"
         case .quotaUsage(let usage):
             return menuQuotaWindowText(for: primaryQuotaWindow(in: usage))
         }
