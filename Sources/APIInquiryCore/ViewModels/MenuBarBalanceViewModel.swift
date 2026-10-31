@@ -25,38 +25,19 @@ public struct SettingsFeedback: Equatable {
 
 @MainActor
 public final class MenuBarBalanceViewModel: ObservableObject {
-    @Published public var displayMode: MenuBarDisplayMode
-
     private let coordinator: MultiProviderBalanceCoordinator
     private let lastRefreshTimeFormatter: LastRefreshTimeFormatter
     private let languageStore: AppLanguageStore?
     private var cancellables: Set<AnyCancellable> = []
 
-    public convenience init() {
-        let registry = BuiltInProviderRegistry.default
-        let credentialStore = KeychainCredentialStore()
-        let coordinator = MultiProviderBalanceCoordinator(
-            registrations: registry.registrations,
-            credentialStore: credentialStore,
-            preferences: InMemoryProviderPreferencesStore(
-                addedProviderIDs: [.deepseek],
-                primaryProviderID: .deepseek
-            ),
-            defaultProviderID: registry.defaultProviderID
-        )
-        self.init(coordinator: coordinator)
-    }
-
     public init(
         coordinator: MultiProviderBalanceCoordinator,
-        displayMode: MenuBarDisplayMode = .text,
         lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
         languageStore: AppLanguageStore? = nil
     ) {
         self.coordinator = coordinator
         self.lastRefreshTimeFormatter = lastRefreshTimeFormatter
         self.languageStore = languageStore
-        self.displayMode = displayMode
 
         coordinator.objectWillChange
             .sink { [weak self] _ in

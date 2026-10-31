@@ -76,7 +76,6 @@ extension MenuBarBalanceViewModel {
         provider: BalanceProvider,
         credentialStore: CredentialStore,
         controller: BalanceRefreshController,
-        displayMode: MenuBarDisplayMode = .text,
         lastRefreshTimeFormatter: LastRefreshTimeFormatter = LastRefreshTimeFormatter(),
         languageStore: AppLanguageStore? = nil
     ) {
@@ -86,7 +85,6 @@ extension MenuBarBalanceViewModel {
                 credentialStore: credentialStore,
                 controller: controller
             ),
-            displayMode: displayMode,
             lastRefreshTimeFormatter: lastRefreshTimeFormatter,
             languageStore: languageStore
         )
