@@ -81,6 +81,10 @@ public struct FixtureScenarioData {
     public let preferences: ProviderPreferencesStore
     public let defaultProviderID: ProviderID
 
+    /// Single-provider scenarios (`.stale`, `.failed`, `.loading`) register only the
+    /// provider they exercise, so Console's "add provider" menu is empty by design —
+    /// they are for state checks, not for the add flow. Register more providers here
+    /// when a test needs that flow.
     public static func make(for scenario: FixtureScenario, now: Date = Date()) -> FixtureScenarioData {
         switch scenario {
         case .stale:

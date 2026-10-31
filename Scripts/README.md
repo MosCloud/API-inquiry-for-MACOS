@@ -28,6 +28,8 @@ Fixture scenarios (development copy, `--fixtures`):
 
 Fixtures replace only the credential store and provider factory; the coordinator, view models and views are real. They are `DEBUG`-only and ignored unless `Info.plist` carries a git commit.
 
+`stale`, `failed` and `loading` register only DeepSeek, so Console's add-provider menu is empty by design; register more providers in `FixtureScenarioData` when a test needs the add flow.
+
 Support files:
 
 - `version.env` — the release version values (`APP_VERSION`, `BUILD_NUMBER`, `RELEASE_TAG`, …). Release versions exist only in artifacts, never in a dev build.
