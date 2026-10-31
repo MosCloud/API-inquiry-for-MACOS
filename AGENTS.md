@@ -87,6 +87,7 @@ The package has no XCTest target: tests are a **custom executable runner**, so `
 - Default branch is `main` (not `master`). Do not implement on `main`.
 - Implementation happens in isolated git worktrees named after the work, e.g. `.worktrees/issue-13-config-entry/`. Commit per completed task; use TDD for behaviour changes.
 - Current work is **issue-driven, not plan-driven**: `docs/superpowers/plans/` stops at v0.3.15 and is historical; issues live in GitHub Issues.
+- Repository layout, and where new files belong: `docs/repository-layout.md` (pair: `_zh.md`).
 
 ## Architecture gotchas (see the code, or the local `CLAUDE.md`, for full detail)
 

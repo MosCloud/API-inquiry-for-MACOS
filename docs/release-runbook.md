@@ -13,9 +13,9 @@ Operational notes for cutting an API Inquiry release. Written from the v0.3.16 r
 All of these must agree, or `ReleaseVersionConsistencyTests` fails:
 
 - `Scripts/version.env`: `APP_VERSION`, `BUILD_NUMBER`, `RELEASE_TAG`, `RELEASE_VERSION`, `DMG_BASENAME`, `VOLUME_NAME`
-- `Sources/APIInquiryApp/AppVersion.swift` (`vX.Y.Z`)
+- `Sources/APIInquiryApp/App/AppVersion.swift` (`vX.Y.Z`)
 - `Sources/APIInquiryCoreTestsRunner/ReleaseVersionConsistencyTests.swift` (version, tag, dmg name, volume name, build number)
-- `README.md`, `README_zh.md`, `README_en.md` (DMG name examples, "latest released version")
+- `README.md`, `README_en.md` (DMG name examples, "latest released version")
 - `docs/roadmap.md` (date, latest version, capability summary — both languages)
 - `AGENTS.md` (current version sentence)
 - New `docs/releases/vX.Y.Z_github.md`, bilingual, user-facing sections only: New Features / App Optimization / Bug Fixes (omit empty sections), then download verification and known limitations.

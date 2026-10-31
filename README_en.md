@@ -2,6 +2,8 @@
 
 [中文](README.md)
 
+Repository layout and conventions: [docs/repository-layout.md](docs/repository-layout.md).
+
 ## Screenshots
 
 <p>

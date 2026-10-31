@@ -13,9 +13,9 @@
 以下位置必须完全一致，否则 `ReleaseVersionConsistencyTests` 会失败：
 
 - `Scripts/version.env`：`APP_VERSION`、`BUILD_NUMBER`、`RELEASE_TAG`、`RELEASE_VERSION`、`DMG_BASENAME`、`VOLUME_NAME`
-- `Sources/APIInquiryApp/AppVersion.swift`（`vX.Y.Z`）
+- `Sources/APIInquiryApp/App/AppVersion.swift`（`vX.Y.Z`）
 - `Sources/APIInquiryCoreTestsRunner/ReleaseVersionConsistencyTests.swift`（版本、tag、dmg 名、卷名、build 号）
-- `README.md`、`README_zh.md`、`README_en.md`（DMG 文件名示例、「最新已发布版本」）
+- `README.md`、`README_en.md`（DMG 文件名示例、「最新已发布版本」）
 - `docs/roadmap.md`（日期、最新版本、能力摘要，中英双语）
 - `AGENTS.md`（当前版本那句）
 - 新建 `docs/releases/vX.Y.Z_github.md`，中英双语、只保留非空章节：New Features / App Optimization / Bug Fixes，再加下载校验与已知限制。
