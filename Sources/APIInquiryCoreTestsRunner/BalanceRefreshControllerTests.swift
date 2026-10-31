@@ -227,9 +227,14 @@ private final class SuspendedBalanceProvider: BalanceProvider {
 private actor SuspendedRefreshProbe {
     private var count = 0
     private var continuation: CheckedContinuation<BalanceSnapshot, Error>?
+    private var pendingSnapshot: BalanceSnapshot?
 
     func suspendAndRecordFetch() async throws -> BalanceSnapshot {
         count += 1
+        if let pendingSnapshot {
+            self.pendingSnapshot = nil
+            return pendingSnapshot
+        }
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
         }
@@ -240,8 +245,14 @@ private actor SuspendedRefreshProbe {
     }
 
     func complete(with snapshot: BalanceSnapshot) {
-        continuation?.resume(returning: snapshot)
-        continuation = nil
+        if let continuation {
+            continuation.resume(returning: snapshot)
+            self.continuation = nil
+        } else {
+            // The coalesced follow-up fetch may not have registered its continuation
+            // yet; remember the result so it can finish as soon as it starts.
+            pendingSnapshot = snapshot
+        }
     }
 }
 
