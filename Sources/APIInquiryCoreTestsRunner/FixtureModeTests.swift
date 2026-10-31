@@ -8,6 +8,7 @@ enum FixtureModeTests {
         await testStaleProviderSucceedsThenFails(using: harness)
         await testFailedProviderThrows(using: harness)
         testScenarioData(using: harness)
+        await testWarningFixtureUsesWarningValues(using: harness)
     }
 
     private static func testScenarioParsing(using harness: TestHarness) {
@@ -90,6 +91,38 @@ enum FixtureModeTests {
 
         harness.expectEqual(FixtureScenarioData.make(for: .failed).registrations.count, 1, "failed has one provider")
         harness.expectEqual(FixtureScenarioData.make(for: .loading).registrations.count, 1, "loading has one provider")
+
+        let warning = FixtureScenarioData.make(for: .warning)
+        harness.expectEqual(warning.registrations.count, 4, "warning has four providers")
+        harness.expectEqual(warning.defaultProviderID, .deepseek, "warning defaults to deepseek")
+
+        let unconfigured = FixtureScenarioData.make(for: .unconfigured)
+        harness.expectEqual(unconfigured.registrations.count, 1, "unconfigured has one provider")
+        let unconfiguredCredential = try? unconfigured.credentialStore.credential(
+            forAccount: testCredentialAccount(for: .deepseek)
+        )
+        harness.expectEqual(unconfiguredCredential, nil, "unconfigured has no stored credential")
+    }
+
+    @MainActor
+    private static func testWarningFixtureUsesWarningValues(using harness: TestHarness) async {
+        let warning = FixtureScenarioData.make(for: .warning)
+        guard let provider = warning.registrations.first?.makeProvider(),
+              let snapshot = try? await provider.fetchSnapshot(apiKey: "fixture") else {
+            harness.expectTrue(false, "warning fixture provider responds")
+            return
+        }
+
+        guard case .balance(let balance) = snapshot else {
+            harness.expectTrue(false, "warning fixture primary is a balance")
+            return
+        }
+        harness.expectEqual(balance.totalBalance, Decimal(30), "warning balance sits in the warning band")
+        harness.expectEqual(
+            ProviderToneResolver.balanceAmountTone(for: balance.totalBalance),
+            .warning,
+            "warning balance maps to the warning tone"
+        )
     }
 }
 

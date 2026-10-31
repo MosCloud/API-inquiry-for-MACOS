@@ -25,6 +25,8 @@ Fixture scenarios (development copy, `--fixtures`):
 | `failed` | every refresh fails; no snapshot, so the menu bar shows `--` |
 | `loading` | the provider never finishes, so the state stays loading |
 | `multi` | DeepSeek + Zhipu + Codex + OpenCode, primary OpenCode |
+| `warning` | four providers with values in the warning band (balance 30, quota 15–35%) |
+| `unconfigured` | DeepSeek added without a credential, so the menu bar shows the setup placeholder |
 
 Fixtures replace only the credential store and provider factory; the coordinator, view models and views are real. They are `DEBUG`-only and ignored unless `Info.plist` carries a git commit.
 
