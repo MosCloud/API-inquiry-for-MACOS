@@ -16,6 +16,7 @@ public final class BalanceRefreshController: ObservableObject {
     private let localizedStrings: () -> LocalizedStrings
     private var autoRefreshTask: Task<Void, Never>?
     private var isRefreshing = false
+    private var pendingRefresh = false
     private var stateRevision = 0
 
     public init(
@@ -39,12 +40,23 @@ public final class BalanceRefreshController: ObservableObject {
     }
 
     public func refresh() async {
-        guard !isRefreshing else {
+        if isRefreshing {
+            // Coalesce: a caller that asks during an in-flight refresh gets one more
+            // refresh once the current one finishes, instead of being dropped.
+            pendingRefresh = true
             return
         }
+
         isRefreshing = true
         defer { isRefreshing = false }
 
+        repeat {
+            pendingRefresh = false
+            await performRefresh()
+        } while pendingRefresh
+    }
+
+    private func performRefresh() async {
         let previousState = state
         let refreshRevision = stateRevision
 

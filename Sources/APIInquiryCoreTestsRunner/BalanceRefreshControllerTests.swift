@@ -10,7 +10,7 @@ enum BalanceRefreshControllerTests {
         await testFailurePreservesLastSnapshot(using: harness)
         await testAuthenticationFailureUsesTypedFailureKind(using: harness)
         await testAuthenticationFailureCanUseChineseMessage(using: harness)
-        await testOverlappingRefreshDoesNotStartSecondProviderCall(using: harness)
+        await testOverlappingRefreshCoalescesIntoOneFollowUpCall(using: harness)
         await testMarkNotConfiguredInvalidatesInFlightRefresh(using: harness)
         await testCancellationRestoresPreviousState(using: harness)
         await testCancelledURLErrorRestoresPreviousState(using: harness)
@@ -126,7 +126,7 @@ enum BalanceRefreshControllerTests {
     }
 
     @MainActor
-    private static func testOverlappingRefreshDoesNotStartSecondProviderCall(using harness: TestHarness) async {
+    private static func testOverlappingRefreshCoalescesIntoOneFollowUpCall(using harness: TestHarness) async {
         let snapshot = makeSnapshot(total: "68.65")
         let probe = SuspendedRefreshProbe()
         let provider = SuspendedBalanceProvider(probe: probe)
@@ -139,13 +139,16 @@ enum BalanceRefreshControllerTests {
         let secondRefresh = Task { await controller.refresh() }
         await Task.yield()
 
-        harness.expectEqual(await probe.fetchCount(), 1, "overlapping refresh fetch count")
+        harness.expectEqual(await probe.fetchCount(), 1, "coalesced refresh does not fetch while the first is in flight")
 
         await probe.complete(with: snapshot)
+        await waitForFetchCount(2, probe: probe)
+        await probe.complete(with: snapshot)
+
         await firstRefresh.value
         await secondRefresh.value
 
-        harness.expectEqual(controller.state, .loaded(.balance(snapshot)), "overlapping refresh final state")
+        harness.expectEqual(controller.state, .loaded(.balance(snapshot)), "coalesced refresh final state")
     }
 
     @MainActor

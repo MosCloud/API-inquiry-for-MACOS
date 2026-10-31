@@ -465,7 +465,9 @@ public final class UsageConsoleViewModel: ObservableObject {
                 ))
                 setConfigured(true)
             case .notConfigured, .loading:
-                setFeedback(nil)
+                // The save succeeded; a coalesced refresh may still be running, so
+                // report the save rather than clearing the feedback.
+                setFeedback(SettingsFeedback(kind: .success, message: strings.savedSecurely))
             }
         } catch {
             setFeedback(SettingsFeedback(
