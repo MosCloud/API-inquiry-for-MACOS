@@ -258,49 +258,85 @@ struct MenuBarContentView: View {
 
     private var quotaHeroRows: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(viewModel.primaryQuotaWindowRows, id: \.label) { row in
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text(row.heroLabel)
-                        .font(.system(size: 20, weight: .regular, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                        .frame(width: strings.quotaHeroLabelColumnWidth, alignment: .leading)
+            if let row = viewModel.primaryQuotaWindowRow {
+                primaryQuotaWindowRow(for: row)
 
-                    Text(row.amountText)
-                        .font(.system(size: 36, weight: .medium, design: .rounded))
-                        .foregroundStyle(amountColor(for: row.amountTone))
-                        .monospacedDigit()
-                        .apiInquiryNumericTextTransition(value: row.amountValue, reduceMotion: accessibilityReduceMotion)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .frame(minWidth: 42, alignment: .trailing)
-                        .apiInquirySubtleAnimation(value: row.amountText, reduceMotion: accessibilityReduceMotion)
-                        .apiInquirySubtleAnimation(value: row.amountTone, reduceMotion: accessibilityReduceMotion)
-
-                    Text(row.suffixText)
-                        .font(.system(size: 20, weight: .regular, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-
-                    Spacer(minLength: 6)
-
-                    if let resetText = row.resetShortText {
-                        Text(resetText)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                            .frame(minWidth: 62, alignment: .trailing)
-                    }
+                if let summary = viewModel.secondaryQuotaWindowSummary {
+                    secondaryQuotaSummaryRow(summary)
                 }
-                .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(quotaWindowAccessibilityLabel(for: row))
             }
         }
         .padding(.top, 2)
+    }
+
+    /// The focused window keeps the full-size number; everything else is compressed onto
+    /// the summary line below it.
+    private func primaryQuotaWindowRow(for row: QuotaWindowDisplayRow) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            Text(row.heroLabel)
+                .font(.system(size: 20, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(width: strings.quotaHeroLabelColumnWidth, alignment: .leading)
+
+            Text(row.amountText)
+                .font(.system(size: 36, weight: .medium, design: .rounded))
+                .foregroundStyle(amountColor(for: row.amountTone))
+                .monospacedDigit()
+                .apiInquiryNumericTextTransition(value: row.amountValue, reduceMotion: accessibilityReduceMotion)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(minWidth: 42, alignment: .trailing)
+                .apiInquirySubtleAnimation(value: row.amountText, reduceMotion: accessibilityReduceMotion)
+                .apiInquirySubtleAnimation(value: row.amountTone, reduceMotion: accessibilityReduceMotion)
+
+            Text(row.suffixText)
+                .font(.system(size: 20, weight: .regular, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+
+            Spacer(minLength: 6)
+
+            if let resetText = row.resetShortText {
+                Text(resetText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                    .frame(minWidth: 62, alignment: .trailing)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(quotaWindowAccessibilityLabel(for: row))
+    }
+
+    /// One line for the remaining windows: percentages on the left, reset dates on the
+    /// right so they line up with the focused row's reset time above.
+    private func secondaryQuotaSummaryRow(_ summary: QuotaWindowSummary) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(summary.text)
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+
+            Spacer(minLength: 4)
+
+            if let resetText = summary.resetText {
+                Text(resetText)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary.opacity(0.75))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(summary.text)
+        .accessibilityValue(summary.resetText ?? "")
     }
 
     @ViewBuilder
