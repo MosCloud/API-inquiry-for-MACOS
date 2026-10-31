@@ -11,12 +11,20 @@ enum ReleaseVersionConsistencyTests {
         let localBuild = (try? String(contentsOf: localBuildPath, encoding: .utf8)) ?? ""
         let package = (try? String(contentsOf: packagePath, encoding: .utf8)) ?? ""
 
-        harness.expectTrue(versionEnv.contains("APP_VERSION=\"0.3.16\""), "packaging app version is 0.3.16")
-        harness.expectTrue(versionEnv.contains("RELEASE_TAG=\"release/v0.3.16\""), "release tag is v0.3.16")
-        harness.expectTrue(versionEnv.contains("RELEASE_VERSION=\"0.3.16\""), "release version is 0.3.16")
-        harness.expectTrue(versionEnv.contains("DMG_BASENAME=\"API-Inquiry-v0.3.16\""), "dmg basename is v0.3.16")
-        harness.expectTrue(versionEnv.contains("VOLUME_NAME=\"API Inquiry v0.3.16\""), "volume name is v0.3.16")
-        harness.expectTrue(versionEnv.contains("BUILD_NUMBER=\"21\""), "build number is 21")
+        // The file is the single source of truth, so check that it agrees with itself
+        // rather than pinning one release number here (#44).
+        let values = parseVersionEnv(versionEnv)
+        let version = values["APP_VERSION"] ?? ""
+
+        harness.expectTrue(!version.isEmpty, "version.env declares APP_VERSION")
+        harness.expectEqual(values["RELEASE_VERSION"], version, "release version matches the app version")
+        harness.expectEqual(values["RELEASE_TAG"], "release/v\(version)", "release tag matches the app version")
+        harness.expectEqual(values["DMG_BASENAME"], "API-Inquiry-v\(version)", "dmg basename matches the app version")
+        harness.expectEqual(values["VOLUME_NAME"], "API Inquiry v\(version)", "volume name matches the app version")
+        harness.expectTrue(
+            (Int(values["BUILD_NUMBER"] ?? "") ?? 0) > 0,
+            "build number is a positive integer"
+        )
 
         // Development builds must not advertise the release version, and must record
         // the commit that produced them.
@@ -43,6 +51,21 @@ enum ReleaseVersionConsistencyTests {
             package.contains("refusing to package a development build as a release"),
             "release packaging refuses development builds"
         )
+    }
+
+    private static func parseVersionEnv(_ contents: String) -> [String: String] {
+        var values: [String: String] = [:]
+        for line in contents.split(separator: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, !trimmed.hasPrefix("#"),
+                  let separator = trimmed.firstIndex(of: "=") else {
+                continue
+            }
+            let key = String(trimmed[..<separator])
+            let rawValue = String(trimmed[trimmed.index(after: separator)...])
+            values[key] = rawValue.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+        }
+        return values
     }
 
     private static func repositoryRoot() -> URL {
