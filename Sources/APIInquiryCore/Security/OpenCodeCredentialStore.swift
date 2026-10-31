@@ -15,21 +15,24 @@ public enum OpenCodeCredentialStatus: Equatable {
 /// The database is only ever opened read-only; when it is missing or the schema no
 /// longer matches, the store falls back to the Keychain so a manually pasted key still
 /// works.
-public final class OpenCodeCredentialStore: CredentialStore, CodexCredentialProviding {
+public final class OpenCodeCredentialStore: CredentialStore, CodexCredentialProviding, LocalConfigurationProviding {
     public static let defaultOpenCodeAccount = "opencode-api-key"
 
     private let delegate: CredentialStore
     private let openCodeAccount: String
     private let databaseURL: URL
+    private let configDirectoryURL: URL
 
     public init(
         delegate: CredentialStore,
         openCodeAccount: String = OpenCodeCredentialStore.defaultOpenCodeAccount,
-        databaseURL: URL? = nil
+        databaseURL: URL? = nil,
+        configDirectoryURL: URL? = nil
     ) {
         self.delegate = delegate
         self.openCodeAccount = openCodeAccount
         self.databaseURL = databaseURL ?? Self.defaultDatabaseURL()
+        self.configDirectoryURL = configDirectoryURL ?? Self.defaultConfigDirectoryURL()
     }
 
     public static func defaultDatabaseURL() -> URL {
@@ -66,6 +69,35 @@ public final class OpenCodeCredentialStore: CredentialStore, CodexCredentialProv
 
     public func codexConfigTargetURL() -> URL? {
         (delegate as? CodexCredentialProviding)?.codexConfigTargetURL()
+    }
+
+    /// OpenCode keeps its editable config in `~/.config/opencode`; the main file is
+    /// `opencode.jsonc` (older installs use `opencode.json`). Prefer the file so the
+    /// button lands somewhere editable, and fall back to the directory.
+    public func configurationURL(for providerID: ProviderID) -> URL? {
+        guard providerID == .opencode else {
+            return (delegate as? LocalConfigurationProviding)?.configurationURL(for: providerID)
+        }
+
+        let configDirectory = configDirectoryURL
+        let candidates = ["opencode.jsonc", "opencode.json"]
+        for name in candidates {
+            let url = configDirectory.appendingPathComponent(name)
+            if FileManager.default.fileExists(atPath: url.path) {
+                return url
+            }
+        }
+
+        if FileManager.default.fileExists(atPath: configDirectory.path) {
+            return configDirectory
+        }
+        return nil
+    }
+
+    public static func defaultConfigDirectoryURL() -> URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".config")
+            .appendingPathComponent("opencode")
     }
 
     public func credentialStatus() -> OpenCodeCredentialStatus {

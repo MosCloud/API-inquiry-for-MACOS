@@ -146,13 +146,15 @@ struct UsageConsoleAPISection: View {
                 .controlSize(.regular)
                 .font(.system(.callout, design: .rounded).weight(.semibold))
             }
-        } else if summary.codexConfigTargetURL != nil {
+        } else if !summary.supportsAPIKeyManagement {
             Button(strings.openConfig) {
-                openCodexConfig(summary)
+                openProviderConfiguration(summary)
             }
             .buttonStyle(.bordered)
             .controlSize(.regular)
             .font(.system(.callout, design: .rounded).weight(.semibold))
+            .disabled(summary.configurationURL == nil)
+            .help(summary.configurationURL == nil ? strings.configUnavailableHint : "")
         }
     }
 
@@ -164,9 +166,9 @@ struct UsageConsoleAPISection: View {
                 }
             }
 
-            if !summary.supportsAPIKeyManagement, summary.codexConfigTargetURL != nil {
+            if !summary.supportsAPIKeyManagement {
                 Button(strings.showConfigInFinder) {
-                    showCodexConfigInFinder(summary)
+                    showProviderConfigurationInFinder(summary)
                 }
             }
 
@@ -184,8 +186,8 @@ struct UsageConsoleAPISection: View {
         .accessibilityLabel(strings.moreActions)
     }
 
-    private func openCodexConfig(_ summary: APIProviderSummary) {
-        guard let targetURL = summary.codexConfigTargetURL else {
+    private func openProviderConfiguration(_ summary: APIProviderSummary) {
+        guard let targetURL = summary.configurationURL else {
             viewModel.setSettingsFeedback(SettingsFeedback(
                 kind: .error,
                 message: strings.configCouldNotBeOpened
@@ -203,8 +205,8 @@ struct UsageConsoleAPISection: View {
         }
     }
 
-    private func showCodexConfigInFinder(_ summary: APIProviderSummary) {
-        guard let targetURL = summary.codexConfigTargetURL else {
+    private func showProviderConfigurationInFinder(_ summary: APIProviderSummary) {
+        guard let targetURL = summary.configurationURL else {
             return
         }
 

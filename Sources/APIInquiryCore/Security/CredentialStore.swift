@@ -35,6 +35,15 @@ public extension CredentialStoreError {
 /// Credential stores that can describe the local Codex login state. Decorators such as
 /// `OpenCodeCredentialStore` forward this so Console keeps its Codex hints when another
 /// store wraps the Codex one.
+/// A credential store that can point the Console at the provider's on-disk
+/// configuration, so "Open Config" works for any locally-configured provider rather
+/// than only for Codex.
+public protocol LocalConfigurationProviding {
+    /// The file (preferred) or directory the user edits for this provider, or nil when
+    /// nothing is installed locally.
+    func configurationURL(for providerID: ProviderID) -> URL?
+}
+
 public protocol CodexCredentialProviding {
     func codexAuthFileStatus() -> CodexAuthFileStatus
     func codexConfigTargetURL() -> URL?
