@@ -17,6 +17,46 @@ enum MultiProviderBalanceCoordinatorTests {
         await testRefreshAddedProvidersKeepsStatesIsolated(using: harness)
         await testRefreshAddedProvidersRunsProvidersConcurrently(using: harness)
         await testFailedRefreshPreservesLastSnapshotThroughCoordinator(using: harness)
+        await testCredentialLookupsAreCachedUntilSomethingChanges(using: harness)
+    }
+
+    /// #44 C: the Console asks "is this provider configured?" several times per SwiftUI
+    /// pass, and for OpenCode each answer opens a SQLite database. Measure the reads.
+    @MainActor
+    private static func testCredentialLookupsAreCachedUntilSomethingChanges(using harness: TestHarness) async {
+        let counting = CountingCredentialStore(credentialsByAccount: [
+            "deepseek-api-key": "deepseek-key",
+            "zhipu-coding-plan-api-key": "zhipu-key"
+        ])
+        let coordinator = MultiProviderBalanceCoordinator(
+            registrations: testRegistrations(for: [
+                MockBalanceProvider(id: .deepseek, results: []),
+                MockBalanceProvider(id: .zhipuCodingPlan, results: [])
+            ]),
+            credentialStore: counting,
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.deepseek, .zhipuCodingPlan],
+                primaryProviderID: .deepseek
+            )
+        )
+
+        for _ in 0..<10 {
+            _ = coordinator.isCredentialConfigured(for: .deepseek)
+        }
+        harness.expectEqual(counting.reads, 1, "ten lookups read the store once")
+
+        _ = coordinator.isCredentialConfigured(for: .deepseek)
+        _ = coordinator.isCredentialConfigured(for: .zhipuCodingPlan)
+        harness.expectEqual(counting.reads, 2, "each provider is read once")
+
+        coordinator.invalidateCredentialCache(for: .deepseek)
+        _ = coordinator.isCredentialConfigured(for: .deepseek)
+        harness.expectEqual(counting.reads, 3, "invalidation forces the next lookup to re-read")
+
+        await coordinator.refresh(.deepseek)
+        let readsAfterRefresh = counting.reads
+        _ = coordinator.isCredentialConfigured(for: .deepseek)
+        harness.expectTrue(counting.reads > readsAfterRefresh, "a refresh drops the cached answer")
     }
 
     @MainActor
@@ -304,6 +344,23 @@ enum MultiProviderBalanceCoordinatorTests {
             preferences: preferences
         )
     }
+}
+
+private final class CountingCredentialStore: CredentialStore {
+    private let credentialsByAccount: [String: String]
+    private(set) var reads = 0
+
+    init(credentialsByAccount: [String: String]) {
+        self.credentialsByAccount = credentialsByAccount
+    }
+
+    func credential(forAccount account: String) throws -> String? {
+        reads += 1
+        return credentialsByAccount[account]
+    }
+
+    func saveCredential(_ credential: String, forAccount account: String) throws {}
+    func deleteCredential(forAccount account: String) throws {}
 }
 
 private final class FailingDeleteCredentialStore: CredentialStore {
