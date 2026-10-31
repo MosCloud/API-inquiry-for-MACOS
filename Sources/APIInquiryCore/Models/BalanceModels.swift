@@ -140,11 +140,6 @@ public enum ProviderSnapshot: Equatable {
     }
 }
 
-public enum MenuBarDisplayMode: Equatable {
-    case text
-    case iconAndText
-}
-
 public enum BalanceFailureKind: Equatable {
     case authenticationFailed
     case rateLimited
