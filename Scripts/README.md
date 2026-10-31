@@ -5,6 +5,7 @@ repository root; each script resolves `ROOT_DIR` itself.
 
 | Script | What it does | Calls |
 |---|---|---|
+| `verify.sh` | PR gate: runs the test suite, then compiles every target (App included); `--release` for release builds | `lib/toolchain.sh` |
 | `build-local-app.sh` | Builds the dev bundle at `.build/APIInquiry.app` (no launch) | `generate-app-icon.swift` |
 | `run-local-app.sh` | Builds via the script above, then `pkill -x APIInquiry` and opens the bundle | `build-local-app.sh` |
 | `package-mac-app.sh` | Builds the release bundle, writes `Info.plist`, ad-hoc signs → `dist/API Inquiry.app`; refuses a `0.0.0-dev` version | `generate-app-icon.swift` |
