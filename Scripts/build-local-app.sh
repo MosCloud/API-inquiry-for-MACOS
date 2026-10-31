@@ -148,9 +148,9 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>$APP_VERSION</string>
+    <string>0.0.0-dev</string>
     <key>CFBundleVersion</key>
-    <string>$BUILD_NUMBER</string>
+    <string>0</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
     <key>LSMinimumSystemVersion</key>
@@ -160,6 +160,23 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+
+# Development builds carry no version number: the number lives only in release
+# artifacts. Write the git commit instead so a local build can never pretend to be
+# the released one, and so Finder/crash reports say "0.0.0-dev" rather than 0.3.16.
+GIT_COMMIT="$(git -C "$ROOT_DIR" rev-parse --short HEAD 2>/dev/null || true)"
+GIT_DIRTY="false"
+if [ -n "$GIT_COMMIT" ] && [ -n "$(git -C "$ROOT_DIR" status --porcelain 2>/dev/null || true)" ]; then
+    GIT_DIRTY="true"
+fi
+if [ -n "$GIT_COMMIT" ]; then
+    /usr/libexec/PlistBuddy -c "Delete :APIInquiryGitCommit" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Delete :APIInquiryGitDirty" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add :APIInquiryGitCommit string $GIT_COMMIT" "$CONTENTS_DIR/Info.plist"
+    if [ "$GIT_DIRTY" = "true" ]; then
+        /usr/libexec/PlistBuddy -c "Add :APIInquiryGitDirty bool true" "$CONTENTS_DIR/Info.plist"
+    fi
+fi
 
 plutil -lint "$CONTENTS_DIR/Info.plist"
 chflags -R nohidden "$STAGED_APP_DIR"

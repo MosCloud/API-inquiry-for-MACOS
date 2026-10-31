@@ -48,6 +48,13 @@ public struct LocalizedStrings: Equatable {
 
     public var lastUpdatedPrefix: String { text(en: "Last updated", zh: "最近更新") }
     public var resetsPrefix: String { text(en: "Resets", zh: "重置于") }
+
+    /// Development builds identify themselves by commit, never by version number.
+    public var developmentVersionPrefix: String {
+        text(en: "Development version at commit", zh: "开发版本 · 提交")
+    }
+
+    public var developmentVersionDirtySuffix: String { text(en: "+ dirty", zh: "+ 改动") }
     public var planNextResetsPrefix: String { text(en: "Plan Next Resets", zh: "计划下次重置") }
     public var usedSuffix: String { text(en: "used", zh: "已用") }
     public var remainingSuffix: String { text(en: "remaining", zh: "剩余") }

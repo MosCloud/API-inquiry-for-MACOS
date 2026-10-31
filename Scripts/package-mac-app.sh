@@ -91,6 +91,21 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 </plist>
 PLIST
 
+# Release artifacts are the only place a version number lives. Strip the development
+# markers a local build may have written, then prove the version matches version.env.
+/usr/libexec/PlistBuddy -c "Delete :APIInquiryGitCommit" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Delete :APIInquiryGitDirty" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
+
+packaged_version="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$CONTENTS_DIR/Info.plist")"
+if [ "$packaged_version" != "$APP_VERSION" ]; then
+    echo "refusing to package: bundle version '$packaged_version' != version.env '$APP_VERSION'" >&2
+    exit 1
+fi
+if [ "$packaged_version" = "0.0.0-dev" ]; then
+    echo "refusing to package a development build as a release" >&2
+    exit 1
+fi
+
 plutil -lint "$CONTENTS_DIR/Info.plist"
 chflags -R nohidden "$STAGED_APP_DIR"
 xattr -cr "$STAGED_APP_DIR"
