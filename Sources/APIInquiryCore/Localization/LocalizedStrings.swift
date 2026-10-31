@@ -168,6 +168,15 @@ public struct LocalizedStrings: Equatable {
         )
     }
 
+    /// Codex / OpenCode own their credentials; an expired sign-in is fixed in their CLI,
+    /// not by editing a key in the console.
+    public func localCredentialSignInExpired(providerName: String) -> String {
+        text(
+            en: "\(providerName) sign-in may have expired. Sign in to the \(providerName) CLI again, then refresh.",
+            zh: "\(providerName) 登录态可能已失效，请重新登录 \(providerName) CLI 后刷新。"
+        )
+    }
+
     public var balanceAPIRateLimitReached: String {
         text(en: "Balance API rate limit reached. Try again shortly.", zh: "Balance API 已达到频率限制，请稍后重试。")
     }

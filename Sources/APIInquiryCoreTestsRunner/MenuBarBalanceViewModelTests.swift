@@ -18,6 +18,9 @@ enum MenuBarBalanceViewModelTests {
         testSetupGuidanceShowsWhenKeyIsMissing(using: harness)
         testChineseSetupGuidanceUsesAPIKeyTerminology(using: harness)
         testAuthenticationFailureExposesKeyRecoveryActions(using: harness)
+        testLocalCredentialAuthenticationFailurePointsAtCLISignIn(using: harness)
+        testLocalCredentialAuthenticationFailureIsLocalized(using: harness)
+        testAppManagedAuthenticationFailureKeepsKeyCopy(using: harness)
         testRateLimitExposesRetryAction(using: harness)
         testRefreshingDisablesRefresh(using: harness)
         testPrimaryBalanceAmountToneBoundaries(using: harness)
@@ -604,6 +607,44 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.recoveryActions, [.openConsole], "auth failure opens console")
     }
 
+
+    @MainActor
+    private static func testLocalCredentialAuthenticationFailurePointsAtCLISignIn(using harness: TestHarness) {
+        let viewModel = makeLOCALExternalAuthFailureViewModel(providerID: .codex)
+
+        harness.expectEqual(
+            viewModel.errorText,
+            "Codex sign-in may have expired. Sign in to the Codex CLI again, then refresh.",
+            "local-external auth failure points at the CLI"
+        )
+        harness.expectTrue(
+            viewModel.errorText?.contains("Replace or delete") == false,
+            "local-external auth failure does not suggest console key edits"
+        )
+    }
+
+    @MainActor
+    private static func testLocalCredentialAuthenticationFailureIsLocalized(using harness: TestHarness) {
+        let viewModel = makeLOCALExternalAuthFailureViewModel(providerID: .opencode, languageSelection: .zh)
+
+        harness.expectEqual(
+            viewModel.errorText,
+            "OpenCode 登录态可能已失效，请重新登录 OpenCode CLI 后刷新。",
+            "local-external auth failure is localized"
+        )
+    }
+
+    @MainActor
+    private static func testAppManagedAuthenticationFailureKeepsKeyCopy(using harness: TestHarness) {
+        let message = "API key may be invalid. Replace or delete it in the console."
+        let viewModel = makeViewModel(
+            state: .failed(message: message, kind: .authenticationFailed, last: nil),
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "bad-key"])
+        )
+
+        harness.expectEqual(viewModel.errorText, message, "app-managed auth failure keeps the key copy")
+    }
+
     @MainActor
     private static func testRateLimitExposesRetryAction(using harness: TestHarness) {
         let viewModel = makeViewModel(
@@ -622,6 +663,33 @@ enum MenuBarBalanceViewModelTests {
         let viewModel = makeViewModel(state: .loading(last: .balance(makeSnapshot(total: "68.65"))))
 
         harness.expectTrue(viewModel.isRefreshDisabled, "refresh disabled while loading")
+    }
+
+
+    @MainActor
+    private static func makeLOCALExternalAuthFailureViewModel(
+        providerID: ProviderID,
+        languageSelection: AppLanguage = .en
+    ) -> MenuBarBalanceViewModel {
+        let provider = MockBalanceProvider(id: providerID, results: [])
+        let credentialStore = InMemoryCredentialStore(
+            credentialsByAccount: [testCredentialAccount(for: providerID): "stale-token"]
+        )
+        let controller = makeTestRefreshController(
+            provider: provider,
+            credentialStore: credentialStore,
+            initialState: .failed(
+                message: "API key may be invalid. Replace or delete it in the console.",
+                kind: .authenticationFailed,
+                last: nil
+            )
+        )
+        return MenuBarBalanceViewModel(
+            provider: provider,
+            credentialStore: credentialStore,
+            controller: controller,
+            languageStore: makeLanguageStore(selection: languageSelection)
+        )
     }
 
     @MainActor
