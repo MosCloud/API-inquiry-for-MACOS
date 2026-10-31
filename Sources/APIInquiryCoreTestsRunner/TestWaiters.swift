@@ -16,12 +16,12 @@ import Foundation
 func waitUntilBounded(
     attempts: Int,
     interval: UInt64,
-    condition: () -> Bool
+    condition: () async -> Bool
 ) async -> Bool {
     precondition(attempts > 0, "a bounded wait needs at least one attempt")
 
     for attempt in 0..<attempts {
-        if condition() {
+        if await condition() {
             return true
         }
         guard attempt < attempts - 1 else { break }
