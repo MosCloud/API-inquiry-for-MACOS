@@ -120,6 +120,9 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.quotaWindowHeroLabel("Week"), "每周", "chinese hero label keeps the full word")
         harness.expectEqual(strings.quotaWindowHeroLabel("Month"), "每月", "chinese hero month label")
         harness.expectEqual(strings.quotaHeroLabelColumnWidth, 46, "chinese hero label column")
+        harness.expectEqual(strings.secondaryQuotaLabelColumnWidth, 30, "chinese secondary label column")
+        harness.expectEqual(strings.secondaryQuotaValueColumnWidth, 34, "secondary value column")
+        harness.expectEqual(strings.secondaryQuotaResetColumnWidth, 34, "secondary reset column")
         harness.expectEqual(strings.quotaWindowLabel("7d"), "每周", "chinese 7d compact label")
     }
 
@@ -131,6 +134,7 @@ enum LocalizedStringsTests {
         harness.expectEqual(strings.quotaWindowHeroLabel("Month"), "Month", "english hero month label")
         harness.expectEqual(strings.quotaWindowLabel("Month"), "Monthly", "english detail month label")
         harness.expectEqual(strings.quotaHeroLabelColumnWidth, 52, "english hero label column needs room for Month")
+        harness.expectEqual(strings.secondaryQuotaLabelColumnWidth, 40, "english secondary label column needs room for Month")
     }
 
     private static func testChineseProviderGuidanceUsesLocalizedPlaceholder(using harness: TestHarness) {
