@@ -3,6 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/Scripts/version.env"
+source "$ROOT_DIR/Scripts/lib/toolchain.sh"
+
+# The app cannot compile against Command Line Tools; pick Xcode unless the caller did.
+ensure_xcode_toolchain
+
 CONFIGURATION="${CONFIGURATION:-release}"
 DIST_DIR="$ROOT_DIR/dist"
 APP_NAME="API Inquiry.app"
@@ -30,8 +35,8 @@ SDKROOT="$APP_SDK_PATH" swift Scripts/generate-app-icon.swift
 # Build with SwiftPM's native build system on purpose: the Xcode build system records
 # LC_BUILD_VERSION sdk = the deployment target (13.0), which opts the app out of the
 # macOS 26 design (legacy pop-up buttons, old panel chrome). The native build system
-# records the real SDK, matching v0.3.15. Verify with:
-#   otool -l "<app>/Contents/MacOS/APIInquiry" | grep -A4 LC_BUILD_VERSION
+# records the real SDK. `assert_modern_build_sdk` below fails the build if that ever
+# regresses, instead of shipping an app with the old chrome.
 SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --build-system native --configuration "$CONFIGURATION" --product "$PRODUCT_NAME"
 
 rm -rf "$STAGING_ROOT" "$APP_DIR"
@@ -42,6 +47,7 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
 cp "$ROOT_DIR/.build/$CONFIGURATION/$PRODUCT_NAME" "$MACOS_DIR/$EXECUTABLE_NAME"
 chmod +x "$MACOS_DIR/$EXECUTABLE_NAME"
+assert_modern_build_sdk "$MACOS_DIR/$EXECUTABLE_NAME"
 
 RESOURCE_BUNDLE="$ROOT_DIR/.build/$CONFIGURATION/$RESOURCE_BUNDLE_NAME"
 if [ -d "$RESOURCE_BUNDLE" ]; then
