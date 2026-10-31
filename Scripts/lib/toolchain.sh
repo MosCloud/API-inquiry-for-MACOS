@@ -94,3 +94,22 @@ MESSAGE
         exit 1
     fi
 }
+
+# Regenerating the icon costs a couple of seconds per build; skip it when the
+# generated files are newer than both their source image and the generator.
+app_icon_is_current() {
+    local root="$1"
+    local source="$root/Scripts/Assets/deepseek-app-symbol-source.png"
+    local generator="$root/Scripts/generate-app-icon.swift"
+    local icns="$root/Sources/APIInquiryApp/Resources/AppIcon.icns"
+    local preview="$root/Sources/APIInquiryApp/Resources/AppIcon.png"
+
+    [ -f "$source" ] || return 1
+    [ -f "$icns" ] || return 1
+    [ -f "$preview" ] || return 1
+
+    [ "$icns" -nt "$source" ] || return 1
+    [ "$icns" -nt "$generator" ] || return 1
+    [ "$preview" -nt "$source" ] || return 1
+    [ "$preview" -nt "$generator" ]
+}
