@@ -82,23 +82,17 @@ struct ProviderStatusRow: View {
     }
 
     private var providerMetricItems: [ProviderMetricItem] {
-        let statusMetric = summary.id == .codex
-            ? ProviderMetricItem(
-                title: strings.creditsBalanceMetricTitle,
-                value: summary.creditsBalanceText ?? "--"
-            )
-            : ProviderMetricItem(title: strings.statusMetricTitle, value: summary.validationStatusText)
         var metrics = [
             ProviderMetricItem(title: strings.apiKeyMetricTitle, value: summary.apiKeyStatusText),
-            statusMetric,
+            ProviderMetricItem(title: summary.statusMetricTitle, value: summary.statusMetricValue),
             ProviderMetricItem(title: strings.detailMetricTitle, value: summary.balanceText)
         ]
 
-        if let planNextResetText = summary.planNextResetText {
+        if let planNextResetValueText = summary.planNextResetValueText {
             metrics.append(
                 ProviderMetricItem(
                     title: strings.planNextResetsMetricTitle,
-                    value: strippedPrefix(planNextResetText, prefix: strings.planNextResetsPrefix)
+                    value: planNextResetValueText
                 )
             )
         }
@@ -167,15 +161,4 @@ struct ProviderStatusRow: View {
         }
     }
 
-    private func strippedPrefix(_ text: String, prefix: String) -> String {
-        if text.hasPrefix("\(prefix): ") {
-            return String(text.dropFirst(prefix.count + 2))
-        }
-
-        if text.hasPrefix("\(prefix)：") {
-            return String(text.dropFirst(prefix.count + 1))
-        }
-
-        return text
-    }
 }

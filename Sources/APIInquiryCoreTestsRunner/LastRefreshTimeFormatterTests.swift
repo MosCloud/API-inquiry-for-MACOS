@@ -108,7 +108,7 @@ enum LastRefreshTimeFormatterTests {
             timeZone: TimeZone(secondsFromGMT: 0)!
         )
 
-        harness.expectEqual(formatter.planNextResetText(for: sampleDate), "Plan Next Resets: 23:05", "twenty four hour plan next reset")
+        harness.expectEqual(formatter.planNextResetValueText(for: sampleDate), "23:05", "plan next reset value carries no label")
     }
 
     private static func testPlanNextResetHidesMissingDate(using harness: TestHarness) {
@@ -117,7 +117,7 @@ enum LastRefreshTimeFormatterTests {
             timeZone: TimeZone(secondsFromGMT: 0)!
         )
 
-        harness.expectEqual(formatter.planNextResetText(for: nil), nil as String?, "missing plan next reset")
+        harness.expectEqual(formatter.planNextResetValueText(for: nil), nil as String?, "missing plan next reset")
     }
 
     private static func testChineseLabelsUseReviewedCopy(using harness: TestHarness) {
@@ -130,7 +130,7 @@ enum LastRefreshTimeFormatterTests {
         harness.expectEqual(formatter.lastRefreshText(for: sampleDate), "最近更新：23:05", "chinese last refresh")
         harness.expectEqual(formatter.resetText(for: sampleDate), "重置于：23:05", "chinese reset")
         harness.expectEqual(formatter.resetDateText(for: sampleDate), "重置于：05/15", "chinese reset date")
-        harness.expectEqual(formatter.planNextResetText(for: sampleDate), "计划下次重置：23:05", "chinese plan next reset")
+        harness.expectEqual(formatter.planNextResetValueText(for: sampleDate), "23:05", "chinese plan next reset is also label-free")
     }
 
     private static var sampleDate: Date {

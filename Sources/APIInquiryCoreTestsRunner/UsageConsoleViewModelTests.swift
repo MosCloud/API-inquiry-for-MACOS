@@ -89,7 +89,8 @@ enum UsageConsoleViewModelTests {
         let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
 
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
-        harness.expectEqual(codexSummary?.creditsBalanceText, "12.5 Credits", "codex console credits balance")
+        harness.expectEqual(codexSummary?.statusMetricValue, "12.5 Credits", "codex console credits balance")
+        harness.expectEqual(codexSummary?.statusMetricTitle, "Credits balance", "codex metric row is titled as credits")
         harness.expectEqual(codexSummary?.balanceText, "5h 72% remaining", "codex detail remains quota text")
         harness.expectEqual(codexSummary?.validationStatusText, "Plan available", "codex status remains service status")
     }
@@ -106,7 +107,7 @@ enum UsageConsoleViewModelTests {
         let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
 
         harness.expectEqual(
-            viewModel.providerSummaries.first { $0.id == .codex }?.creditsBalanceText,
+            viewModel.providerSummaries.first { $0.id == .codex }?.statusMetricValue,
             "0 Credits",
             "codex explicit zero credits"
         )
@@ -120,7 +121,7 @@ enum UsageConsoleViewModelTests {
         let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
 
         harness.expectEqual(
-            viewModel.providerSummaries.first { $0.id == .codex }?.creditsBalanceText,
+            viewModel.providerSummaries.first { $0.id == .codex }?.statusMetricValue,
             "--",
             "codex missing credits placeholder"
         )
@@ -143,12 +144,12 @@ enum UsageConsoleViewModelTests {
             languageStore: makeLanguageStore(selection: .zh)
         )
         harness.expectEqual(
-            englishViewModel.providerSummaries.first { $0.id == .codex }?.creditsBalanceText,
+            englishViewModel.providerSummaries.first { $0.id == .codex }?.statusMetricValue,
             "Unlimited",
             "english unlimited credits"
         )
         harness.expectEqual(
-            chineseViewModel.providerSummaries.first { $0.id == .codex }?.creditsBalanceText,
+            chineseViewModel.providerSummaries.first { $0.id == .codex }?.statusMetricValue,
             "无限",
             "chinese unlimited credits"
         )
@@ -166,9 +167,9 @@ enum UsageConsoleViewModelTests {
         let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
 
         harness.expectEqual(
-            viewModel.providerSummaries.first { $0.id == .deepseek }?.creditsBalanceText,
-            nil,
-            "non-Codex provider does not expose credits balance"
+            viewModel.providerSummaries.first { $0.id == .deepseek }?.statusMetricTitle,
+            "Status",
+            "non-Codex provider keeps the plain status metric"
         )
     }
 
@@ -619,10 +620,10 @@ enum UsageConsoleViewModelTests {
 
         harness.expectEqual(viewModel.providerSummaries.count, 2, "multi console provider summary count")
         harness.expectEqual(viewModel.providerSummaries.first?.id, .deepseek, "multi console first provider id")
-        harness.expectEqual(viewModel.providerSummaries.first?.planNextResetText, nil, "multi console deepseek plan next reset hidden")
+        harness.expectEqual(viewModel.providerSummaries.first?.planNextResetValueText, nil, "multi console deepseek plan next reset hidden")
         harness.expectEqual(viewModel.providerSummaries.last?.id, .zhipuCodingPlan, "multi console zhipu provider id")
         harness.expectEqual(viewModel.providerSummaries.last?.balanceText, "5h 83% remaining", "multi console zhipu usage text")
-        harness.expectEqual(viewModel.providerSummaries.last?.planNextResetText, "Plan Next Resets: 23:05", "multi console zhipu plan next reset")
+        harness.expectEqual(viewModel.providerSummaries.last?.planNextResetValueText, "23:05", "multi console zhipu plan next reset drops the label")
         harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Plan available", "multi console zhipu status")
         harness.expectEqual(viewModel.providerSummaries.first?.supportsAPIKeyManagement, true, "multi console deepseek supports key management")
         harness.expectEqual(viewModel.providerSummaries.last?.supportsAPIKeyManagement, true, "multi console zhipu supports key management")
