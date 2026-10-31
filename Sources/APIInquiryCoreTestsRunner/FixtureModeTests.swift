@@ -9,6 +9,30 @@ enum FixtureModeTests {
         await testFailedProviderThrows(using: harness)
         testScenarioData(using: harness)
         await testWarningFixtureUsesWarningValues(using: harness)
+        testScenariosCoverEveryRegisteredProvider(using: harness)
+    }
+
+    /// #64 P6: the scenarios follow `ProviderID.allCases`, so a new provider needs no
+    /// fixture edit — and if the registry order drifts from the enum order, this fails.
+    private static func testScenariosCoverEveryRegisteredProvider(using harness: TestHarness) {
+        let multi = FixtureScenarioData.make(for: .multi)
+        let warning = FixtureScenarioData.make(for: .warning)
+
+        harness.expectEqual(
+            multi.registrations.map(\.descriptor.id),
+            ProviderID.allCases,
+            "multi scenario covers every registered provider in declaration order"
+        )
+        harness.expectEqual(
+            warning.registrations.map(\.descriptor.id),
+            ProviderID.allCases,
+            "warning scenario covers every registered provider in declaration order"
+        )
+        harness.expectEqual(
+            BuiltInProviderRegistry.default.registrations.map(\.descriptor.id),
+            ProviderID.allCases,
+            "registry order matches the enum order the fixtures rely on"
+        )
     }
 
     private static func testScenarioParsing(using harness: TestHarness) {

@@ -96,32 +96,10 @@ public struct FixtureScenarioData {
         case .loading:
             return single(.deepseek, behavior: .suspends, now: now)
         case .multi:
-            let ids: [ProviderID] = [.deepseek, .zhipuCodingPlan, .codex, .opencode]
-            return FixtureScenarioData(
-                registrations: [
-                    registration(.deepseek, .succeedsThenFails(balance(now: now))),
-                    registration(.zhipuCodingPlan, .succeedsThenFails(zhipuQuota(now: now))),
-                    registration(.codex, .succeedsThenFails(codexQuota(now: now))),
-                    registration(.opencode, .succeedsThenFails(openCodeQuota(now: now)))
-                ],
-                credentialStore: InMemoryCredentialStore(credentialsByAccount: credentials(for: ids)),
-                preferences: InMemoryProviderPreferencesStore(addedProviderIDs: ids, primaryProviderID: .opencode),
-                defaultProviderID: .opencode
-            )
+            return everyProvider(now: now, stressed: false, primary: .opencode)
 
         case .warning:
-            let ids: [ProviderID] = [.deepseek, .zhipuCodingPlan, .codex, .opencode]
-            return FixtureScenarioData(
-                registrations: [
-                    registration(.deepseek, .succeedsThenFails(balance(now: now, total: 30))),
-                    registration(.zhipuCodingPlan, .succeedsThenFails(zhipuQuota(now: now, usagePercentage: 70))),
-                    registration(.codex, .succeedsThenFails(codexQuota(now: now, remaining: [30, 25]))),
-                    registration(.opencode, .succeedsThenFails(openCodeQuota(now: now, remaining: [15, 25, 35])))
-                ],
-                credentialStore: InMemoryCredentialStore(credentialsByAccount: credentials(for: ids)),
-                preferences: InMemoryProviderPreferencesStore(addedProviderIDs: ids, primaryProviderID: .deepseek),
-                defaultProviderID: .deepseek
-            )
+            return everyProvider(now: now, stressed: true, primary: .deepseek)
 
         case .unconfigured:
             return FixtureScenarioData(
@@ -130,6 +108,42 @@ public struct FixtureScenarioData {
                 preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek], primaryProviderID: .deepseek),
                 defaultProviderID: .deepseek
             )
+        }
+    }
+
+    /// Every registered provider, so a new provider shows up in the fixture scenarios
+    /// without anyone remembering to add a line here. `sampleSnapshot` is a switch over
+    /// `ProviderID`, so the compiler reports the one that was left out.
+    private static func everyProvider(
+        now: Date,
+        stressed: Bool,
+        primary: ProviderID
+    ) -> FixtureScenarioData {
+        let ids = ProviderID.allCases
+        return FixtureScenarioData(
+            registrations: ids.map { id in
+                registration(id, .succeedsThenFails(sampleSnapshot(for: id, now: now, stressed: stressed)))
+            },
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: credentials(for: ids)),
+            preferences: InMemoryProviderPreferencesStore(addedProviderIDs: ids, primaryProviderID: primary),
+            defaultProviderID: primary
+        )
+    }
+
+    private static func sampleSnapshot(
+        for id: ProviderID,
+        now: Date,
+        stressed: Bool
+    ) -> ProviderSnapshot {
+        switch id {
+        case .deepseek:
+            return stressed ? balance(now: now, total: 30) : balance(now: now)
+        case .zhipuCodingPlan:
+            return stressed ? zhipuQuota(now: now, usagePercentage: 70) : zhipuQuota(now: now)
+        case .codex:
+            return stressed ? codexQuota(now: now, remaining: [30, 25]) : codexQuota(now: now)
+        case .opencode:
+            return stressed ? openCodeQuota(now: now, remaining: [15, 25, 35]) : openCodeQuota(now: now)
         }
     }
 
