@@ -10,7 +10,10 @@ public final class OpenCodeGoUsageProvider: BalanceProvider {
     public static let defaultUsageURL = URL(string: "https://opencode.ai/zen/go/v1/usage")!
     /// The endpoint sits behind Cloudflare, which rejects requests that identify as a
     /// generic HTTP library, so the provider always sends a dedicated user agent.
-    public static let defaultUserAgent = "API-Inquiry/0.4.0"
+    ///
+    /// The token is deliberately stable: tying it to the release version meant it drifted
+    /// from `Scripts/version.env` and had to be edited on every bump (#44).
+    public static let defaultUserAgent = "API-Inquiry/1.0"
 
     public let id: ProviderID = .opencode
 

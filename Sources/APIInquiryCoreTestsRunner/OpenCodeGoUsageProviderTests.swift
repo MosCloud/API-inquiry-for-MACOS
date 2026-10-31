@@ -187,7 +187,7 @@ enum OpenCodeGoUsageProviderTests {
                 "opencode accept header"
             )
             harness.expectTrue(
-                httpClient.lastRequest?.value(forHTTPHeaderField: "User-Agent")?.hasPrefix("API-Inquiry/") == true,
+                httpClient.lastRequest?.value(forHTTPHeaderField: "User-Agent") == OpenCodeGoUsageProvider.defaultUserAgent,
                 "opencode sends its own user agent"
             )
         } catch {
