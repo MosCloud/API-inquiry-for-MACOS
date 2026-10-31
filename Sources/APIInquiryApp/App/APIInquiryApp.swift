@@ -49,13 +49,21 @@ struct APIInquiryApp: App {
                 consoleWindowController.open(defaultSection: section)
             }
         } label: {
-            Image(nsImage: ProviderVisualCatalog.menuBarLabelImage(
-                text: viewModel.menuBarValueText,
-                providerID: viewModel.primaryDisplayParts.providerID,
-                providerPrefix: viewModel.menuBarIconFallbackText
-            ))
-                .renderingMode(.template)
-                .accessibilityLabel("\(viewModel.providerDisplayName) \(viewModel.menuBarValueText)")
+            HStack(spacing: 2) {
+                Image(nsImage: ProviderVisualCatalog.menuBarLabelImage(
+                    text: viewModel.menuBarValueText,
+                    providerID: viewModel.primaryDisplayParts.providerID,
+                    providerPrefix: viewModel.menuBarIconFallbackText
+                ))
+                    .renderingMode(.template)
+
+                if viewModel.isShowingStaleValue {
+                    Image(nsImage: ProviderVisualCatalog.staleMarkerImage())
+                        .renderingMode(.original)
+                        .accessibilityHidden(true)
+                }
+            }
+            .accessibilityLabel(viewModel.menuBarAccessibilityText)
         }
         .menuBarExtraStyle(.window)
     }
