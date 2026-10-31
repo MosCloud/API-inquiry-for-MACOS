@@ -46,7 +46,7 @@ Scripts/run-local-app.sh               # build + launch .build/APIInquiry.app
 Scripts/build-local-app.sh             # build local app bundle, no launch
 ```
 
-**`swift build` needs the Xcode toolchain here.** `xcode-select` points at Command Line Tools, whose SDK cannot resolve `SwiftUI.StateMacro`, so a bare `swift build` fails with `SwiftUI.State: 'State()' declared here` followed by `error: Build failed`. Prefix it: `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift build`. `swift run APIInquiryCoreTestsRunner` does **not** need the prefix — `APIInquiryCore` imports no SwiftUI — so the daily test loop runs as written.
+**Anything that compiles `APIInquiryApp` needs the Xcode toolchain here.** `xcode-select` points at Command Line Tools, whose SDK cannot resolve the SwiftUI macros, so a bare `swift build` dies with a wall of `external macro implementation type 'SwiftUIMacros.StateMacro' could not be found` errors and a final `error: Build failed`. `Scripts/build-local-app.sh` and `Scripts/run-local-app.sh` do not set the variable themselves, so they fail the same way. Prefix the command — `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift build` — or export it for the session. `swift run APIInquiryCoreTestsRunner` does **not** need it: `APIInquiryCore` imports no SwiftUI, so the daily test loop runs as written.
 
 Release packaging only at release-candidate stage: `Scripts/package-mac-app.sh` → `dist/API Inquiry.app` (ad-hoc signed), `Scripts/package-dmg.sh` → `dist/API-Inquiry-vX.Y.Z.dmg` + `.sha256`, then `Scripts/clean-development-apps.sh`. Full checklist and failure table: `docs/release-runbook.md` / `docs/release-runbook_zh.md`.
 
@@ -88,6 +88,7 @@ The default toolchain is Command Line Tools (`xcode-select -p` points at it, and
 - **Codex manual-reset credits are a parallel subsystem, not a `BalanceProvider`.** Don't try to fit credits data into `ProviderSnapshot` — see `CodexManualResetCreditsProvider` / its own protocol.
 - `BuiltInProviderRegistry.default` is the single source of truth wiring `ProviderID` → `ProviderDescriptor` + `makeProvider`. Adding a provider touches this chain. The current `ProviderID` cases are `deepseek`, `zhipuCodingPlan`, `codex`, `opencode`.
 - Credential stores form a decorator chain, outermost first: `OpenCodeCredentialStore` → `CodexCredentialStore` → `KeychainCredentialStore` (composed once in `APIInquiryApp.init`). Codex reads `$CODEX_HOME/auth.json` / `~/.codex/auth.json` read-only; every other provider's key lives in the Keychain (OpenCode's account is `opencode-api-key`). A decorator must forward whatever it does not override, or the layers beneath silently lose behaviour.
+- `LocalConfigurationProviding` is what backs the API page's 打开配置 button: the decorators answer "which local file represents this provider". Codex returns its `auth.json`; OpenCode returns `~/.config/opencode/opencode.jsonc`, falling back to `opencode.json` and then the directory; anything else returns nil, and the view renders the button disabled with a hint rather than hiding it. Add a new provider here instead of special-casing its id in the view.
 
 ## Conventions
 
