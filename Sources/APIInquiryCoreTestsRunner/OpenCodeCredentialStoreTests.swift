@@ -4,6 +4,7 @@ import SQLite3
 
 enum OpenCodeCredentialStoreTests {
     static func run(using harness: TestHarness) {
+        configurationTests(using: harness)
         testReadsKeyFromDatabase(using: harness)
         testFallsBackToDelegateWhenDatabaseIsMissing(using: harness)
         testFallsBackToDelegateWhenCredentialRowIsMissing(using: harness)
@@ -255,5 +256,65 @@ enum OpenCodeCredentialStoreTests {
         """
         sqlite3_exec(connection, insert, nil, nil, nil)
         return DatabaseFixture(directory: directory, databaseURL: databaseURL)
+    }
+}
+
+// MARK: - Configuration entry point (Console → API → 打开配置)
+
+extension OpenCodeCredentialStoreTests {
+    static func configurationTests(using harness: TestHarness) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("opencode-config-\(UUID().uuidString)", isDirectory: true)
+
+        let store = OpenCodeCredentialStore(
+            delegate: InMemoryCredentialStore(),
+            configDirectoryURL: directory
+        )
+
+        harness.expectEqual(
+            store.configurationURL(for: .opencode),
+            nil,
+            "missing config directory yields no configuration target"
+        )
+
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        harness.expectEqual(
+            store.configurationURL(for: .opencode),
+            directory,
+            "existing directory is used when no config file exists"
+        )
+
+        let jsonc = directory.appendingPathComponent("opencode.jsonc")
+        FileManager.default.createFile(atPath: jsonc.path, contents: Data("{}".utf8))
+        harness.expectEqual(
+            store.configurationURL(for: .opencode),
+            jsonc,
+            "opencode.jsonc is preferred when present"
+        )
+
+        try? FileManager.default.removeItem(at: jsonc)
+        let json = directory.appendingPathComponent("opencode.json")
+        FileManager.default.createFile(atPath: json.path, contents: Data("{}".utf8))
+        harness.expectEqual(
+            store.configurationURL(for: .opencode),
+            json,
+            "opencode.json is the fallback config file"
+        )
+
+        harness.expectEqual(
+            store.configurationURL(for: .deepseek),
+            nil,
+            "keychain-backed providers have no local configuration"
+        )
+
+        try? FileManager.default.removeItem(at: json)
+        try? FileManager.default.removeItem(at: directory)
+        harness.expectEqual(
+            store.configurationURL(for: .opencode),
+            nil,
+            "removed directory yields no configuration target"
+        )
     }
 }

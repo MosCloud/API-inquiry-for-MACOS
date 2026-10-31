@@ -18,7 +18,7 @@ public struct APIProviderSummary: Equatable {
     public let validationStatusText: String
     public let summaryBadgeText: String
     public let supportsAPIKeyManagement: Bool
-    public let codexConfigTargetURL: URL?
+    public let configurationURL: URL?
     public let configurationFeedback: SettingsFeedback?
     public let statusTone: ProviderStatusTone
     public let healthTone: ProviderAmountTone
@@ -41,7 +41,7 @@ public struct APIProviderSummary: Equatable {
         validationStatusText: String,
         summaryBadgeText: String? = nil,
         supportsAPIKeyManagement: Bool = true,
-        codexConfigTargetURL: URL? = nil,
+        configurationURL: URL? = nil,
         configurationFeedback: SettingsFeedback? = nil,
         statusTone: ProviderStatusTone = .neutral,
         healthTone: ProviderAmountTone = .neutral,
@@ -63,7 +63,7 @@ public struct APIProviderSummary: Equatable {
         self.validationStatusText = validationStatusText
         self.summaryBadgeText = summaryBadgeText ?? validationStatusText
         self.supportsAPIKeyManagement = supportsAPIKeyManagement
-        self.codexConfigTargetURL = codexConfigTargetURL
+        self.configurationURL = configurationURL
         self.configurationFeedback = configurationFeedback
         self.statusTone = statusTone
         self.healthTone = healthTone
@@ -189,7 +189,7 @@ public final class UsageConsoleViewModel: ObservableObject {
                     strings: strings
                 ),
                 supportsAPIKeyManagement: descriptor.credentialManagement.supportsConsoleCredentialManagement,
-                codexConfigTargetURL: codexConfigTargetURL(for: descriptor),
+                configurationURL: configurationURL(for: descriptor),
                 configurationFeedback: codexConfigurationFeedback(for: descriptor),
                 statusTone: providerSummaryStatusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
@@ -613,13 +613,12 @@ public final class UsageConsoleViewModel: ObservableObject {
         return true
     }
 
-    private func codexConfigTargetURL(for descriptor: ProviderDescriptor) -> URL? {
-        guard descriptor.id == .codex,
-              descriptor.credentialManagement == .localExternalConfiguration else {
+    private func configurationURL(for descriptor: ProviderDescriptor) -> URL? {
+        guard descriptor.credentialManagement == .localExternalConfiguration else {
             return nil
         }
 
-        return (credentialStore as? CodexCredentialProviding)?.codexConfigTargetURL()
+        return (credentialStore as? LocalConfigurationProviding)?.configurationURL(for: descriptor.id)
     }
 
     private func codexConfigurationFeedback(for descriptor: ProviderDescriptor) -> SettingsFeedback? {

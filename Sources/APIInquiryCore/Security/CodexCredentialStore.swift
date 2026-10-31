@@ -7,7 +7,7 @@ public enum CodexAuthFileStatus: Equatable {
     case missingAccessToken(URL)
 }
 
-public final class CodexCredentialStore: CredentialStore, CodexCredentialProviding {
+public final class CodexCredentialStore: CredentialStore, CodexCredentialProviding, LocalConfigurationProviding {
     private let delegate: CredentialStore
     private let codexAccount: String
     private let authFileURLs: [URL]
@@ -40,6 +40,13 @@ public final class CodexCredentialStore: CredentialStore, CodexCredentialProvidi
 
     public func deleteCredential(forAccount account: String) throws {
         try delegate.deleteCredential(forAccount: account)
+    }
+
+    public func configurationURL(for providerID: ProviderID) -> URL? {
+        guard providerID == .codex else {
+            return nil
+        }
+        return codexConfigTargetURL()
     }
 
     public func codexConfigTargetURL() -> URL? {

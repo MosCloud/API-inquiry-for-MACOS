@@ -10,7 +10,8 @@ enum UsageConsoleViewModelTests {
         await testProviderSummariesExposeAPIAccessCopy(using: harness)
         await testProviderSummariesExposeChineseAPIAccessCopy(using: harness)
         testProviderSummariesExposeUnconfiguredAPIAccessCopy(using: harness)
-        testProviderSummariesExposeCodexConfigTarget(using: harness)
+        testProviderSummariesExposeCodexConfigurationURL(using: harness)
+        testProviderSummariesExposeOpenCodeConfigurationURL(using: harness)
         testProviderSummariesExposeCodexAuthFileConfigurationFeedback(using: harness)
         await testCodexSummaryExposesCreditsBalance(using: harness)
         await testCodexCreditsBalancePreservesExplicitZero(using: harness)
@@ -526,7 +527,7 @@ enum UsageConsoleViewModelTests {
     }
 
     @MainActor
-    private static func testProviderSummariesExposeCodexConfigTarget(using harness: TestHarness) {
+    private static func testProviderSummariesExposeCodexConfigurationURL(using harness: TestHarness) {
         let authFileURL = writeTemporaryAuthFile(#"{"tokens":{"access_token":"test-access-token"}}"#)
         let credentialStore = CodexCredentialStore(
             delegate: InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "fallback-token"]),
@@ -537,9 +538,46 @@ enum UsageConsoleViewModelTests {
 
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
 
-        harness.expectEqual(codexSummary?.codexConfigTargetURL, authFileURL, "codex summary exposes config target")
+        harness.expectEqual(codexSummary?.configurationURL, authFileURL, "codex summary exposes config target")
 
         removeTemporaryFile(authFileURL)
+    }
+
+    @MainActor
+    private static func testProviderSummariesExposeOpenCodeConfigurationURL(using harness: TestHarness) {
+        let configDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("opencode-vm-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: configDirectory, withIntermediateDirectories: true)
+        let configFile = configDirectory.appendingPathComponent("opencode.jsonc")
+        FileManager.default.createFile(atPath: configFile.path, contents: Data("{}".utf8))
+        defer { try? FileManager.default.removeItem(at: configDirectory) }
+
+        let credentialStore = OpenCodeCredentialStore(
+            delegate: InMemoryCredentialStore(),
+            configDirectoryURL: configDirectory
+        )
+        let coordinator = MultiProviderBalanceCoordinator(
+            registrations: testRegistrations(for: [
+                MockBalanceProvider(id: .opencode, results: [])
+            ]),
+            credentialStore: credentialStore,
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.opencode],
+                primaryProviderID: .opencode
+            )
+        )
+        let viewModel = UsageConsoleViewModel(coordinator: coordinator, credentialStore: credentialStore)
+
+        let openCodeSummary = viewModel.providerSummaries.first { $0.id == .opencode }
+        harness.expectEqual(
+            openCodeSummary?.configurationURL,
+            configFile,
+            "opencode summary exposes its local config file"
+        )
+        harness.expectTrue(
+            openCodeSummary?.supportsAPIKeyManagement == false,
+            "opencode is configured through its CLI, not the keychain"
+        )
     }
 
     @MainActor
