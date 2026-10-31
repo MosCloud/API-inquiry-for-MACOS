@@ -4,7 +4,7 @@
 
 ## Stale instruction files
 
-`AGENT.md` / `AGENT_zh.md` describe the **first release only** (DeepSeek balance-only) and are out of date. The app is now v0.3.16, multi-provider (DeepSeek + Zhipu GLM Coding Plan + Codex session quota + Codex manual-reset credits). Do **not** trust scope or architecture claims in `AGENT.md` — trust the code (and the local `CLAUDE.md`).
+`AGENT.md` / `AGENT_zh.md` describe the **first release only** (DeepSeek balance-only) and are out of date. The app is multi-provider: DeepSeek balance, Zhipu GLM Coding Plan, Codex session quota, Codex manual-reset credits, and OpenCode usage — the last of which is on `main` but not yet released (the latest release, v0.3.16, predates it). Do **not** trust scope or architecture claims in `AGENT.md` — trust the code (and the local `CLAUDE.md`).
 
 ## Withdrawn Anthropic support
 
@@ -15,6 +15,15 @@ Anthropic/Claude support existed only in **v0.3.16–v0.3.20** (local login plus
 ## CI
 
 `.github/workflows/ci.yml` ("Release verification") runs **only on `release/*` tags** (plus manual dispatch). Every push and PR used to trigger it, but the `macos-latest` runners queue for hours, which cost far more than the check is worth: the same two commands (`swift run APIInquiryCoreTestsRunner`, `swift build`) finish in seconds locally. Day-to-day gating is the local test runner; CI is the independent-environment check at release time. It was briefly disabled on 2026-10-30 while the trigger change landed, and is active again; if `gh workflow list` ever shows it as `disabled_manually`, run `gh workflow enable ci.yml`, otherwise tag pushes will not run it.
+
+## `main` branch ruleset
+
+`main` is protected by the repository ruleset **"main protection"** (enabled 2026-10-31): no deletions, no force pushes, and every change must land through a pull request. Two settings look like omissions and are not — do not "fix" them:
+
+- **Required approvals are 0.** The user is the only collaborator and GitHub forbids approving your own pull request, so any non-zero count would make every PR permanently unmergeable.
+- **Required status checks are off.** CI runs only for `release/*` tags (see above), so a PR produces zero check runs; marking a check required would block merges until a macOS runner happened to finish.
+
+The ruleset has no bypass list, so it binds the agent too: `git push origin main` fails with `GH006` (protected branch). Push a branch and open a PR instead. Rewriting `main`'s history — e.g. the 2026-10-13 reset to v0.3.15 — now means disabling the ruleset in Settings → Rules, doing the rewrite, then re-enabling it; that extra step is the point. Feature branches are unaffected (only the default branch is targeted), and `delete_branch_on_merge` is on, so merged PR branches are removed automatically.
 
 ## Working protocol (staged, not end-to-end)
 
@@ -37,7 +46,14 @@ Scripts/run-local-app.sh               # build + launch .build/APIInquiry.app
 Scripts/build-local-app.sh             # build local app bundle, no launch
 ```
 
+**`swift build` needs the Xcode toolchain here.** `xcode-select` points at Command Line Tools, whose SDK cannot resolve `SwiftUI.StateMacro`, so a bare `swift build` fails with `SwiftUI.State: 'State()' declared here` followed by `error: Build failed`. Prefix it: `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift build`. `swift run APIInquiryCoreTestsRunner` does **not** need the prefix — `APIInquiryCore` imports no SwiftUI — so the daily test loop runs as written.
+
 Release packaging only at release-candidate stage: `Scripts/package-mac-app.sh` → `dist/API Inquiry.app` (ad-hoc signed), `Scripts/package-dmg.sh` → `dist/API-Inquiry-vX.Y.Z.dmg` + `.sha256`, then `Scripts/clean-development-apps.sh`. Full checklist and failure table: `docs/release-runbook.md` / `docs/release-runbook_zh.md`.
+
+## Build identity and local runs
+
+- Local builds carry version `0.0.0-dev` plus `APIInquiryGitCommit` (and `APIInquiryGitDirty` when the tree is dirty) in `Info.plist`; the Console renders it as "开发版本 · 提交 abc1234". This is deliberate — version numbers exist only in release artifacts, and `Scripts/package-mac-app.sh` refuses to package a `0.0.0-dev` build. Do not "fix" it by hard-coding a release version into the bundle.
+- **Every rebuild changes the code signature, so the next launch asks for Keychain access again** ("API Inquiry 想要使用你储存在钥匙串…"). The user must click 允许 / 始终允许; never type a password yourself, and do not report that dialog as a code bug.
 
 ## Release packaging gotchas (learned the hard way in v0.3.16)
 
@@ -52,7 +68,7 @@ Release packaging only at release-candidate stage: `Scripts/package-mac-app.sh` 
 
 ## Tests (critical: non-XCTest)
 
-The dev machine has only Command Line Tools, so tests use a **custom executable runner**, not XCTest. Defaulting to `swift test` / XCTest is the #1 mistake here.
+The default toolchain is Command Line Tools (`xcode-select -p` points at it, and that SDK ships no `XCTest.framework`; Xcode is installed but only selected through `DEVELOPER_DIR`), so tests use a **custom executable runner**, not XCTest. Defaulting to `swift test` / XCTest is the #1 mistake here.
 
 - To add a test suite: write a `SomethingTests` type with `static func run(using harness: TestHarness)` (add `async` if it awaits), then register it in the call list in `Sources/APIInquiryCoreTestsRunner/main.swift` — sync suites call `.run(using:)`, async suites `await ...run(using:)`.
 - Assert via `harness.expectEqual` / `expectTrue` / `expectThrowsBalanceProviderError`.
@@ -62,18 +78,21 @@ The dev machine has only Command Line Tools, so tests use a **custom executable 
 ## Branch and worktrees
 
 - Default branch is `main` (not `master`). Do not implement on `main`.
-- Implementation happens in isolated git worktrees. Per-version worktrees live under `.worktrees/v0.3.x/`. Follow the plan in `docs/superpowers/plans/` task by task; commit per completed task; use TDD for behavior changes.
+- Implementation happens in isolated git worktrees named after the work, e.g. `.worktrees/issue-13-config-entry/`, `.worktrees/docs/main-ruleset/`. Commit per completed task; use TDD for behavior changes.
+- Current work is **issue-driven, not plan-driven**: `docs/superpowers/plans/` holds per-release plans only up to v0.3.15 and is historical. Issues live in GitHub Issues (`docs/agents/issue-tracker.md`).
+- **Only one session should build or install at a time.** Two agents working the same checkout and `/Applications` copy produced version confusion; give each session its own worktree and do not run concurrent `run-local-app.sh` loops.
 
 ## Architecture gotchas (see the code, or the local `CLAUDE.md`, for full detail)
 
-- Two SwiftPM targets: `APIInquiryCore` (all logic, UI-independent, where tests live) and `APIInquiryApp` (SwiftUI views + AppKit glue, depends on Core). Keep testable logic in Core.
+- Two library targets plus a test executable: `APIInquiryCore` (all logic, UI-independent, where the tests live), `APIInquiryApp` (SwiftUI views + AppKit glue, depends on Core), and `APIInquiryCoreTestsRunner` (the custom runner — not an XCTest target). Keep testable logic in Core.
 - **Codex manual-reset credits are a parallel subsystem, not a `BalanceProvider`.** Don't try to fit credits data into `ProviderSnapshot` — see `CodexManualResetCreditsProvider` / its own protocol.
-- `BuiltInProviderRegistry.default` is the single source of truth wiring `ProviderID` → `ProviderDescriptor` + `makeProvider`. Adding a provider touches this chain.
-- `CodexCredentialStore` decorates the Keychain store and reads `$CODEX_HOME/auth.json` / `~/.codex/auth.json` read-only for the Codex account.
+- `BuiltInProviderRegistry.default` is the single source of truth wiring `ProviderID` → `ProviderDescriptor` + `makeProvider`. Adding a provider touches this chain. The current `ProviderID` cases are `deepseek`, `zhipuCodingPlan`, `codex`, `opencode`.
+- Credential stores form a decorator chain, outermost first: `OpenCodeCredentialStore` → `CodexCredentialStore` → `KeychainCredentialStore` (composed once in `APIInquiryApp.init`). Codex reads `$CODEX_HOME/auth.json` / `~/.codex/auth.json` read-only; every other provider's key lives in the Keychain (OpenCode's account is `opencode-api-key`). A decorator must forward whatever it does not override, or the layers beneath silently lose behaviour.
 
 ## Conventions
 
 - **Security**: never commit/log/print/display a real API key, Codex access token, session token, or account id. After a key is saved, UI shows only configured/replace/delete states.
 - **Bilingual docs**: substantial planning/spec/README docs are paired — English `<name>.md` and Chinese `<name>_zh.md`. Any change to one must be synced to the other. See `docs/superpowers/documentation-conventions.md`.
 - **User conversation is usually in Chinese**; prefer asking the user to review the Chinese doc version.
+- **Issue tracking and triage**: `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md` (label vocabulary), `docs/agents/domain.md` (`CONTEXT.md` plus `docs/adr/`, created lazily).
 - **Releases**: bump `Scripts/version.env` so APP_VERSION, BUILD_NUMBER, RELEASE_TAG, DMG_BASENAME, VOLUME_NAME all match; verify the built app's `CFBundleShortVersionString`. Release notes are user-facing copy grouped into New Features / App Optimization / Bug Fixes (omit empty sections) — describe perceptible impact, not internal type names or file paths.
