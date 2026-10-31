@@ -29,7 +29,7 @@ Unless the user explicitly asks for a one-shot end-to-end delivery, every change
 1. **Issue first.** File the problem as a GitHub issue (`gh issue create`) with the observed behaviour, expected behaviour, and where in the code it lives. No implementation before there is an issue (or the user explicitly waives it).
 2. **Joint diagnosis.** Locate the cause *with* the user: read the code, then prove the hypothesis with a measurement, a demo, or a failing test. Present evidence (numbers, screenshots, test output) and 2–3 candidate solutions with trade-offs. **Wait for the user to choose** before writing production code.
 3. **Implement + PR.** Only then change code, keep the diff scoped to the chosen issue, run `Scripts/verify.sh` (tests **and** the app build; see Commands) — the tests never compile `APIInquiryApp` — and open a PR that states the evidence and the verification steps. A PR is ready when the tests pass, the app builds, the diff stays scoped, and every fact it touches in this file or in the release runbook is still true — stale documentation counts as a bug.
-4. **Joint testing.** The agent verifies what it can (tests, local build, screenshots); the user verifies the perceptible behaviour (menu bar, Console, DMG). Both must pass.
+4. **Joint testing.** The agent verifies what it can (`Scripts/verify.sh`, screenshots where possible). For anything that changes what the app does — feature, UI, response behaviour — it then builds a side-by-side development copy with `Scripts/run-dev-app.sh`; the running app and `.build/APIInquiry.app` stay untouched, and the user tests that copy. Docs-, script- and tooling-only changes stop at `Scripts/verify.sh`. Merging waits for the user's sign-off.
 5. **Ask, then merge.** Opening a PR is never permission to merge it. After stage 4 sign-off, **ask the user explicitly** ("可以合入吗？") and wait for a yes. Rebase-merge only on that explicit approval, then delete the branch and confirm the local suite on `main`. This applies to every PR, including docs and chore changes, and it is per-PR: an approval for one PR does not carry to the next. Merging is the irreversible step — it moves `main`, closes issues, and changes what everyone builds from — so the user keeps the pacing.
 
 **Changes without a PR.** Repository settings (rulesets, labels, workflow toggles) and issue state are still the user's call: propose the exact command, apply it only on explicit approval, and paste the verification output into the issue before closing it.
@@ -40,6 +40,7 @@ Why: the user wants to learn the reasoning (diagnosis, trade-offs, verification)
 
 ```bash
 Scripts/verify.sh                                                     # tests + app build — the PR gate
+Scripts/run-dev-app.sh                                                # side-by-side development copy for stage-4 checks
 swift run APIInquiryCoreTestsRunner                                    # tests only — NOT `swift test`; compiles Core only
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift build   # compiles every target, APIInquiryApp included
 Scripts/run-local-app.sh                                               # build + launch .build/APIInquiry.app
@@ -57,6 +58,7 @@ Release packaging only at release-candidate stage: `Scripts/package-mac-app.sh` 
 - Local builds carry `0.0.0-dev` plus `APIInquiryGitCommit` / `APIInquiryGitDirty` in `Info.plist`; the Console shows "开发版本 · 提交 abc1234". Release versions come only from `Scripts/version.env` at packaging time, and `package-mac-app.sh` refuses to package a `0.0.0-dev` bundle — do not hard-code a version.
 - A rebuild changes the ad-hoc signature, so the next launch asks for Keychain access. Ask the user to click 始终允许 and wait for that before reading provider data; the prompt is expected, not a bug.
 - `run-local-app.sh` builds first and then runs `pkill -x APIInquiry`, which kills **every** copy — another session's dev build and the installed release. Only one session should launch the app at a time.
+- `run-dev-app.sh` stages a side-by-side copy (`APIInquiryDevelopment`, display name "Development under <checkout>") under `/private/tmp/api-inquiry-development-<uid>-<worktree-id>/` and launches it with `open -n`; it never kills or relinks the running app. Quit the copy with `pkill -x APIInquiryDevelopment`. The copy keeps the same bundle id, so it reads the same preferences and Keychain items — expect the usual Keychain prompt after a rebuild.
 
 ## UI and product direction
 
