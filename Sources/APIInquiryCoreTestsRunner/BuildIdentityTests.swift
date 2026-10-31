@@ -7,6 +7,7 @@ enum BuildIdentityTests {
         testReleaseBuildShowsTheVersion(using: harness)
         testMissingValuesDegradeGracefully(using: harness)
         testDevelopmentBuildNeverReportsAVersion(using: harness)
+        testDevelopmentCommitIsExposedOnlyForDevelopmentBuilds(using: harness)
     }
 
     private static func testDevelopmentBuildIdentifiesTheCommit(using harness: TestHarness) {
@@ -30,6 +31,30 @@ enum BuildIdentityTests {
             "开发版本 · 提交 9901c65",
             "chinese development text names the commit"
         )
+    }
+
+
+    private static func testDevelopmentCommitIsExposedOnlyForDevelopmentBuilds(using harness: TestHarness) {
+        let development = BuildIdentity.resolve(
+            shortVersion: "0.0.0-dev",
+            gitCommit: "abc1234",
+            hasUncommittedChanges: false
+        )
+        harness.expectEqual(development.developmentCommit, "abc1234", "development commit is exposed")
+
+        let dirty = BuildIdentity.resolve(
+            shortVersion: "0.0.0-dev",
+            gitCommit: "abc1234",
+            hasUncommittedChanges: true
+        )
+        harness.expectEqual(dirty.developmentCommit, "abc1234", "dirty development build still exposes the commit")
+
+        let release = BuildIdentity.resolve(
+            shortVersion: "0.4.0",
+            gitCommit: nil,
+            hasUncommittedChanges: false
+        )
+        harness.expectEqual(release.developmentCommit, nil, "release builds expose no commit")
     }
 
     private static func testDirtyDevelopmentBuildSaysSo(using harness: TestHarness) {

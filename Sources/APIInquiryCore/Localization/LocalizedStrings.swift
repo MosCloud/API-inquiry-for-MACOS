@@ -63,6 +63,8 @@ public struct LocalizedStrings: Equatable {
     public var homeSection: String { text(en: "Home", zh: "首页") }
     public var apiSection: String { "API" }
     public var settingsSection: String { text(en: "Settings", zh: "设置") }
+    public var copyCommitHint: String { text(en: "Click to copy the commit id", zh: "点击复制提交 id") }
+    public var commitCopied: String { text(en: "Copied", zh: "已复制") }
     public var versionTitle: String { text(en: "Version", zh: "版本") }
     public var projectHomepage: String { text(en: "Project Homepage", zh: "项目主页") }
     public var providersTitle: String { text(en: "Providers", zh: "供应商") }

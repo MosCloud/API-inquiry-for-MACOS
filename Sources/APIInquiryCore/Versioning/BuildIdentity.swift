@@ -37,6 +37,14 @@ public struct BuildIdentity: Equatable, Sendable {
         return BuildIdentity(source: .release(version: version.isEmpty ? "-" : version))
     }
 
+    /// The commit behind a development build, `nil` for release builds.
+    public var developmentCommit: String? {
+        guard case let .development(commit, _) = source else {
+            return nil
+        }
+        return commit
+    }
+
     public func displayText(using strings: LocalizedStrings) -> String {
         switch source {
         case let .development(commit, hasUncommittedChanges):

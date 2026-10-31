@@ -89,7 +89,8 @@ struct UsageConsoleView: View {
             UsageConsoleSettingsSection(
                 languageSelection: languageSelectionBinding,
                 strings: strings,
-                appVersionText: appVersionText
+                appVersionText: appVersionText,
+                developmentCommit: AppVersion.identity.developmentCommit
             )
         }
     }

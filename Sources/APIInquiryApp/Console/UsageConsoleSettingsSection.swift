@@ -6,6 +6,10 @@ struct UsageConsoleSettingsSection: View {
     @Binding var languageSelection: AppLanguage
     let strings: LocalizedStrings
     let appVersionText: String
+    /// Set for development builds; tapping the version copies this commit id.
+    let developmentCommit: String?
+
+    @State private var didCopyCommit = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -32,9 +36,7 @@ struct UsageConsoleSettingsSection: View {
 
                     Spacer()
 
-                    Text(appVersionText)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.primary)
+                    versionLabel
 
                     Button {
                         NSWorkspace.shared.open(ConsoleMetrics.projectHomepageURL)
@@ -51,6 +53,37 @@ struct UsageConsoleSettingsSection: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.secondary.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+    }
+
+    @ViewBuilder
+    private var versionLabel: some View {
+        if let developmentCommit {
+            Button {
+                copyCommit(developmentCommit)
+            } label: {
+                Text(didCopyCommit ? strings.commitCopied : appVersionText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(didCopyCommit ? .secondary : .primary)
+            }
+            .buttonStyle(.plain)
+            .help(strings.copyCommitHint)
+            .accessibilityLabel(strings.copyCommitHint)
+        } else {
+            Text(appVersionText)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
+        }
+    }
+
+    private func copyCommit(_ commit: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(commit, forType: .string)
+        didCopyCommit = true
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            didCopyCommit = false
         }
     }
 }
