@@ -214,10 +214,21 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var errorText: String? {
-        if case .failed(let message, _, _) = activeState {
-            return message
+        guard case .failed(let message, let kind, _) = activeState else {
+            return nil
         }
-        return nil
+
+        // Codex and OpenCode are `.localExternalConfiguration`: the console cannot
+        // replace or delete their credentials, so "replace or delete the key" would
+        // point at actions that do not exist. Derive the copy here instead of at
+        // refresh time so it also follows a language switch.
+        if kind == .authenticationFailed,
+           let descriptor = activeDescriptor,
+           descriptor.credentialManagement == .localExternalConfiguration {
+            return strings.localCredentialSignInExpired(providerName: descriptor.displayName)
+        }
+
+        return message
     }
 
     public var lastRefreshText: String {
