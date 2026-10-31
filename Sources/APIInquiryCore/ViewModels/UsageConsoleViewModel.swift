@@ -23,8 +23,11 @@ public struct APIProviderSummary: Equatable {
     public let statusTone: ProviderStatusTone
     public let healthTone: ProviderAmountTone
     public let balanceText: String
-    public let creditsBalanceText: String?
-    public let planNextResetText: String?
+    public let planNextResetValueText: String?
+    /// The metric row's first cell: Credits balance for a provider that reports credits,
+    /// the plain status otherwise.
+    public let statusMetricTitle: String
+    public let statusMetricValue: String
     public let planNameText: String?
     public let manualResetCreditsText: String?
     public let isManualResetCreditsRefreshing: Bool
@@ -46,8 +49,9 @@ public struct APIProviderSummary: Equatable {
         statusTone: ProviderStatusTone = .neutral,
         healthTone: ProviderAmountTone = .neutral,
         balanceText: String,
-        creditsBalanceText: String? = nil,
-        planNextResetText: String? = nil,
+        planNextResetValueText: String? = nil,
+        statusMetricTitle: String = "",
+        statusMetricValue: String = "",
         planNameText: String? = nil,
         manualResetCreditsText: String? = nil,
         isManualResetCreditsRefreshing: Bool = false,
@@ -68,8 +72,9 @@ public struct APIProviderSummary: Equatable {
         self.statusTone = statusTone
         self.healthTone = healthTone
         self.balanceText = balanceText
-        self.creditsBalanceText = creditsBalanceText
-        self.planNextResetText = planNextResetText
+        self.planNextResetValueText = planNextResetValueText
+        self.statusMetricTitle = statusMetricTitle
+        self.statusMetricValue = statusMetricValue
         self.planNameText = planNameText
         self.manualResetCreditsText = manualResetCreditsText
         self.isManualResetCreditsRefreshing = isManualResetCreditsRefreshing
@@ -194,10 +199,11 @@ public final class UsageConsoleViewModel: ObservableObject {
                 statusTone: providerSummaryStatusTone(for: state),
                 healthTone: ProviderDisplayFormatter.summaryHealthTone(for: state),
                 balanceText: ProviderDisplayFormatter.consoleDetailText(for: state.lastSnapshot, strings: strings),
-                creditsBalanceText: isCodexProvider
-                    ? ProviderDisplayFormatter.creditsBalanceText(for: state.lastSnapshot, strings: strings)
-                    : nil,
-                planNextResetText: timeFormatter.planNextResetText(for: singleQuotaWindowResetAt(for: state)),
+                planNextResetValueText: timeFormatter.planNextResetValueText(for: singleQuotaWindowResetAt(for: state)),
+                statusMetricTitle: isCodexProvider ? strings.creditsBalanceMetricTitle : strings.statusMetricTitle,
+                statusMetricValue: isCodexProvider
+                    ? (ProviderDisplayFormatter.creditsBalanceText(for: state.lastSnapshot, strings: strings) ?? "--")
+                    : validationStatusText,
                 planNameText: isCodexProvider ? nil : state.lastQuotaUsageSnapshot?.planName,
                 manualResetCreditsText: isCodexProvider && isCredentialConfigured
                     ? codexManualResetCreditsSummaryText()

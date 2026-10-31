@@ -87,12 +87,14 @@ public struct LastRefreshTimeFormatter {
         return "\(strings.resetsPrefix)\(labelSeparator)\(dateText(for: date))"
     }
 
-    public func planNextResetText(for date: Date?) -> String? {
+    /// Value only: the Console row already carries the "Plan Next Resets" title, so it
+    /// must not repeat the label — and must not have to strip it back off (#44 B).
+    public func planNextResetValueText(for date: Date?) -> String? {
         guard let date else {
             return nil
         }
 
-        return "\(strings.planNextResetsPrefix)\(labelSeparator)\(timeText(for: date))"
+        return timeText(for: date)
     }
 
     private var labelSeparator: String {
