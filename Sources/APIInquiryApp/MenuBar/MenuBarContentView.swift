@@ -382,28 +382,13 @@ struct MenuBarContentView: View {
             }
             .multilineTextAlignment(.trailing)
         } else {
-            Group {
-                if let resetText = row.resetShortText {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(row.detailText)
-                            .font(.caption.weight(.semibold))
-                            .monospacedDigit()
-                            .lineLimit(1)
-
-                        Text(resetText)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                } else {
-                    Text(row.detailText)
-                        .font(.caption.weight(.semibold))
-                        .monospacedDigit()
-                        .lineLimit(1)
-                }
-            }
-            .multilineTextAlignment(.trailing)
-            .frame(minWidth: 108, alignment: .trailing)
+            // Balance providers have no reset instant; quota providers arrive as rows above.
+            Text(row.detailText)
+                .font(.caption.weight(.semibold))
+                .monospacedDigit()
+                .lineLimit(1)
+                .multilineTextAlignment(.trailing)
+                .frame(minWidth: 108, alignment: .trailing)
         }
     }
 

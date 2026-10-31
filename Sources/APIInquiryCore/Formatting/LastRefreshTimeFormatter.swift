@@ -38,6 +38,23 @@ public struct LastRefreshTimeFormatter {
         return "\(strings.lastUpdatedPrefix)\(labelSeparator)\(timeText(for: date))"
     }
 
+    /// Both densities of a quota window's reset in one call: date-based for the weekly and
+    /// monthly windows, time-based for the five-hour one.
+    public func resetLabel(for window: QuotaWindowSnapshot) -> ResetLabel? {
+        guard let date = window.resetAt else {
+            return nil
+        }
+
+        let value: String
+        switch window.resolvedKind {
+        case .week, .month:
+            value = dateText(for: date)
+        case .fiveHour, .none:
+            value = timeText(for: date)
+        }
+        return ResetLabel(full: "\(strings.resetsPrefix)\(labelSeparator)\(value)", short: value)
+    }
+
     public func resetText(for date: Date?) -> String? {
         guard let date else {
             return nil

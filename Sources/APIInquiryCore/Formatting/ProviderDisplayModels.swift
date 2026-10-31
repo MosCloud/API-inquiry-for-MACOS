@@ -10,6 +10,18 @@ public struct PrimaryProviderDisplayParts: Equatable {
     public let captionText: String
 }
 
+/// The same reset instant in two densities: `full` keeps the "Resets:" prefix for rows
+/// with room, `short` drops it for the compact hero and grid columns.
+public struct ResetLabel: Equatable {
+    public let full: String
+    public let short: String
+
+    public init(full: String, short: String) {
+        self.full = full
+        self.short = short
+    }
+}
+
 public struct ProviderDetailRow: Equatable {
     public let providerID: ProviderID
     public let displayName: String
@@ -17,9 +29,6 @@ public struct ProviderDetailRow: Equatable {
     public let quotaWindowRows: [QuotaWindowDisplayRow]
     public let statusText: String
     public let statusTone: ProviderStatusTone
-    public let resetText: String?
-    /// Same instant as `resetText`, without the "Resets:" prefix.
-    public let resetShortText: String?
 }
 
 public struct QuotaWindowDisplayRow: Equatable {
@@ -33,10 +42,12 @@ public struct QuotaWindowDisplayRow: Equatable {
     public let amountTone: ProviderAmountTone
     public let suffixText: String
     public let detailText: String
-    public let resetText: String?
-    /// Same instant as `resetText`, without the "Resets:" prefix.
-    public let resetShortText: String?
+    public let resetLabel: ResetLabel?
     public let isAvailable: Bool
+
+    /// Convenience for the surfaces that need one of the two densities.
+    public var resetText: String? { resetLabel?.full }
+    public var resetShortText: String? { resetLabel?.short }
 }
 
 /// The hero's compressed second tier: every window except the focused one, on one line.

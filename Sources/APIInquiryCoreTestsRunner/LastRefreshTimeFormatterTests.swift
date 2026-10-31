@@ -11,6 +11,44 @@ enum LastRefreshTimeFormatterTests {
         testPlanNextResetUsesTwentyFourHourLocale(using: harness)
         testPlanNextResetHidesMissingDate(using: harness)
         testChineseLabelsUseReviewedCopy(using: harness)
+        testResetLabelCarriesBothDensities(using: harness)
+    }
+
+    /// #64 P4: one reset instant, one label value — the two densities live together
+    /// instead of being stored as two unrelated strings on every row.
+    private static func testResetLabelCarriesBothDensities(using harness: TestHarness) {
+        let formatter = LastRefreshTimeFormatter(
+            locale: Locale(identifier: "en_GB"),
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+        let fiveHour = QuotaWindowSnapshot(
+            label: "5h",
+            kind: .fiveHour,
+            remainingPercentage: Decimal(50),
+            resetAt: sampleDate,
+            isAvailable: true
+        )
+        let weekly = QuotaWindowSnapshot(
+            label: "Week",
+            kind: .week,
+            remainingPercentage: Decimal(50),
+            resetAt: sampleDate,
+            isAvailable: true
+        )
+
+        harness.expectEqual(formatter.resetLabel(for: fiveHour)?.full, "Resets: 23:05", "five-hour reset keeps the prefix in the full form")
+        harness.expectEqual(formatter.resetLabel(for: fiveHour)?.short, "23:05", "five-hour reset drops the prefix in the short form")
+        harness.expectEqual(formatter.resetLabel(for: weekly)?.full, "Resets: 05/15", "weekly reset uses the date in the full form")
+        harness.expectEqual(formatter.resetLabel(for: weekly)?.short, "05/15", "weekly reset uses the date in the short form")
+
+        let missing = QuotaWindowSnapshot(
+            label: "5h",
+            kind: .fiveHour,
+            remainingPercentage: Decimal(50),
+            resetAt: nil,
+            isAvailable: true
+        )
+        harness.expectEqual(formatter.resetLabel(for: missing), nil, "no instant means no label")
     }
 
     private static func testUsesTwelveHourLocale(using harness: TestHarness) {

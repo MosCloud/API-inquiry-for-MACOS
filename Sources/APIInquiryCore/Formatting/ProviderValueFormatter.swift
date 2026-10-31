@@ -62,7 +62,7 @@ public enum ProviderValueFormatter {
 
         switch snapshot {
         case .quotaUsage(let usage):
-            return "\(quotaWindowText(for: primaryQuotaWindow(in: usage), strings: strings)) \(strings.remainingSuffix)"
+            return "\(quotaWindowText(for: primaryQuotaWindow(in: usage), strings: strings)) \(strings.remainingSuffix(.full))"
         default:
             return detailText(for: snapshot, strings: strings)
         }
@@ -133,7 +133,7 @@ public enum ProviderValueFormatter {
                 amountText: remainingPercentage.map { formatNumber($0, fractionDigits: 0) } ?? "0",
                 amountValue: remainingPercentage.map(doubleValue),
                 amountTone: window.map { ProviderToneResolver.remainingQuotaAmountTone(for: $0.remainingPercentage) } ?? .neutral,
-                trailingText: "% \(strings.remainingSuffix)",
+                trailingText: "% \(strings.remainingSuffix(.full))",
                 captionText: window.map { strings.quotaWindowLabel($0.label) } ?? ""
             )
         }
