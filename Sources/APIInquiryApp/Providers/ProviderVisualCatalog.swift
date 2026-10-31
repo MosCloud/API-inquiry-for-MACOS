@@ -80,22 +80,37 @@ enum ProviderVisualCatalog {
         }
     }
 
+    /// Builds the menu bar label as one image. The stale marker lives inside the image
+    /// because a `MenuBarExtra` label only renders one view: a second image in an HStack
+    /// never appears.
     static func menuBarLabelImage(
         text: String,
         providerID: ProviderID = .deepseek,
-        providerPrefix: String = "DS"
+        providerPrefix: String = "DS",
+        isStale: Bool = false
     ) -> NSImage {
         let icon = menuIconTemplate(for: providerID)
         let font = NSFont.menuBarFont(ofSize: 0)
+        let textColor: NSColor = isStale ? .labelColor : .white
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: NSColor.white
+            .foregroundColor: textColor
         ]
         let textSize = (text as NSString).size(withAttributes: attributes)
         let height: CGFloat = 22
         let iconSize = menuIconSize(for: providerID)
         let spacing: CGFloat = 4
-        let width = ceil(iconSize.width + spacing + textSize.width)
+        let markerSpacing: CGFloat = isStale ? 2 : 0
+        let markerTrailingPadding: CGFloat = isStale ? 5 : 0
+        let markerFont = NSFont.systemFont(ofSize: 13, weight: .bold)
+        let marker = "!" as NSString
+        let markerAttributes: [NSAttributedString.Key: Any] = [
+            .font: markerFont,
+            .foregroundColor: NSColor.systemRed
+        ]
+        let markerSize = marker.size(withAttributes: markerAttributes)
+        let markerWidth = isStale ? markerSize.width : 0
+        let width = ceil(iconSize.width + spacing + textSize.width + markerSpacing + markerWidth + markerTrailingPadding)
         let image = NSImage(size: NSSize(width: width, height: height))
 
         image.lockFocus()
@@ -103,13 +118,15 @@ enum ProviderVisualCatalog {
 
         if let icon {
             let iconRect = NSRect(x: 0, y: (height - iconSize.height) / 2, width: iconSize.width, height: iconSize.height)
-            icon.draw(in: iconRect, from: .zero, operation: .sourceOver, fraction: 1)
+            let drawable = isStale ? tinted(icon, color: textColor) : icon
+            drawable.draw(in: iconRect, from: .zero, operation: .sourceOver, fraction: 1)
         } else {
             drawText(
                 providerPrefix,
                 in: NSRect(x: 0, y: 0, width: iconSize.width, height: height),
                 fontSize: providerPrefix.count > 2 ? 8 : 10,
-                weight: .bold
+                weight: .bold,
+                color: textColor
             )
         }
 
@@ -120,10 +137,33 @@ enum ProviderVisualCatalog {
             height: textSize.height
         )
         (text as NSString).draw(in: textRect, withAttributes: attributes)
+
+        if isStale {
+            let markerRect = NSRect(
+                x: iconSize.width + spacing + textSize.width + markerSpacing,
+                y: floor((height - markerSize.height) / 2),
+                width: markerSize.width,
+                height: markerSize.height
+            )
+            marker.draw(in: markerRect, withAttributes: markerAttributes)
+        }
+
         image.unlockFocus()
 
-        image.isTemplate = true
+        image.isTemplate = !isStale
         return image
+    }
+
+    /// Recolours a template image for the non-template stale label.
+    private static func tinted(_ image: NSImage, color: NSColor) -> NSImage {
+        let tinted = NSImage(size: image.size)
+        tinted.lockFocus()
+        image.draw(in: NSRect(origin: .zero, size: image.size), from: .zero, operation: .sourceOver, fraction: 1)
+        color.set()
+        NSRect(origin: .zero, size: image.size).fill(using: .sourceAtop)
+        tinted.unlockFocus()
+        tinted.isTemplate = false
+        return tinted
     }
 
     private static func menuIconTemplate(for providerID: ProviderID) -> NSImage? {
@@ -197,11 +237,17 @@ enum ProviderVisualCatalog {
         return image
     }
 
-    private static func drawText(_ text: String, in rect: NSRect, fontSize: CGFloat, weight: NSFont.Weight) {
+    private static func drawText(
+        _ text: String,
+        in rect: NSRect,
+        fontSize: CGFloat,
+        weight: NSFont.Weight,
+        color: NSColor = .white
+    ) {
         let font = NSFont.systemFont(ofSize: fontSize, weight: weight)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: NSColor.white
+            .foregroundColor: color
         ]
         let textSize = (text as NSString).size(withAttributes: attributes)
         let textRect = NSRect(
@@ -213,24 +259,4 @@ enum ProviderVisualCatalog {
         (text as NSString).draw(in: textRect, withAttributes: attributes)
     }
 
-    /// A menu bar label image cannot carry colour: the system recolours template images.
-    /// Draw the stale marker separately and keep it non-template so it stays red.
-    static func staleMarkerImage(height: CGFloat = 22) -> NSImage {
-        let text = "!" as NSString
-        let font = NSFont.systemFont(ofSize: 11, weight: .bold)
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.systemRed
-        ]
-        let textSize = text.size(withAttributes: attributes)
-        let image = NSImage(size: NSSize(width: ceil(textSize.width) + 2, height: height))
-
-        image.lockFocus()
-        NSGraphicsContext.current?.imageInterpolation = .high
-        text.draw(at: NSPoint(x: 1, y: (height - textSize.height) / 2), withAttributes: attributes)
-        image.unlockFocus()
-
-        image.isTemplate = false
-        return image
-    }
 }
