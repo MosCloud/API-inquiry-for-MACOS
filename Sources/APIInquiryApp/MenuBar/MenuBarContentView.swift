@@ -167,39 +167,14 @@ struct MenuBarContentView: View {
         let parts = viewModel.primaryDisplayParts
         let amountSize: CGFloat = parts.amountText == "--" ? 30 : 42
 
-        Group {
-            if parts.detailKind == .planUsage {
-                HStack(alignment: .firstTextBaseline, spacing: 7) {
-                    if !parts.captionText.isEmpty {
-                        Text(parts.captionText)
-                            .font(.system(size: 24, weight: .regular, design: .rounded))
-                            .foregroundStyle(.secondary)
-                    }
-
-                    balanceAmountLine(parts: parts, amountSize: amountSize)
-
-                    if let resetText = viewModel.resetText {
-                        Spacer(minLength: 8)
-                        Text(resetText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.trailing)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                            .frame(minWidth: 86, alignment: .trailing)
-                    }
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 2) {
-                    if !parts.captionText.isEmpty {
-                        Text(parts.captionText)
-                            .font(.system(size: 20, weight: .regular, design: .rounded))
-                            .foregroundStyle(.secondary)
-                    }
-
-                    balanceAmountLine(parts: parts, amountSize: amountSize)
-                }
+        VStack(alignment: .leading, spacing: 2) {
+            if !parts.captionText.isEmpty {
+                Text(parts.captionText)
+                    .font(.system(size: 20, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
             }
+
+            balanceAmountLine(parts: parts, amountSize: amountSize)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

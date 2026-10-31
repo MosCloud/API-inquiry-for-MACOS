@@ -69,7 +69,7 @@ enum UsageConsoleViewModelTests {
         await viewModel.refreshCodexManualResetCredits(force: true)
 
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
-        harness.expectEqual(codexSummary?.balanceText, "5h 72% remg", "codex console detail")
+        harness.expectEqual(codexSummary?.balanceText, "5h 72% remaining", "codex console detail uses the roomy suffix")
         harness.expectEqual(codexSummary?.planNameText, nil, "codex console plan replaced")
         harness.expectEqual(codexSummary?.manualResetCreditsText, "1 · 07/18 expires", "codex console manual reset")
         harness.expectEqual(codexSummary?.isManualResetCreditsRefreshing, false, "codex manual reset not refreshing")
@@ -90,7 +90,7 @@ enum UsageConsoleViewModelTests {
 
         let codexSummary = viewModel.providerSummaries.first { $0.id == .codex }
         harness.expectEqual(codexSummary?.creditsBalanceText, "12.5 Credits", "codex console credits balance")
-        harness.expectEqual(codexSummary?.balanceText, "5h 72% remg", "codex detail remains quota text")
+        harness.expectEqual(codexSummary?.balanceText, "5h 72% remaining", "codex detail remains quota text")
         harness.expectEqual(codexSummary?.validationStatusText, "Quota available", "codex status remains service status")
     }
 
@@ -623,7 +623,7 @@ enum UsageConsoleViewModelTests {
         harness.expectEqual(viewModel.providerSummaries.last?.id, .zhipuCodingPlan, "multi console zhipu provider id")
         harness.expectEqual(viewModel.providerSummaries.last?.balanceText, "5h 83% remaining", "multi console zhipu usage text")
         harness.expectEqual(viewModel.providerSummaries.last?.planNextResetText, "Plan Next Resets: 23:05", "multi console zhipu plan next reset")
-        harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Plan available", "multi console zhipu status")
+        harness.expectEqual(viewModel.providerSummaries.last?.validationStatusText, "Quota available", "multi console zhipu status")
         harness.expectEqual(viewModel.providerSummaries.first?.supportsAPIKeyManagement, true, "multi console deepseek supports key management")
         harness.expectEqual(viewModel.providerSummaries.last?.supportsAPIKeyManagement, true, "multi console zhipu supports key management")
         harness.expectTrue(viewModel.providerSummaries.last?.isPrimary == true, "multi console zhipu primary")
@@ -749,14 +749,7 @@ enum UsageConsoleViewModelTests {
         )
         let zhipu = MockBalanceProvider(
             id: .zhipuCodingPlan,
-            results: [.success(.planUsage(PlanUsageSnapshot(
-                providerID: .zhipuCodingPlan,
-                windowLabel: "5h",
-                usagePercentage: Decimal(17),
-                resetAt: nil,
-                isAvailable: true,
-                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-            )))]
+            results: [.success(.quotaUsage(QuotaTestFixtures.zhipu(usedPercentage: Decimal(17), resetAt: nil, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000))))]
         )
         let store = InMemoryCredentialStore()
         let coordinator = MultiProviderBalanceCoordinator(
@@ -882,14 +875,7 @@ enum UsageConsoleViewModelTests {
         for item in cases {
             let provider = MockBalanceProvider(
                 id: .zhipuCodingPlan,
-                results: [.success(.planUsage(PlanUsageSnapshot(
-                    providerID: .zhipuCodingPlan,
-                    windowLabel: "5h",
-                    usagePercentage: item.0,
-                    resetAt: nil,
-                    isAvailable: item.0 < Decimal(100),
-                    fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-                )))]
+                results: [.success(.quotaUsage(QuotaTestFixtures.zhipu(usedPercentage: item.0, resetAt: nil, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000))))]
             )
             let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["zhipu-coding-plan-api-key": "test-key"])
             let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
@@ -990,14 +976,7 @@ enum UsageConsoleViewModelTests {
         for item in planCases {
             let provider = MockBalanceProvider(
                 id: .zhipuCodingPlan,
-                results: [.success(.planUsage(PlanUsageSnapshot(
-                    providerID: .zhipuCodingPlan,
-                    windowLabel: "5h",
-                    usagePercentage: item.0,
-                    resetAt: nil,
-                    isAvailable: true,
-                    fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-                )))]
+                results: [.success(.quotaUsage(QuotaTestFixtures.zhipu(usedPercentage: item.0, resetAt: nil, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000))))]
             )
             let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["zhipu-coding-plan-api-key": "test-key"])
             let controller = makeTestRefreshController(provider: provider, credentialStore: credentialStore)
@@ -1011,7 +990,7 @@ enum UsageConsoleViewModelTests {
             await controller.refresh()
 
             harness.expectEqual(viewModel.providerSummaries.first?.summaryBadgeText, item.1, "chinese plan badge \(item.0)")
-            harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "计划可用", "plan status metric stays service status")
+            harness.expectEqual(viewModel.providerSummaries.first?.validationStatusText, "额度可用", "quota wording covers plan providers too")
         }
 
         let codexCoordinator = makeCodexCoordinator(primaryProviderID: .codex)
@@ -1092,14 +1071,7 @@ enum UsageConsoleViewModelTests {
             initialState: .failed(
                 message: "Limit reached.",
                 kind: .usageLimitReached,
-                last: .planUsage(PlanUsageSnapshot(
-                    providerID: .zhipuCodingPlan,
-                    windowLabel: "5h",
-                    usagePercentage: Decimal(100),
-                    resetAt: nil,
-                    isAvailable: false,
-                    fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-                ))
+                last: .quotaUsage(QuotaTestFixtures.zhipu(usedPercentage: Decimal(100), resetAt: nil, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)))
             )
         )
         let limitReachedViewModel = UsageConsoleViewModel(
@@ -1243,14 +1215,7 @@ enum UsageConsoleViewModelTests {
         ])
     ) -> MultiProviderBalanceCoordinator {
         let deepSeekSnapshot = makeSnapshot(providerID: .deepseek, total: "68.65")
-        let zhipuSnapshot = PlanUsageSnapshot(
-            providerID: .zhipuCodingPlan,
-            windowLabel: "5h",
-            usagePercentage: Decimal(17),
-            resetAt: resetAt,
-            isAvailable: true,
-            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-        )
+        let zhipuSnapshot = QuotaTestFixtures.zhipu(usedPercentage: Decimal(17), resetAt: resetAt, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000))
         return MultiProviderBalanceCoordinator(
             registrations: testRegistrations(for: [
                 MockBalanceProvider(
@@ -1259,7 +1224,7 @@ enum UsageConsoleViewModelTests {
                 ),
                 MockBalanceProvider(
                     id: .zhipuCodingPlan,
-                    results: [.success(.planUsage(zhipuSnapshot))]
+                    results: [.success(.quotaUsage(zhipuSnapshot))]
                 )
             ]),
             credentialStore: credentialStore,

@@ -11,8 +11,6 @@ public enum ProviderToneResolver {
             switch snapshot {
             case .balance(let balance):
                 return balance.isAvailable ? .success : .warning
-            case .planUsage(let usage):
-                return usage.isAvailable ? .success : .warning
             case .quotaUsage(let usage):
                 return usage.isAvailable ? .success : .warning
             }
@@ -42,8 +40,6 @@ public enum ProviderToneResolver {
         switch snapshot {
         case .balance(let balance):
             return balanceAmountTone(for: balance.totalBalance)
-        case .planUsage(let usage):
-            return remainingQuotaAmountTone(for: usage.remainingPercentage)
         case .quotaUsage(let usage):
             return aggregateAmountTone(usage.windows.map { remainingQuotaAmountTone(for: $0.remainingPercentage) })
         }

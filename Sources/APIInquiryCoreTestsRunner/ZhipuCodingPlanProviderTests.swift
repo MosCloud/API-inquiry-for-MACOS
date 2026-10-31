@@ -85,11 +85,13 @@ enum ZhipuCodingPlanProviderTests {
             let snapshot = try await provider.fetchSnapshot(apiKey: "test-zhipu-key")
 
             switch snapshot {
-            case .planUsage(let usage):
+            case .quotaUsage(let usage):
                 harness.expectEqual(usage.providerID, .zhipuCodingPlan, "zhipu provider id")
-                harness.expectEqual(usage.windowLabel, "5h", "zhipu usage window")
-                harness.expectEqual(usage.usagePercentage, Decimal(17), "zhipu usage percentage")
-                harness.expectEqual(usage.resetAt, resetAt, "zhipu reset time")
+                harness.expectEqual(usage.planName, "GLM Coding Plan", "zhipu plan name")
+                harness.expectEqual(usage.windows.count, 1, "zhipu reports one window")
+                harness.expectEqual(usage.windows.first?.label, "5h", "zhipu usage window")
+                harness.expectEqual(usage.windows.first?.remainingPercentage, Decimal(83), "zhipu remaining percentage")
+                harness.expectEqual(usage.windows.first?.resetAt, resetAt, "zhipu reset time")
                 harness.expectTrue(usage.isAvailable, "zhipu usage available below limit")
                 harness.expectEqual(usage.fetchedAt, fetchedAt, "zhipu fetched date")
             case .balance:
@@ -124,12 +126,13 @@ enum ZhipuCodingPlanProviderTests {
 
         do {
             let snapshot = try await provider.fetchSnapshot(apiKey: "test-zhipu-key")
-            guard case .planUsage(let usage) = snapshot else {
-                harness.expectTrue(false, "zhipu decimal percentage should return plan usage")
+            guard case .quotaUsage(let usage) = snapshot,
+                  let window = usage.windows.first else {
+                harness.expectTrue(false, "zhipu decimal percentage should return quota usage")
                 return
             }
 
-            harness.expectEqual(usage.usagePercentage, Decimal(string: "17.4")!, "zhipu decimal usage percentage")
+            harness.expectEqual(window.remainingPercentage, Decimal(string: "82.6")!, "zhipu decimal remaining percentage")
             harness.expectTrue(usage.isAvailable, "zhipu decimal usage available below limit")
         } catch {
             harness.expectTrue(false, "zhipu decimal usage should not throw: \(error)")

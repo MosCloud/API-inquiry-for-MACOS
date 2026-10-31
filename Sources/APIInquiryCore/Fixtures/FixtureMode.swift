@@ -100,7 +100,7 @@ public struct FixtureScenarioData {
             return FixtureScenarioData(
                 registrations: [
                     registration(.deepseek, .succeedsThenFails(balance(now: now))),
-                    registration(.zhipuCodingPlan, .succeedsThenFails(planUsage(now: now))),
+                    registration(.zhipuCodingPlan, .succeedsThenFails(zhipuQuota(now: now))),
                     registration(.codex, .succeedsThenFails(codexQuota(now: now))),
                     registration(.opencode, .succeedsThenFails(openCodeQuota(now: now)))
                 ],
@@ -114,7 +114,7 @@ public struct FixtureScenarioData {
             return FixtureScenarioData(
                 registrations: [
                     registration(.deepseek, .succeedsThenFails(balance(now: now, total: 30))),
-                    registration(.zhipuCodingPlan, .succeedsThenFails(planUsage(now: now, usagePercentage: 70))),
+                    registration(.zhipuCodingPlan, .succeedsThenFails(zhipuQuota(now: now, usagePercentage: 70))),
                     registration(.codex, .succeedsThenFails(codexQuota(now: now, remaining: [30, 25]))),
                     registration(.opencode, .succeedsThenFails(openCodeQuota(now: now, remaining: [15, 25, 35])))
                 ],
@@ -179,14 +179,19 @@ public struct FixtureScenarioData {
         ))
     }
 
-    private static func planUsage(now: Date, usagePercentage: Decimal = Decimal(17)) -> ProviderSnapshot {
-        .planUsage(PlanUsageSnapshot(
+    private static func zhipuQuota(now: Date, usagePercentage: Decimal = Decimal(17)) -> ProviderSnapshot {
+        .quotaUsage(QuotaUsageSnapshot(
             providerID: .zhipuCodingPlan,
-            windowLabel: "5h",
-            windowKind: .fiveHour,
-            usagePercentage: usagePercentage,
-            resetAt: now.addingTimeInterval(3_600),
-            isAvailable: true,
+            planName: "GLM Coding Plan",
+            windows: [
+                QuotaWindowSnapshot(
+                    label: "5h",
+                    kind: .fiveHour,
+                    remainingPercentage: Decimal(100) - usagePercentage,
+                    resetAt: now.addingTimeInterval(3_600),
+                    isAvailable: usagePercentage < Decimal(100)
+                )
+            ],
             fetchedAt: now
         ))
     }

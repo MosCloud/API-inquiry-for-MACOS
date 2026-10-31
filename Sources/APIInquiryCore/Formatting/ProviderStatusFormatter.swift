@@ -12,8 +12,6 @@ public enum ProviderStatusFormatter {
             switch snapshot {
             case .balance(let balance):
                 return balance.isAvailable ? strings.available : strings.balanceInsufficient
-            case .planUsage(let usage):
-                return usage.isAvailable ? strings.planAvailable : strings.limitReached
             case .quotaUsage(let usage):
                 return usage.isAvailable ? strings.quotaAvailable : strings.quotaExhausted
             }
@@ -44,12 +42,6 @@ public enum ProviderStatusFormatter {
         case .balance(let balance):
             return balanceSummaryBadgeText(
                 for: ProviderToneResolver.balanceAmountTone(for: balance.totalBalance),
-                fallbackText: fallbackText,
-                strings: strings
-            )
-        case .planUsage(let usage):
-            return quotaSummaryBadgeText(
-                for: ProviderToneResolver.remainingQuotaAmountTone(for: usage.remainingPercentage),
                 fallbackText: fallbackText,
                 strings: strings
             )

@@ -65,7 +65,7 @@ enum CodexQuotaProviderTests {
                 harness.expectEqual(usage.windows.last?.remainingPercentage, Decimal(48), "codex secondary remaining")
                 harness.expectEqual(usage.windows.last?.resetAt, secondaryReset, "codex secondary reset")
                 harness.expectEqual(usage.fetchedAt, fetchedAt, "codex fetched at")
-            case .balance, .planUsage:
+            case .balance:
                 harness.expectTrue(false, "codex snapshot should be quota usage")
             }
 

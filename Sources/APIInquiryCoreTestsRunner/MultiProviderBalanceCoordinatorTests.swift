@@ -152,17 +152,10 @@ enum MultiProviderBalanceCoordinatorTests {
 
     @MainActor
     private static func testRemovingProviderStopsRefreshAndClearsState(using harness: TestHarness) async {
-        let zhipuSnapshot = PlanUsageSnapshot(
-            providerID: .zhipuCodingPlan,
-            windowLabel: "5h",
-            usagePercentage: Decimal(17),
-            resetAt: nil,
-            isAvailable: true,
-            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-        )
+        let zhipuSnapshot = QuotaTestFixtures.zhipu(usedPercentage: Decimal(17), resetAt: nil, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000))
         let zhipu = MockBalanceProvider(
             id: .zhipuCodingPlan,
-            results: [.success(.planUsage(zhipuSnapshot))]
+            results: [.success(.quotaUsage(zhipuSnapshot))]
         )
         let coordinator = MultiProviderBalanceCoordinator(
             registrations: testRegistrations(for: [
@@ -174,7 +167,7 @@ enum MultiProviderBalanceCoordinatorTests {
         )
 
         await coordinator.refresh(.zhipuCodingPlan)
-        harness.expectEqual(coordinator.state(for: .zhipuCodingPlan), .loaded(.planUsage(zhipuSnapshot)), "coordinator loads provider state before remove")
+        harness.expectEqual(coordinator.state(for: .zhipuCodingPlan), .loaded(.quotaUsage(zhipuSnapshot)), "coordinator loads provider state before remove")
 
         try? coordinator.removeProvider(.zhipuCodingPlan, deletingCredential: true)
 
@@ -199,21 +192,14 @@ enum MultiProviderBalanceCoordinatorTests {
     @MainActor
     private static func testRefreshAddedProvidersKeepsStatesIsolated(using harness: TestHarness) async {
         let deepSeekSnapshot = makeSnapshot(providerID: .deepseek, total: "68.65")
-        let zhipuSnapshot = PlanUsageSnapshot(
-            providerID: .zhipuCodingPlan,
-            windowLabel: "5h",
-            usagePercentage: Decimal(17),
-            resetAt: nil,
-            isAvailable: true,
-            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-        )
+        let zhipuSnapshot = QuotaTestFixtures.zhipu(usedPercentage: Decimal(17), resetAt: nil, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000))
         let deepSeek = MockBalanceProvider(
             id: .deepseek,
             results: [.success(.balance(deepSeekSnapshot))]
         )
         let zhipu = MockBalanceProvider(
             id: .zhipuCodingPlan,
-            results: [.success(.planUsage(zhipuSnapshot))]
+            results: [.success(.quotaUsage(zhipuSnapshot))]
         )
         let store = InMemoryCredentialStore(credentialsByAccount: [
             "deepseek-api-key": "deepseek-key",
@@ -228,7 +214,7 @@ enum MultiProviderBalanceCoordinatorTests {
         await coordinator.refreshAddedProviders()
 
         harness.expectEqual(coordinator.state(for: .deepseek), .loaded(.balance(deepSeekSnapshot)), "coordinator deepseek state")
-        harness.expectEqual(coordinator.state(for: .zhipuCodingPlan), .loaded(.planUsage(zhipuSnapshot)), "coordinator zhipu state")
+        harness.expectEqual(coordinator.state(for: .zhipuCodingPlan), .loaded(.quotaUsage(zhipuSnapshot)), "coordinator zhipu state")
         harness.expectEqual(deepSeek.lastAPIKey, "deepseek-key", "coordinator deepseek key")
         harness.expectEqual(zhipu.lastAPIKey, "zhipu-key", "coordinator zhipu key")
     }
@@ -237,15 +223,8 @@ enum MultiProviderBalanceCoordinatorTests {
     private static func testRefreshAddedProvidersRunsProvidersConcurrently(using harness: TestHarness) async {
         let probe = ConcurrentRefreshProbe()
         let deepSeekSnapshot = ProviderSnapshot.balance(makeSnapshot(providerID: .deepseek, total: "68.65"))
-        let zhipuSnapshot = ProviderSnapshot.planUsage(
-            PlanUsageSnapshot(
-                providerID: .zhipuCodingPlan,
-                windowLabel: "5h",
-                usagePercentage: Decimal(17),
-                resetAt: nil,
-                isAvailable: true,
-                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-            )
+        let zhipuSnapshot = ProviderSnapshot.quotaUsage(
+            QuotaTestFixtures.zhipu(usedPercentage: Decimal(17), resetAt: nil, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000))
         )
         let coordinator = MultiProviderBalanceCoordinator(
             registrations: testRegistrations(for: [

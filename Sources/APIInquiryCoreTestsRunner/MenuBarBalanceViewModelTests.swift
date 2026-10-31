@@ -338,7 +338,7 @@ enum MenuBarBalanceViewModelTests {
             lastRefreshTimeFormatter: fixedTimeFormatter
         )
 
-        // Zhipu describes its window with PlanUsageSnapshot, not QuotaUsageSnapshot; the
+        // Zhipu describes its window with QuotaTestFixtures.zhipu, not QuotaUsageSnapshot; the
         // panel still has to draw it with the same three columns as OpenAI and OpenCode.
         let zhipuRow = viewModel.secondaryProviderRows.first { $0.providerID == .zhipuCodingPlan }
         harness.expectEqual(zhipuRow?.quotaWindowRows.count, 1, "plan usage provider exposes one window row")
@@ -422,8 +422,8 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryDisplayParts.amountText, "83", "zhipu primary display amount")
         harness.expectEqual(viewModel.primaryDisplayParts.amountValue, 83, "zhipu primary display amount value")
         harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% remaining", "zhipu primary display trailing")
-        harness.expectEqual(viewModel.resetText, "Resets: 23:05", "zhipu reset text")
-        harness.expectEqual(viewModel.statusText, "Plan available", "zhipu primary status")
+        harness.expectEqual(viewModel.primaryQuotaWindowRows.first?.resetShortText, "23:05", "zhipu reset now rides the hero row")
+        harness.expectEqual(viewModel.statusText, "Quota available", "zhipu uses the quota wording now that one shape drives every provider")
     }
 
     @MainActor
@@ -523,7 +523,7 @@ enum MenuBarBalanceViewModelTests {
 
         let zhipuRow = viewModel.secondaryProviderRows.first { $0.providerID == .zhipuCodingPlan }
         harness.expectEqual(zhipuRow?.detailText, "5h 83%", "zhipu secondary row detail shows remaining")
-        harness.expectEqual(zhipuRow?.resetText, "Resets: 23:05", "zhipu secondary row reset")
+        harness.expectEqual(zhipuRow?.quotaWindowRows.first?.resetShortText, "23:05", "zhipu secondary row reset rides the quota row")
     }
 
     @MainActor
@@ -534,14 +534,7 @@ enum MenuBarBalanceViewModelTests {
         )
         let zhipu = MockBalanceProvider(
             id: .zhipuCodingPlan,
-            results: [.success(.planUsage(PlanUsageSnapshot(
-                providerID: .zhipuCodingPlan,
-                windowLabel: "5h",
-                usagePercentage: Decimal(17),
-                resetAt: sampleResetDate,
-                isAvailable: true,
-                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-            )))]
+            results: [.success(.quotaUsage(QuotaTestFixtures.zhipu(usedPercentage: Decimal(17), resetAt: sampleResetDate, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000))))]
         )
         let coordinator = MultiProviderBalanceCoordinator(
             registrations: testRegistrations(for: [deepSeek, zhipu]),
@@ -894,14 +887,7 @@ enum MenuBarBalanceViewModelTests {
         resetAt: Date? = nil
     ) -> MultiProviderBalanceCoordinator {
         let deepSeekSnapshot = makeSnapshot(providerID: .deepseek, total: "68.65")
-        let zhipuSnapshot = PlanUsageSnapshot(
-            providerID: .zhipuCodingPlan,
-            windowLabel: "5h",
-            usagePercentage: Decimal(17),
-            resetAt: resetAt,
-            isAvailable: true,
-            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-        )
+        let zhipuSnapshot = QuotaTestFixtures.zhipu(usedPercentage: Decimal(17), resetAt: resetAt, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000))
         return MultiProviderBalanceCoordinator(
             registrations: testRegistrations(for: [
                 MockBalanceProvider(
@@ -910,7 +896,7 @@ enum MenuBarBalanceViewModelTests {
                 ),
                 MockBalanceProvider(
                     id: .zhipuCodingPlan,
-                    results: [.success(.planUsage(zhipuSnapshot))]
+                    results: [.success(.quotaUsage(zhipuSnapshot))]
                 )
             ]),
             credentialStore: InMemoryCredentialStore(credentialsByAccount: [
@@ -959,14 +945,7 @@ enum MenuBarBalanceViewModelTests {
     @MainActor
     private static func primaryPlanUsageParts(usagePercentage: Decimal) -> PrimaryProviderDisplayParts {
         makeViewModel(
-            state: .loaded(.planUsage(PlanUsageSnapshot(
-                providerID: .zhipuCodingPlan,
-                windowLabel: "5h",
-                usagePercentage: usagePercentage,
-                resetAt: nil,
-                isAvailable: usagePercentage < 100,
-                fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
-            )))
+            state: .loaded(.quotaUsage(QuotaTestFixtures.zhipu(usedPercentage: usagePercentage, resetAt: nil, fetchedAt: Date(timeIntervalSince1970: 1_715_000_000))))
         ).primaryDisplayParts
     }
 

@@ -159,8 +159,8 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                     quotaWindowRows: quotaWindowRows(for: state, suffixText: "%"),
                     statusText: ProviderDisplayFormatter.statusText(for: state, strings: strings),
                     statusTone: ProviderDisplayFormatter.statusTone(for: state),
-                    resetText: timeFormatter.resetText(for: state.lastPlanUsageSnapshot?.resetAt),
-                    resetShortText: timeFormatter.resetShortText(for: state.lastPlanUsageSnapshot?.resetAt)
+                    resetText: nil,
+                    resetShortText: nil
                 )
             }
     }
@@ -201,26 +201,11 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         return QuotaWindowSummary(text: text, resetText: resetText.isEmpty ? nil : resetText)
     }
 
-    /// A single-window plan (Zhipu) is described by `PlanUsageSnapshot` rather than
-    /// `QuotaUsageSnapshot`; turn it into the same row shape so the panel draws it with
-    /// the same three columns instead of a separate style.
     private func quotaWindowRows(for state: BalanceState, suffixText: String) -> [QuotaWindowDisplayRow] {
-        if let quota = state.lastQuotaUsageSnapshot {
-            return quotaWindowRows(for: quota.windows, suffixText: suffixText)
-        }
-
-        guard let plan = state.lastPlanUsageSnapshot else {
+        guard let quota = state.lastQuotaUsageSnapshot else {
             return []
         }
-
-        let window = QuotaWindowSnapshot(
-            label: plan.windowLabel,
-            kind: plan.windowKind,
-            remainingPercentage: plan.remainingPercentage,
-            resetAt: plan.resetAt,
-            isAvailable: plan.isAvailable
-        )
-        return quotaWindowRows(for: [window], suffixText: suffixText)
+        return quotaWindowRows(for: quota.windows, suffixText: suffixText)
     }
 
     private func quotaWindowRows(for quota: QuotaUsageSnapshot, suffixText: String) -> [QuotaWindowDisplayRow] {
@@ -296,10 +281,6 @@ public final class MenuBarBalanceViewModel: ObservableObject {
 
     public var lastRefreshText: String {
         timeFormatter.lastRefreshText(for: activeState.lastSnapshot?.fetchedAt)
-    }
-
-    public var resetText: String? {
-        timeFormatter.resetText(for: activeState.lastPlanUsageSnapshot?.resetAt)
     }
 
     public var credentialStatusText: String {
