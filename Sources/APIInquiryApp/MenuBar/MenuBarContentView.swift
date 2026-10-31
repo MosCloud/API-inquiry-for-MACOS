@@ -378,30 +378,37 @@ struct MenuBarContentView: View {
     @ViewBuilder
     private func secondaryProviderDetail(for row: ProviderDetailRow) -> some View {
         if !row.quotaWindowRows.isEmpty {
+            // Three fixed columns — label / percentage / reset — so two-window and
+            // three-window providers line up with each other instead of each row
+            // sizing itself.
             VStack(alignment: .trailing, spacing: 3) {
                 ForEach(row.quotaWindowRows, id: \.label) { quotaRow in
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("\(quotaRow.label) \(quotaRow.amountText)\(quotaRow.suffixText)")
+                        Text(quotaRow.label)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .frame(width: strings.secondaryQuotaLabelColumnWidth, alignment: .trailing)
+
+                        Text("\(quotaRow.amountText)%")
                             .font(.caption.weight(.semibold))
                             .monospacedDigit()
                             .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
+                            .frame(width: strings.secondaryQuotaValueColumnWidth, alignment: .trailing)
 
-                        if let resetText = quotaRow.resetText {
-                            Text(resetText)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: false)
-                        }
+                        Text(quotaRow.resetShortText ?? "")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .frame(width: strings.secondaryQuotaResetColumnWidth, alignment: .trailing)
                     }
                 }
             }
             .multilineTextAlignment(.trailing)
-            .frame(minWidth: 108, alignment: .trailing)
         } else {
             Group {
-                if let resetText = row.resetText {
+                if let resetText = row.resetShortText {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(row.detailText)
                             .font(.caption.weight(.semibold))

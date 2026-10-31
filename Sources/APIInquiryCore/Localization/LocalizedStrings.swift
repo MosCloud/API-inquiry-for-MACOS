@@ -306,6 +306,26 @@ public struct LocalizedStrings: Equatable {
         return label
     }
 
+    /// Fixed widths of the secondary providers' quota grid: window label, remaining
+    /// percentage, reset time. Fixed columns keep every provider's rows aligned instead
+    /// of letting each one size itself.
+    public var secondaryQuotaLabelColumnWidth: Double {
+        switch language {
+        case .en:
+            return 40
+        case .zh:
+            return 30
+        }
+    }
+
+    public var secondaryQuotaValueColumnWidth: Double {
+        return 34
+    }
+
+    public var secondaryQuotaResetColumnWidth: Double {
+        return 34
+    }
+
     /// Width of the hero label column. English needs more room than Chinese because
     /// "Month" is wider than 每月 at the same point size.
     public var quotaHeroLabelColumnWidth: Double {

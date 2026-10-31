@@ -18,6 +18,8 @@ public struct ProviderDetailRow: Equatable {
     public let statusText: String
     public let statusTone: ProviderStatusTone
     public let resetText: String?
+    /// Same instant as `resetText`, without the "Resets:" prefix.
+    public let resetShortText: String?
 }
 
 public struct QuotaWindowDisplayRow: Equatable {
