@@ -380,7 +380,8 @@ enum UsageConsoleViewModelTests {
         let refreshTask = Task {
             await viewModel.refreshCodexManualResetCredits(force: true)
         }
-        await provider.waitUntilStarted()
+        let started = await provider.waitUntilStarted()
+        harness.expectTrue(started, "the manual reset refresh starts before it is removed")
         viewModel.removeProvider(.codex)
         provider.complete(with: manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z"))
         let result = await refreshTask.value
@@ -411,13 +412,15 @@ enum UsageConsoleViewModelTests {
         let staleRefreshTask = Task {
             await viewModel.refreshCodexManualResetCredits(force: true)
         }
-        await provider.waitUntilStarted(requestCount: 1)
+        let firstStarted = await provider.waitUntilStarted(requestCount: 1)
+        harness.expectTrue(firstStarted, "the first manual reset refresh starts")
 
         try? credentialStore.saveCredential("new-token", forAccount: "codex-session-token")
         let currentRefreshTask = Task {
             await viewModel.refreshCodexManualResetCredits(force: true)
         }
-        await provider.waitUntilStarted(requestCount: 2)
+        let secondStarted = await provider.waitUntilStarted(requestCount: 2)
+        harness.expectTrue(secondStarted, "the follow-up manual reset refresh starts")
 
         provider.completeRequest(
             at: 0,
@@ -1428,16 +1431,11 @@ private final class DelayedManualResetCreditsProvider: CodexManualResetCreditsPr
         }
     }
 
-    /// Polls instead of parking a continuation: a waiter whose condition never becomes
-    /// true must fail the following assertion, not hang the whole runner (#70).
-    func waitUntilStarted() async {
-        for _ in 0..<200 {
-            if hasStarted {
-                return
-            }
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
-        fputs("warning: waitUntilStarted timed out after 2s\n", stderr)
+    /// Bounded on purpose (#70): parking a continuation here left the runner suspended
+    /// forever, and giving up silently let the assertions below pass on a state the test
+    /// never reached. The caller asserts the outcome.
+    func waitUntilStarted() async -> Bool {
+        await waitUntilBounded(attempts: 200, interval: 10_000_000) { hasStarted }
     }
 
     func complete(with snapshot: CodexManualResetCreditsSnapshot) {
@@ -1456,14 +1454,10 @@ private final class SequencedDelayedManualResetCreditsProvider: CodexManualReset
     }
 
     /// Same bounded poll as above: never leave a task suspended forever (#70).
-    func waitUntilStarted(requestCount: Int) async {
-        for _ in 0..<200 {
-            if continuations.count >= requestCount {
-                return
-            }
-            try? await Task.sleep(nanoseconds: 10_000_000)
+    func waitUntilStarted(requestCount: Int) async -> Bool {
+        await waitUntilBounded(attempts: 200, interval: 10_000_000) {
+            continuations.count >= requestCount
         }
-        fputs("warning: waitUntilStarted(requestCount: \(requestCount)) timed out after 2s\n", stderr)
     }
 
     func completeRequest(at index: Int, with snapshot: CodexManualResetCreditsSnapshot) {

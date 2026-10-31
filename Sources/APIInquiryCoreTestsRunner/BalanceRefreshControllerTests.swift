@@ -134,7 +134,8 @@ enum BalanceRefreshControllerTests {
         let controller = makeTestRefreshController(provider: provider, credentialStore: store)
 
         let firstRefresh = Task { await controller.refresh() }
-        await waitForFetchCount(1, probe: probe)
+        let firstFetch = await waitForFetchCount(1, probe: probe)
+        harness.expectTrue(firstFetch, "the first refresh reaches the provider")
 
         let secondRefresh = Task { await controller.refresh() }
         await Task.yield()
@@ -142,7 +143,8 @@ enum BalanceRefreshControllerTests {
         harness.expectEqual(await probe.fetchCount(), 1, "coalesced refresh does not fetch while the first is in flight")
 
         await probe.complete(with: snapshot)
-        await waitForFetchCount(2, probe: probe)
+        let followUpFetch = await waitForFetchCount(2, probe: probe)
+        harness.expectTrue(followUpFetch, "the coalesced refresh runs one follow-up fetch")
         await probe.complete(with: snapshot)
 
         await firstRefresh.value
@@ -160,7 +162,8 @@ enum BalanceRefreshControllerTests {
         let controller = makeTestRefreshController(provider: provider, credentialStore: store)
 
         let refresh = Task { await controller.refresh() }
-        await waitForFetchCount(1, probe: probe)
+        let firstFetch = await waitForFetchCount(1, probe: probe)
+        harness.expectTrue(firstFetch, "the refresh reaches the provider before it is invalidated")
 
         controller.markNotConfigured()
         await probe.complete(with: snapshot)
@@ -256,12 +259,12 @@ private actor SuspendedRefreshProbe {
     }
 }
 
-private func waitForFetchCount(_ expected: Int, probe: SuspendedRefreshProbe) async {
-    for _ in 0..<20 {
-        if await probe.fetchCount() == expected {
-            return
-        }
-        await Task.yield()
+/// Bounded like every other waiter (#70): `Task.yield()` alone has no time limit, so a
+/// slow machine could exhaust the attempts and then let the following assertions run
+/// against a half-arrived state. The caller asserts the outcome.
+private func waitForFetchCount(_ expected: Int, probe: SuspendedRefreshProbe) async -> Bool {
+    await waitUntilBounded(attempts: 200, interval: 5_000_000) {
+        await probe.fetchCount() == expected
     }
 }
 
