@@ -30,6 +30,7 @@ enum MenuBarBalanceViewModelTests {
         testPlanUsageRemainingIsClamped(using: harness)
         testPrimaryQuotaWindowAmountToneBoundaries(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
+        await testZhipuChineseMenuBarLocalizesWindowLabel(using: harness)
         await testOpenCodeWindowsUseWeeklyAndMonthlyLabelsWithDateResets(using: harness)
         await testCodexPrimaryProviderFormatsQuotaUsage(using: harness)
         await testCodexPrimaryProviderPrefersFiveHourQuotaWhenWindowsAreReversed(using: harness)
@@ -255,6 +256,21 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(codexRow?.quotaWindowRows.last?.detailText, "48%", "codex secondary weekly quota detail")
         harness.expectEqual(codexRow?.quotaWindowRows.last?.resetText, "Resets: 05/18", "codex secondary weekly quota reset")
         harness.expectEqual(codexRow?.statusText, "Quota available", "codex secondary row status")
+    }
+
+
+    @MainActor
+    private static func testZhipuChineseMenuBarLocalizesWindowLabel(using harness: TestHarness) async {
+        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .zhipuCodingPlan, resetAt: sampleResetDate)
+        await coordinator.refresh(.zhipuCodingPlan)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter,
+            languageStore: makeLanguageStore(selection: .zh)
+        )
+
+        harness.expectEqual(viewModel.menuBarValueText, "5 时 83%", "chinese zhipu menu bar localizes the window label")
+        harness.expectEqual(viewModel.menuBarTitle, "GLM 5 时 83%", "chinese zhipu menu bar title localizes the window label")
     }
 
     @MainActor
@@ -631,7 +647,7 @@ enum MenuBarBalanceViewModelTests {
 
         try? store.deleteCredential(forAccount: "deepseek-api-key")
 
-        harness.expectEqual(viewModel.menuBarTitle, "DS Setup", "menu title reflects deleted key")
+        harness.expectEqual(viewModel.menuBarTitle, "DS Set up", "menu title reflects deleted key")
         harness.expectTrue(viewModel.shouldShowSetupGuidance, "setup guidance reflects deleted key")
     }
 
