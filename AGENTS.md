@@ -85,6 +85,7 @@ The package has no XCTest target: tests are a **custom executable runner**, so `
 - Assert via `harness.expectEqual` / `expectTrue` / `expectThrowsBalanceProviderError`.
 - No single-test filter; the runner executes everything and exits non-zero on any failure. Expected output: `PASS: N expectations`.
 - Fake keys + mocked network only — never real credentials.
+- Waiting for an event inside a test goes through `waitUntilBounded(attempts:interval:condition:)` (`TestWaiters.swift`) and the outcome feeds `harness.expectTrue`. Never park a `CheckedContinuation` for a signal, and never discard a waiter's result: #70 was initially a runner that hung forever, then a test that reported PASS without reaching its own precondition.
 
 ## Branch and worktrees
 
