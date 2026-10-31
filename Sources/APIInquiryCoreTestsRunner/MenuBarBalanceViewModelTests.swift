@@ -22,6 +22,7 @@ enum MenuBarBalanceViewModelTests {
         testRefreshingDisablesRefresh(using: harness)
         testPrimaryBalanceAmountToneBoundaries(using: harness)
         testPrimaryPlanUsageAmountToneBoundaries(using: harness)
+        testPlanUsageRemainingIsClamped(using: harness)
         testPrimaryQuotaWindowAmountToneBoundaries(using: harness)
         await testZhipuPrimaryProviderFormatsPlanUsage(using: harness)
         await testOpenCodeWindowsUseWeeklyAndMonthlyLabelsWithDateResets(using: harness)
@@ -266,7 +267,7 @@ enum MenuBarBalanceViewModelTests {
         let codexViewModel = MenuBarBalanceViewModel(coordinator: codexCoordinator)
 
         harness.expectEqual(deepSeekViewModel.menuBarTitle, "DS ¥68.6", "deepseek primary title keeps DS prefix")
-        harness.expectEqual(zhipuViewModel.menuBarTitle, "GLM 5h 17%", "zhipu primary title keeps GLM prefix")
+        harness.expectEqual(zhipuViewModel.menuBarTitle, "GLM 5h 83%", "zhipu primary title keeps GLM prefix")
         harness.expectEqual(codexViewModel.menuBarTitle, "72%", "codex primary title omits GPT and quota window prefixes")
         harness.expectEqual(deepSeekViewModel.menuBarIconFallbackText, "DS", "deepseek menu bar image fallback uses descriptor prefix")
         harness.expectEqual(zhipuViewModel.menuBarIconFallbackText, "GLM", "zhipu menu bar image fallback uses descriptor prefix")
@@ -305,13 +306,13 @@ enum MenuBarBalanceViewModelTests {
             lastRefreshTimeFormatter: fixedTimeFormatter
         )
 
-        harness.expectEqual(viewModel.menuBarValueText, "5h 17%", "zhipu menu bar value")
-        harness.expectEqual(viewModel.menuBarTitle, "GLM 5h 17%", "zhipu menu bar title")
+        harness.expectEqual(viewModel.menuBarValueText, "5h 83%", "zhipu menu bar value")
+        harness.expectEqual(viewModel.menuBarTitle, "GLM 5h 83%", "zhipu menu bar title")
         harness.expectEqual(viewModel.primaryDisplayParts.providerID, .zhipuCodingPlan, "zhipu primary display id")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "5h", "zhipu primary display caption")
-        harness.expectEqual(viewModel.primaryDisplayParts.amountText, "17", "zhipu primary display amount")
-        harness.expectEqual(viewModel.primaryDisplayParts.amountValue, 17, "zhipu primary display amount value")
-        harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% used", "zhipu primary display trailing")
+        harness.expectEqual(viewModel.primaryDisplayParts.amountText, "83", "zhipu primary display amount")
+        harness.expectEqual(viewModel.primaryDisplayParts.amountValue, 83, "zhipu primary display amount value")
+        harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "% remaining", "zhipu primary display trailing")
         harness.expectEqual(viewModel.resetText, "Resets: 23:05", "zhipu reset text")
         harness.expectEqual(viewModel.statusText, "Plan available", "zhipu primary status")
     }
@@ -364,6 +365,19 @@ enum MenuBarBalanceViewModelTests {
         )
     }
 
+
+    @MainActor
+    private static func testPlanUsageRemainingIsClamped(using harness: TestHarness) {
+        let overLimit = primaryPlanUsageParts(usagePercentage: Decimal(120))
+        harness.expectEqual(overLimit.amountText, "0", "usage above 100 clamps remaining to 0")
+        harness.expectEqual(overLimit.amountValue, 0, "usage above 100 clamps remaining value to 0")
+        harness.expectEqual(overLimit.trailingText, "% remaining", "over-limit trailing text is remaining")
+
+        let negative = primaryPlanUsageParts(usagePercentage: Decimal(-5))
+        harness.expectEqual(negative.amountText, "100", "negative usage clamps remaining to 100")
+        harness.expectEqual(negative.amountValue, 100, "negative usage clamps remaining value to 100")
+    }
+
     @MainActor
     private static func testPrimaryQuotaWindowAmountToneBoundaries(using harness: TestHarness) {
         let viewModel = makeQuotaToneViewModel(remainingPercentages: [
@@ -399,7 +413,7 @@ enum MenuBarBalanceViewModelTests {
         )
 
         let zhipuRow = viewModel.secondaryProviderRows.first { $0.providerID == .zhipuCodingPlan }
-        harness.expectEqual(zhipuRow?.detailText, "5h 17%", "zhipu secondary row detail omits used")
+        harness.expectEqual(zhipuRow?.detailText, "5h 83%", "zhipu secondary row detail shows remaining")
         harness.expectEqual(zhipuRow?.resetText, "Resets: 23:05", "zhipu secondary row reset")
     }
 
@@ -492,8 +506,8 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(balanceViewModel.primaryDisplayParts.amountValue, 68.65, "deepseek balance amount value")
         harness.expectEqual(truncatedBalanceViewModel.primaryDisplayParts.amountText, "68.65", "deepseek truncated balance amount text")
         harness.expectEqual(truncatedBalanceViewModel.primaryDisplayParts.amountValue, 68.65, "deepseek truncated balance amount value")
-        harness.expectEqual(planUsageParts.amountText, "17", "plan usage truncated amount text")
-        harness.expectEqual(planUsageParts.amountValue, 17, "plan usage truncated amount value")
+        harness.expectEqual(planUsageParts.amountText, "82", "plan usage truncated remaining amount text")
+        harness.expectEqual(planUsageParts.amountValue, 82, "plan usage truncated remaining amount value")
         harness.expectEqual(quotaViewModel.primaryQuotaWindowRows.map(\.amountText), ["72", "48"], "quota truncated amount text")
         harness.expectEqual(quotaViewModel.primaryQuotaWindowRows.map(\.amountValue), [72, 48], "quota truncated amount values")
         harness.expectEqual(placeholderViewModel.primaryDisplayParts.amountText, "--", "placeholder amount text")

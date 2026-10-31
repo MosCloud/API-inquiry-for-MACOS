@@ -52,6 +52,15 @@ public struct PlanUsageSnapshot: Equatable {
     public let isAvailable: Bool
     public let fetchedAt: Date
 
+    /// Providers report the share they consider used; the UI consistently shows the
+    /// remaining share, so derive it here instead of in every formatter.
+    public var remainingPercentage: Decimal {
+        let remaining = Decimal(100) - usagePercentage
+        if remaining < 0 { return 0 }
+        if remaining > 100 { return 100 }
+        return remaining
+    }
+
     public init(
         providerID: ProviderID,
         windowLabel: String,
