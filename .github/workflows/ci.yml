@@ -20,8 +20,5 @@ jobs:
       - name: Show Swift version
         run: swift --version
 
-      - name: Run core test runner
-        run: swift run APIInquiryCoreTestsRunner
-
-      - name: Build all targets
-        run: swift build
+      - name: Verify (tests + app build)
+        run: Scripts/verify.sh

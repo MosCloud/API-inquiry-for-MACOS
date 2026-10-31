@@ -49,7 +49,10 @@ echo "== 2/2 app build ($configuration)"
 source "$ROOT_DIR/Scripts/lib/toolchain.sh"
 ensure_xcode_toolchain
 
-if ! swift build --build-system native --disable-sandbox -c "$configuration"; then
+SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
+modern_build_linker_args "$SDK_VERSION"
+
+if ! swift build --disable-sandbox -c "$configuration" "${MODERN_BUILD_LINKER_ARGS[@]}"; then
     cat >&2 <<'MESSAGE'
 error: the app target failed to compile (step 2/2).
        The test runner does not compile APIInquiryApp, so an App-only error shows up
@@ -57,5 +60,8 @@ error: the app target failed to compile (step 2/2).
 MESSAGE
     exit 1
 fi
+
+BIN_DIR="$(swift build --disable-sandbox -c "$configuration" --show-bin-path)"
+assert_modern_build_sdk "$BIN_DIR/APIInquiryApp"
 
 echo "verify: OK (tests + $configuration app build)"
