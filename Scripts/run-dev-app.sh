@@ -16,6 +16,9 @@ WORKTREE_ID="$(
         awk '{ print substr($1, 1, 12) }'
 )"
 DEVELOPMENT_APP="/private/tmp/api-inquiry-development-${UID}-${WORKTREE_ID}/APIInquiryDevelopment.app"
+MAIN_BUNDLE_ID="com.api-inquiry.APIInquiry"
+DEVELOPMENT_BUNDLE_ID="com.api-inquiry.APIInquiry.development"
+DEVELOPMENT_PREFERENCES="$HOME/Library/Preferences/$DEVELOPMENT_BUNDLE_ID.plist"
 
 cd "$ROOT_DIR"
 
@@ -51,6 +54,16 @@ fi
 if /usr/bin/pgrep -x APIInquiryDevelopment >/dev/null; then
     /usr/bin/pkill -x APIInquiryDevelopment
     sleep 1
+fi
+
+# The development copy keeps its own preferences domain so both menu bar items can
+# coexist. Seed it once from the running app, then leave it alone.
+if [ ! -f "$DEVELOPMENT_PREFERENCES" ]; then
+    PREFERENCES_TMP="$(mktemp /tmp/api-inquiry-preferences.XXXXXX.plist)"
+    if /usr/bin/defaults export "$MAIN_BUNDLE_ID" "$PREFERENCES_TMP" 2>/dev/null; then
+        /usr/bin/defaults import "$DEVELOPMENT_BUNDLE_ID" "$PREFERENCES_TMP" 2>/dev/null || true
+    fi
+    rm -f "$PREFERENCES_TMP"
 fi
 
 # LaunchServices passes the caller's environment to the app; Electron-based tools
