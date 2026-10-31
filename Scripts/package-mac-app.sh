@@ -32,12 +32,13 @@ trap cleanup_staging EXIT
 cd "$ROOT_DIR"
 
 SDKROOT="$APP_SDK_PATH" swift Scripts/generate-app-icon.swift
-# Build with SwiftPM's native build system on purpose: the Xcode build system records
-# LC_BUILD_VERSION sdk = the deployment target (13.0), which opts the app out of the
-# macOS 26 design (legacy pop-up buttons, old panel chrome). The native build system
-# records the real SDK. `assert_modern_build_sdk` below fails the build if that ever
-# regresses, instead of shipping an app with the old chrome.
-SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --build-system native --configuration "$CONFIGURATION" --product "$PRODUCT_NAME"
+# SwiftPM's default build system records LC_BUILD_VERSION sdk = the deployment target
+# (13.0), which opts the app out of the macOS 26 design. Pass the real SDK version to
+# the linker instead; `assert_modern_build_sdk` fails the build if that ever regresses.
+SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
+modern_build_linker_args "$SDK_VERSION"
+SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --configuration "$CONFIGURATION" --product "$PRODUCT_NAME" "${MODERN_BUILD_LINKER_ARGS[@]}"
+BIN_DIR="$(SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --configuration "$CONFIGURATION" --show-bin-path)"
 
 rm -rf "$STAGING_ROOT" "$APP_DIR"
 CONTENTS_DIR="$STAGED_APP_DIR/Contents"
@@ -45,15 +46,14 @@ MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
-cp "$ROOT_DIR/.build/$CONFIGURATION/$PRODUCT_NAME" "$MACOS_DIR/$EXECUTABLE_NAME"
+cp "$BIN_DIR/$PRODUCT_NAME" "$MACOS_DIR/$EXECUTABLE_NAME"
 chmod +x "$MACOS_DIR/$EXECUTABLE_NAME"
 assert_modern_build_sdk "$MACOS_DIR/$EXECUTABLE_NAME"
 
-RESOURCE_BUNDLE="$ROOT_DIR/.build/$CONFIGURATION/$RESOURCE_BUNDLE_NAME"
+RESOURCE_BUNDLE="$BIN_DIR/$RESOURCE_BUNDLE_NAME"
 if [ -d "$RESOURCE_BUNDLE" ]; then
-    # SwiftPM writes a flat bundle on its native build system but a macOS-style
-    # bundle with Contents/Resources when it builds through the Xcode build
-    # system, so search the whole bundle instead of only its top level.
+    # SwiftPM's default build system emits a macOS-style bundle with
+    # Contents/Resources; search the whole bundle instead of only its top level.
     find "$RESOURCE_BUNDLE" -type f \( -name "*.png" -o -name "*.icns" -o -name "*.svg" \) -exec cp {} "$RESOURCES_DIR/" \;
 fi
 
@@ -124,7 +124,22 @@ ditto "$STAGED_APP_DIR" "$APP_DIR"
 # after it lands, which makes strict verification fail with "resource fork,
 # Finder information, or similar detritus". Strip it before verifying; the DMG
 # built from this copy is verified again after its own xattr cleanup.
-xattr -cr "$APP_DIR"
-codesign --verify --deep --strict "$APP_DIR"
+# FileProvider can re-attach Finder metadata to a Desktop copy right after the
+# strip, so verify with a couple of retries instead of failing the package run.
+verified=0
+for attempt in 1 2 3; do
+    xattr -cr "$APP_DIR"
+    if codesign --verify --deep --strict "$APP_DIR" 2>/dev/null; then
+        verified=1
+        break
+    fi
+    if [ "$attempt" -lt 3 ]; then
+        sleep 0.5
+    fi
+done
+if [ "$verified" != "1" ]; then
+    echo "error: '$APP_DIR' still fails strict code-signature verification after stripping xattrs." >&2
+    exit 1
+fi
 
 echo "Packaged $APP_DIR"

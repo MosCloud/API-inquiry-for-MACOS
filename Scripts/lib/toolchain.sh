@@ -34,6 +34,28 @@ MESSAGE
     exit 1
 }
 
+# SwiftPM's default build system records LC_BUILD_VERSION sdk as the deployment
+# target, which opts the app out of the current macOS design. Passing the real SDK
+# version to the linker restores it without the deprecated `--build-system native`.
+# Usage: modern_build_linker_args "$SDK_VERSION"; swift build ... "${MODERN_BUILD_LINKER_ARGS[@]}"
+readonly API_INQUIRY_MINIMUM_MACOS="13.0"
+
+modern_build_linker_args() {
+    local sdk_version="$1"
+
+    if [ -z "$sdk_version" ]; then
+        echo "error: missing macOS SDK version for the linker override." >&2
+        exit 1
+    fi
+
+    MODERN_BUILD_LINKER_ARGS=(
+        -Xlinker -platform_version
+        -Xlinker macos
+        -Xlinker "$API_INQUIRY_MINIMUM_MACOS"
+        -Xlinker "$sdk_version"
+    )
+}
+
 # The minimum SDK major version that still opts into the current macOS design.
 # The Xcode build system records the deployment target (13.0) here instead.
 readonly API_INQUIRY_MINIMUM_BUILD_SDK_MAJOR=20
@@ -67,7 +89,7 @@ assert_modern_build_sdk() {
         cat >&2 <<MESSAGE
 error: '$binary' was linked against sdk $sdk, which is the deployment target rather than a real SDK.
        That build opts the app out of the macOS 26 design (legacy panel chrome, wide pop-up buttons).
-       Rebuild with --build-system native; both app scripts pass that flag on purpose.
+       Rebuild with the app scripts; they pass the real SDK version to the linker.
 MESSAGE
         exit 1
     fi

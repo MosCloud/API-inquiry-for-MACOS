@@ -157,33 +157,35 @@ prepare_runtime_root() {
 cd "$ROOT_DIR"
 
 SDKROOT="$APP_SDK_PATH" swift Scripts/generate-app-icon.swift
-# Build with SwiftPM's native build system on purpose: the Xcode build system records
-# LC_BUILD_VERSION sdk = the deployment target (13.0), which opts the app out of the
-# macOS 26 design (legacy pop-up buttons, old panel chrome). The native build system
-# records the real SDK. `assert_modern_build_sdk` below fails the build if that ever
-# regresses, instead of shipping an app with the old chrome.
+# SwiftPM's default build system records LC_BUILD_VERSION sdk = the deployment target
+# (13.0), which opts the app out of the macOS 26 design. Pass the real SDK version to
+# the linker instead; `assert_modern_build_sdk` fails the build if that ever regresses.
+SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
+modern_build_linker_args "$SDK_VERSION"
+
 if [ "$BUILD_ROOT" = "$ROOT_DIR/.build" ]; then
-    SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --build-system native --product APIInquiryApp
+    SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --product APIInquiryApp "${MODERN_BUILD_LINKER_ARGS[@]}"
+    BIN_DIR="$(SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --show-bin-path)"
 else
     # Scratch paths outside the checkout keep SwiftPM's bundle signing away from
     # Desktop/FileProvider metadata, which otherwise fails with "resource fork,
     # Finder information, or similar detritus".
-    SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --build-system native --scratch-path "$BUILD_ROOT" --product APIInquiryApp
+    SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --scratch-path "$BUILD_ROOT" --product APIInquiryApp "${MODERN_BUILD_LINKER_ARGS[@]}"
+    BIN_DIR="$(SDKROOT="$APP_SDK_PATH" swift build --sdk "$APP_SDK_PATH" --scratch-path "$BUILD_ROOT" --show-bin-path)"
 fi
 
 CONTENTS_DIR="$STAGED_APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
-cp "$BUILD_ROOT/debug/APIInquiryApp" "$MACOS_DIR/$EXECUTABLE_NAME"
+cp "$BIN_DIR/APIInquiryApp" "$MACOS_DIR/$EXECUTABLE_NAME"
 chmod +x "$MACOS_DIR/$EXECUTABLE_NAME"
 assert_modern_build_sdk "$MACOS_DIR/$EXECUTABLE_NAME"
 
-RESOURCE_BUNDLE="$BUILD_ROOT/debug/APIInquiry_APIInquiryApp.bundle"
+RESOURCE_BUNDLE="$BIN_DIR/APIInquiry_APIInquiryApp.bundle"
 if [ -d "$RESOURCE_BUNDLE" ]; then
-    # SwiftPM emits a flat bundle on its native build system but a macOS-style
-    # bundle with Contents/Resources when it builds through the Xcode build
-    # system, so search the whole bundle instead of only its top level.
+    # SwiftPM's default build system emits a macOS-style bundle with
+    # Contents/Resources; search the whole bundle instead of only its top level.
     find "$RESOURCE_BUNDLE" -type f \( -name "*.png" -o -name "*.icns" -o -name "*.svg" \) -exec cp {} "$RESOURCES_DIR/" \;
 fi
 
