@@ -510,6 +510,12 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.secondaryProviderRows.first?.providerID, .deepseek, "secondary provider row id")
         harness.expectEqual(viewModel.secondaryProviderRows.first?.detailText, "¥68.65 CNY", "secondary provider detail")
         harness.expectEqual(viewModel.secondaryProviderRows.first?.statusText, "Available", "secondary provider status")
+
+        // A balance row fills the same three columns as a quota row (#80).
+        let columns = viewModel.secondaryProviderRows.first?.balanceColumns
+        harness.expectEqual(columns?.label, "Balance", "balance row labels the column like a window label")
+        harness.expectEqual(columns?.amount, "¥68.65", "balance amount keeps the symbol and sits in the value column")
+        harness.expectEqual(columns?.currency, "CNY", "currency code sits in the reset column")
     }
 
     @MainActor
@@ -524,6 +530,7 @@ enum MenuBarBalanceViewModelTests {
         let zhipuRow = viewModel.secondaryProviderRows.first { $0.providerID == .zhipuCodingPlan }
         harness.expectEqual(zhipuRow?.detailText, "5h 83%", "zhipu secondary row detail shows remaining")
         harness.expectEqual(zhipuRow?.quotaWindowRows.first?.resetShortText, "23:05", "zhipu secondary row reset rides the quota row")
+        harness.expectEqual(zhipuRow?.balanceColumns, nil, "quota rows do not use the balance columns")
     }
 
     @MainActor

@@ -27,8 +27,23 @@ public struct ProviderDetailRow: Equatable {
     public let displayName: String
     public let detailText: String
     public let quotaWindowRows: [QuotaWindowDisplayRow]
+    /// A balance provider has no windows, but it still uses the same three columns so the
+    /// amount lines up with the quota percentages and the currency with the reset dates.
+    public let balanceColumns: SecondaryRowColumns?
     public let statusText: String
     public let statusTone: ProviderStatusTone
+}
+
+public struct SecondaryRowColumns: Equatable {
+    public let label: String
+    public let amount: String
+    public let currency: String
+
+    public init(label: String, amount: String, currency: String) {
+        self.label = label
+        self.amount = amount
+        self.currency = currency
+    }
 }
 
 public struct QuotaWindowDisplayRow: Equatable {

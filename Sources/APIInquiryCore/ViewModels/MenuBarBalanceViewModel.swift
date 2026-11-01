@@ -138,6 +138,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                     displayName: descriptor.secondaryDisplayName,
                     detailText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot, strings: strings),
                     quotaWindowRows: quotaWindowRows(for: state, suffixText: "%"),
+                    balanceColumns: balanceColumns(for: state),
                     statusText: ProviderDisplayFormatter.statusText(
                         for: state,
                         accessPurpose: descriptor.accessPurpose,
@@ -182,6 +183,22 @@ public final class MenuBarBalanceViewModel: ObservableObject {
             .compactMap(\.resetShortText)
             .joined(separator: "·")
         return QuotaWindowSummary(text: text, resetText: resetText.isEmpty ? nil : resetText)
+    }
+
+    /// A prepaid balance fills the same label/amount/currency columns the quota rows use,
+    /// so the money column lines up with the percentages above and below it (#80).
+    private func balanceColumns(for state: BalanceState) -> SecondaryRowColumns? {
+        guard case .balance = state.lastSnapshot,
+              let snapshot = state.lastSnapshot else {
+            return nil
+        }
+
+        let presentation = ProviderSnapshotPresentation.make(from: snapshot, strings: strings)
+        return SecondaryRowColumns(
+            label: strings.balanceRowLabel,
+            amount: "\(presentation.leadingText)\(presentation.amountText)",
+            currency: presentation.trailingText
+        )
     }
 
     private func quotaWindowRows(for state: BalanceState, suffixText: String) -> [QuotaWindowDisplayRow] {
