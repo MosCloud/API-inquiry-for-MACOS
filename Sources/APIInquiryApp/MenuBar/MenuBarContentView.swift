@@ -352,7 +352,31 @@ struct MenuBarContentView: View {
 
     @ViewBuilder
     private func secondaryProviderDetail(for row: ProviderDetailRow) -> some View {
-        if !row.quotaWindowRows.isEmpty {
+        if let columns = row.balanceColumns {
+            // Same three columns as the quota rows, so the money value sits where the
+            // percentages sit and the currency where the reset dates sit (#80).
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(columns.label)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(width: strings.secondaryQuotaLabelColumnWidth, alignment: .trailing)
+
+                Text(columns.amount)
+                    .font(.caption.weight(.semibold))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .frame(width: strings.secondaryQuotaValueColumnWidth, alignment: .trailing)
+
+                Text(columns.currency)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .frame(width: strings.secondaryQuotaResetColumnWidth, alignment: .trailing)
+            }
+            .multilineTextAlignment(.trailing)
+        } else if !row.quotaWindowRows.isEmpty {
             // Three fixed columns — label / percentage / reset — so two-window and
             // three-window providers line up with each other instead of each row
             // sizing itself.
