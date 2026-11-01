@@ -6,6 +6,7 @@
 ```text
 AGENTS.md                  agent 约定
 README.md                  中文说明（正本）；README_en.md 是英文版
+CHANGELOG.md               累计变更记录（英文）；CHANGELOG_zh.md 是中文版
 Package.swift              SwiftPM 清单：一个 library + 两个 executable
 LICENSE                    MIT 许可证
 THIRD-PARTY.md             品牌素材、商标与依赖说明

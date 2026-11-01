@@ -19,6 +19,7 @@
 - `docs/roadmap.md`（日期、最新版本、能力摘要，中英双语）
 - `AGENTS.md`（当前版本那句）
 - 新建 `docs/releases/vX.Y.Z_github.md`，中英双语、只保留非空章节：New Features / App Optimization / Bug Fixes，再加下载校验与已知限制。
+- `CHANGELOG.md` / `CHANGELOG_zh.md`：打包前把 `[Unreleased]` 的内容折叠成新的 `## [X.Y.Z] - YYYY-MM-DD` 小节，日期填发布当天，并保留空的 `[Unreleased]`。
 
 ## 2. 构建环境
 

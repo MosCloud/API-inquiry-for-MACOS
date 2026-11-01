@@ -261,4 +261,4 @@ Scripts/restart-installed-app.sh
 
 ## 许可证
 
-[MIT](LICENSE)。第三方品牌素材与商标声明见 [THIRD-PARTY.md](THIRD-PARTY.md)。
+[MIT](LICENSE)。第三方品牌素材与商标声明见 [THIRD-PARTY.md](THIRD-PARTY.md)。完整版本变更记录见 [CHANGELOG_zh.md](CHANGELOG_zh.md)。

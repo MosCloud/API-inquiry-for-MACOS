@@ -260,4 +260,4 @@ See [docs/roadmap.md](docs/roadmap.md) for the detailed plan.
 
 ## License
 
-[MIT](LICENSE). See [THIRD-PARTY.md](THIRD-PARTY.md) for brand assets and trademark notices.
+[MIT](LICENSE). See [THIRD-PARTY.md](THIRD-PARTY.md) for brand assets and trademark notices. See [CHANGELOG.md](CHANGELOG.md) for the full version history.

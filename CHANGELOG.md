@@ -1,0 +1,301 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+
+- Added OpenCode as a supported provider: it reads OpenCode's local credentials and shows its usage windows in the menu bar panel and Console.
+- The DeepSeek card now shows the granted balance as its own column, and the money column is titled **Total balance** instead of **Details**. (#78)
+- Added a provider-onboarding guide covering the registry, logo, fixture, and test steps a new provider needs. (#17)
+- Released the project under the MIT licence, with third-party brand and trademark notices recorded separately.
+
+### Changed
+
+- Balance providers now use the same three columns as quota providers, and the columns fit the values actually on screen. (#80)
+- Secondary provider rows share fixed window, percentage, and reset columns, so multi-window providers line up with each other. (#9)
+- Secondary rows now use one type size and one decimal place, and no longer repeat the currency symbol already shown in the currency column.
+- The menu bar panel keeps one quota window at full size and folds the remaining windows onto a single summary line. (#19)
+- Plan providers now read "Quota available" instead of "Plan available", and Zhipu's menu bar label is just the percentage. (#42, #64)
+
+### Fixed
+
+- A failed refresh now marks the menu bar value as stale with a red **!**, so an old number is not mistaken for a live one. (#39)
+- Plan usage percentages now mean the share remaining rather than the share used, matching the other providers. (#38)
+- Saving a key while a refresh is running now refreshes again with the new key instead of losing the update. (#40)
+- Codex and OpenCode sign-in failures now name the CLI that has to sign in again instead of pointing at Console actions that do not exist. (#37)
+
+### Removed
+
+- Removed the lone **Plan Next Resets** column from Console Home; each window's reset time remains in the menu bar panel. (#74)
+- Retired the duplicate agent-instruction stubs so `AGENTS.md` is the only agent contract.
+
+## [0.3.16] - 2026-10-30
+
+### Fixed
+
+- The OpenAI/Codex Credits balance now shows at most two decimals, so a value such as `64999.557415` reads `64999.55` instead of looking like a floating-point error.
+- The displayed value is truncated rather than rounded, so it never exceeds the credits actually left; whole balances stay whole (`65000`, not `65000.00`).
+- Missing, malformed, or negative Credits still show `--`, unlimited credits still read `Unlimited`, and the 5h/1W quota detail and top status badge are unchanged.
+
+## [0.3.15] - 2026-08-26
+
+### Added
+
+- The OpenAI/Codex card on Console Home now shows the raw Credits balance from the usage response, with a `Credits` unit and no currency conversion.
+- An explicit zero reads `0 Credits`, and unlimited credits use the localized `Unlimited` label.
+
+### Changed
+
+- Missing, malformed, or invalid Credits show `--` while the valid 5h/1W quota detail, top status badge, and manual-reset information stay available.
+
+## [0.3.14] - 2026-07-31
+
+### Added
+
+- OpenAI/Codex quota in the menu bar now shows only the remaining percentage: the five-hour window when present, or the weekly window when that is the only quota returned.
+- Opening the menu bar panel lists the remaining percentage and reset time for every recognized quota window.
+
+### Changed
+
+- The menu bar panel keeps a stable native corner and material appearance on current macOS.
+
+### Fixed
+
+- Weekly-only OpenAI/Codex quota is now recognized and displayed correctly instead of breaking when the response has no five-hour window.
+
+## [0.3.12] - 2026-07-13
+
+### Changed
+
+- Compact menu bar quota labels are now `5H` and `1W`, making the active window quicker to recognize.
+
+### Fixed
+
+- A weekly-only OpenAI/Codex response is now identified as weekly instead of being mislabelled as a five-hour quota.
+
+## [0.3.11] - 2026-07-07
+
+### Changed
+
+- Console appearance is more consistent in light mode.
+- Console feedback no longer stacks provider messages.
+- Menu refresh and manual-reset refresh share one feedback state.
+
+### Fixed
+
+- A malformed local Codex login file now shows a visible warning instead of failing silently.
+- The Console window now matches the size of its content.
+
+## [0.3.10] - 2026-07-03
+
+### Added
+
+- The OpenAI/Codex manual-reset summary in Console Home opens a detail sheet listing every available reset card.
+- Reset details show granted and expiration times in the current system time zone.
+
+### Changed
+
+- Time displays consistently follow the system time zone and 12-hour/24-hour preference.
+
+### Fixed
+
+- A refresh still in flight no longer restores removed or changed Codex state.
+- Manual-reset results are no longer reused after the Codex credentials change.
+- An unconfigured Codex row no longer exposes an empty manual-reset detail action.
+- Codex reset timestamps sent as numeric millisecond strings are now parsed.
+
+### Removed
+
+- Console Home no longer has a separate last-updated column, giving quota and manual-reset details more room.
+
+## [0.3.9] - 2026-07-01
+
+### Added
+
+- The OpenAI/Codex card on Console Home shows Codex manual reset credits, including the available reset count and nearest expiration.
+- Manual reset credits can be refreshed on their own without joining the menu bar refresh.
+
+### Changed
+
+- Manual-reset checks use a separate low-frequency cache, so they do not block the regular refresh or a manual menu bar refresh.
+- Menu refresh and manual-reset refresh share the same in-progress, success, and failure feedback.
+
+### Fixed
+
+- Repeated menu bar refreshes no longer make the refresh icon spin faster over time.
+
+## [0.3.8] - 2026-06-03
+
+### Fixed
+
+- An incomplete OpenAI/Codex quota response no longer briefly shows only the 5-hour window while hiding the 7-day window.
+- Incomplete responses are retried once before the refresh is treated as unavailable.
+- If the retry is still incomplete, the last complete snapshot stays on screen instead of being replaced with partial data.
+- Quota percentages keep the fractional precision returned by the service, matching the official Codex display.
+
+## [0.3.7] - 2026-05-30
+
+### Changed
+
+- The refresh icon turns forward at a calm, steady pace and stops naturally when the refresh finishes.
+- Balance, usage, and quota numbers change more smoothly on newer macOS, with macOS 13 still supported.
+- Save, delete, warning, and error messages are easier to notice, and warning colours are softer and consistent in light and dark mode.
+- Menu bar status, quota windows, provider rows, badges, and icon buttons have clearer accessibility descriptions.
+
+### Fixed
+
+- API access status no longer takes the wrong colour after a language change.
+- The refresh animation no longer appears to pause or jump backward near the end of a turn.
+- New motion effects are reduced or removed when Reduce Motion is enabled.
+- Console Home provider rows keep their internal buttons reachable by assistive technologies.
+
+## [0.3.6-Refactor] - 2026-05-30
+
+### Changed
+
+- Multi-provider refresh runs providers concurrently while each provider keeps its own loading and error state.
+- Codex configuration lookup is read-only by default; folders are created only when explicitly requested.
+- Settings identifies this validation build as v0.3.6-Refactor.
+
+## [0.3.6] - 2026-05-29
+
+### Added
+
+- The API page offers Open Config for OpenAI/Codex, locating the local auth configuration used for quota checks.
+
+### Changed
+
+- Console API rows are compact standalone cards with provider identity, access status, purpose, and actions on one line.
+- Provider chips on the API page now match Home, with balanced logo sizes and a denser macOS Settings-style layout.
+- The key action is shortened to "Replace Key", and access-purpose text now distinguishes recharge balance from plan quota.
+
+### Fixed
+
+- OpenAI/Codex plan quota parsing no longer fails when the response returns null reset fields.
+- Unavailable providers show neutral grey status badges instead of warning-coloured ones.
+
+## [0.3.5] - 2026-05-26
+
+### Changed
+
+- Console Home provider rows now use the menu panel's translucent visual language, with a soft health-tinted background.
+- Home resource badges distinguish balance and quota providers with sufficient, low, and critical states.
+- Aggregated quota health follows the most urgent of the 5-hour and weekly windows.
+- Spacing, module height, translucency, and section titles are aligned across Home, API, and Settings.
+
+### Fixed
+
+- Home and API content scrolls vertically instead of clipping provider modules at the bottom of the window.
+- OpenAI/Codex-style providers without key management no longer show key controls, only removal.
+- Settings no longer drifts the navigation and section title, and reports v0.3.5.
+
+## [0.3.4] - 2026-05-22
+
+### Changed
+
+- The primary number in the menu panel now uses health colours, based on remaining balance, used percentage, or each quota window.
+- The warning colour is a brighter amber, while success and critical keep their existing tones.
+- DeepSeek and Zhipu primary numbers share a stable 42 pt size, with smaller symbols and units.
+- The app icon's usage bars echo the same health colours in a softer icon treatment.
+- The DMG install window has a larger drag-to-Applications layout, a clearer arrow, and centred targets.
+
+### Fixed
+
+- The primary number no longer changes size between launch and switching the primary provider in Console.
+
+## [0.3.3] - 2026-05-20
+
+### Changed
+
+- Primary provider status now uses the same green as secondary provider status in both languages.
+- The Console Home marker for the menu bar provider uses the same blue as AutoStart.
+- A new Settings page holds the language setting, version information, and a Project Homepage button.
+
+### Fixed
+
+- The Console window title no longer shows the opposite language after switching between Chinese and English.
+- Auto language mode now follows the system language order instead of choosing Chinese whenever Chinese appears anywhere in the preferred-language list.
+
+## [0.3.2] - 2026-05-20
+
+### Added
+
+- Chinese UI: when macOS prefers Chinese, the app shows Chinese by default, and Console Home offers Auto / 中文 / English.
+- The language choice is remembered, and Auto follows the system language.
+- Menu details and the Console update together when the language changes.
+
+### Changed
+
+- Menu details, Console pages, buttons, statuses, errors, settings feedback, last-updated text, and reset text are localized in both languages.
+- Chinese uses `API 密钥` and `密钥串`; Codex quota labels use `5 时` and `1 周`, while the menu bar keeps `5h xx%`.
+- The menu bar status text now uses the official macOS menu bar font, size, and weight.
+
+## [0.3.1] - 2026-05-18
+
+### Added
+
+- Added an OpenAI/Codex provider that queries ChatGPT/Codex session quota and reads the local Codex login automatically, so no OpenAI Platform key is needed.
+- When it is the Primary Provider, the menu bar shows the OpenAI icon with 5h remaining quota, and the detail panel shows the 5h and 7d windows.
+- As a secondary provider, it shows 5h and 7d on separate lines, and Console Home shows the current plan.
+- Console Home labels quota semantics explicitly: Zhipu is marked `used`, and OpenAI/Codex is marked remaining.
+- Added OpenAI header, logo, and 16×16 menu icon assets.
+
+### Changed
+
+- Zhipu as a secondary provider shows its usage and reset time on one line.
+
+### Removed
+
+- Removed the Last updated row from secondary providers; the timestamp stays on the primary display.
+
+## [0.3.0] - 2026-05-18
+
+### Added
+
+- Built-in multi-provider catalog, starting with DeepSeek and Zhipu GLM Coding Plan.
+- Zhipu plan usage, including plan window, usage percentage, and next reset time.
+- The menu bar shows only the Primary Provider — DeepSeek balance or Zhipu plan usage such as `5h 17%` — and the menu panel features it while listing other providers as compact rows.
+- Console can add providers, save/replace/delete per-provider keys, and choose the Primary Provider.
+- Each provider has its own Keychain account and independent refresh, snapshot, and error state.
+
+### Changed
+
+- Home and API layouts align provider cards, metric columns, actions, and logos.
+- The menu panel refresh action now refreshes every added provider, not only the Primary Provider.
+- Detail formatting is polished: currency and plan-usage typography, plus system 12/24-hour times.
+
+## [0.2.0] - 2026-05-17
+
+### Added
+
+- Added a local Console window with Home and API pages.
+- Key setup, replacement, and deletion moved from the menu bar panel into Console.
+- Console Home shows provider key status, validation status, and balance state; the API page manages provider keys.
+- Provider names in Console are clickable, and DeepSeek opens its usage page.
+
+### Changed
+
+- The menu bar panel stays lightweight, with balance status, Console and refresh actions, AutoStart, and quit.
+
+## [0.1.1] - 2026-05-17
+
+### Added
+
+- Clearer first-run guidance for configuring a DeepSeek API key.
+- Refresh failures offer retry, key replacement, and key deletion.
+- Structured save feedback and an inline delete confirmation.
+- A visible in-progress state for manual refresh.
+- Versioned DMG packaging with a matching SHA-256 checksum.
+
+## [0.1.0-alpha.1] - 2026-05-15
+
+### Added
+
+- Initial public alpha: a native macOS menu bar app for checking DeepSeek API balance.
+- Balance query through the official DeepSeek balance API, with the key stored in the macOS Keychain.
+- Five-minute automatic refresh plus manual refresh from the menu bar.
+- Native menu bar UI, an AutoStart launch-at-login toggle, and a custom app icon.
+- Last-updated time follows the system 12-hour or 24-hour setting.
