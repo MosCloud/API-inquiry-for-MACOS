@@ -5,7 +5,6 @@ the structure changes; the pairs are `docs/repository-layout.md` / `_zh.md`.
 
 ```text
 AGENTS.md                  agent contract for this repository
-AGENT.md / AGENT_zh.md     redirect stubs, kept so links in old plans still resolve
 README.md                  Chinese readme (the canonical one); README_en.md is English
 Package.swift              SwiftPM manifest: one library plus two executables
 Scripts/                   executable tooling — see Scripts/README.md
