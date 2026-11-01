@@ -5,32 +5,39 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-01
+
 ### Added
 
-- Added OpenCode as a supported provider: it reads OpenCode's local credentials and shows its usage windows in the menu bar panel and Console.
-- The DeepSeek card now shows the granted balance as its own column, and the money column is titled **Total balance** instead of **Details**. (#78)
-- Added a provider-onboarding guide covering the registry, logo, fixture, and test steps a new provider needs. (#17)
-- Released the project under the MIT licence, with third-party brand and trademark notices recorded separately.
+- OpenCode provider: reads the local OpenCode credentials and shows its usage windows in the menu bar and Console; the Console API page can open OpenCode's own config file. (#13)
+- The DeepSeek card gained a granted-balance column, and its amount metric was renamed from "Detail" to "Total balance". (#78)
+- A failed refresh now marks the menu bar value as stale instead of presenting old data as current. (#39)
+- Clicking the development version label in Console copies the commit of the running build. (#52)
+- Added a bilingual provider-onboarding guide covering registry fields, logo assets, fixtures and tests. (#17)
+- The project is MIT licensed, with a separate record of third-party brand assets and trademarks. (#86)
 
 ### Changed
 
-- Balance providers now use the same three columns as quota providers, and the columns fit the values actually on screen. (#80)
-- Secondary provider rows share fixed window, percentage, and reset columns, so multi-window providers line up with each other. (#9)
-- Secondary rows now use one type size and one decimal place, and no longer repeat the currency symbol already shown in the currency column.
-- The menu bar panel keeps one quota window at full size and folds the remaining windows onto a single summary line. (#19)
-- Plan providers now read "Quota available" instead of "Plan available", and Zhipu's menu bar label is just the percentage. (#42, #64)
+- The menu bar panel is tighter: 442pt down to 364pt, with the hero area keeping only the current window and folding the other windows into one summary line. (#19)
+- Secondary providers share one three-column grid (window / remaining / reset), and balance providers align their amount and currency to the same columns. (#9, #80)
+- Column widths now fit the values on screen instead of reserving fixed space (typically 39pt / 48pt / 65pt). (#80)
+- The secondary rows share one type size; amounts keep one decimal and drop the currency symbol that duplicated the currency column. (#80)
+- Status wording follows what a provider sells: subscription plans read "Plan available / Plan exhausted", prepaid balances read "Available / Balance low". (#64)
+- Zhipu's menu bar label shows only the percentage and is fully localised; warning colours match the other providers. (#42)
+- Provider logos scale from one shared cap-height baseline, so the four wordmarks read the same size.
+- Rapid refreshes and key saves are coalesced instead of dropped. (#40)
 
 ### Fixed
 
-- A failed refresh now marks the menu bar value as stale with a red **!**, so an old number is not mistaken for a live one. (#39)
-- Plan usage percentages now mean the share remaining rather than the share used, matching the other providers. (#38)
-- Saving a key while a refresh is running now refreshes again with the new key instead of losing the update. (#40)
-- Codex and OpenCode sign-in failures now name the CLI that has to sign in again instead of pointing at Console actions that do not exist. (#37)
+- Removed the stray "Plan Next Resets" column that only the Zhipu card had in Console Home. (#74)
+- Fixed a launch crash when a provider image was missing.
+- Fixed the Codex local-configuration hint disappearing once OpenCode joined the credential chain. (#13)
+- Fixed credential failures for Codex and OpenCode pointing somewhere other than their own CLI. (#37)
+- Plan usage percentages now say "remaining" rather than "used", matching every other provider. (#38)
 
 ### Removed
 
-- Removed the lone **Plan Next Resets** column from Console Home; each window's reset time remains in the menu bar panel. (#74)
-- Retired the duplicate agent-instruction stubs so `AGENTS.md` is the only agent contract.
+- Removed the duplicate agent-instruction redirect stubs (`AGENT.md` / `AGENT_zh.md`); `AGENTS.md` is the only contract.
 
 ## [0.3.16] - 2026-10-30
 
