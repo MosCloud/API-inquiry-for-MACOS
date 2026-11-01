@@ -20,6 +20,7 @@ Sources/
   APIInquiryCoreTestsRunner/  custom test runner (no XCTest target)
 docs/
   release-runbook*.md      release procedure, bilingual pair
+  provider-onboarding*.md  how to add a provider, bilingual pair
   roadmap.md               capabilities and near-term plan
   releases/                per-version release notes
   superpowers/             historical plans and specs (frozen, links point into it)
