@@ -150,6 +150,11 @@ ProviderRegistration(
 - 窗口标签与重置时间格式（中英文各一条）；
 - 锁版度量：`ProviderLogoMetrics.template(for:)` 有值。
 
+别忘了两件容易被忽略的事：
+
+1. **把新测试登记到** `Sources/APIInquiryCoreTestsRunner/main.swift` —— 不登记就不会执行，而且不会有任何提示；
+2. **两个既有测试会变红，但它们不是你的错**：`ProviderCatalogTests` 和 `FixtureModeTests` 里写死了供应商列表与数量。更新它们时优先写成 `ProviderID.allCases` / `allCases.count`，下次新增供应商就不用再改。
+
 然后：
 
 ```bash
@@ -157,6 +162,8 @@ Scripts/verify.sh        # 测试 + 编 App，缺一不可
 ```
 
 再截三张实机图：菜单栏面板、Console 首页、Console API 页。
+
+文档层面记得同步两处供应商清单：`README.md` / `README_en.md`，以及 `AGENTS.md` 开头那句带供应商列表的描述。
 
 最后跑一次 `ProviderOnboardingTests` —— 它会遍历 `ProviderID.allCases`，检查描述符字段、凭证账号唯一性、锁版模板、fixture 样本、窗口标签。**漏了会红。**
 
