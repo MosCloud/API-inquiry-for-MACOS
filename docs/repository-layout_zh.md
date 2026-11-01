@@ -20,6 +20,7 @@ Sources/
   APIInquiryCoreTestsRunner/  自定义测试 runner（无 XCTest target）
 docs/
   release-runbook*.md      发布流程，中英配对
+  provider-onboarding*.md  新增供应商的完整流程，中英配对
   roadmap.md               能力与近期计划
   releases/                每个版本的发布说明
   superpowers/             历史计划与规格（冻结，链接仍指向这里）
