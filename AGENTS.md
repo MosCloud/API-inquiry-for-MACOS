@@ -63,7 +63,7 @@ Release packaging only at release-candidate stage: `Scripts/package-mac-app.sh` 
 
 ## UI and product direction
 
-Keep the UI simple, restrained, and lightly technical: fast quota-state scanning and lightweight configuration, not an analytics dashboard. Use status colour only for critical, warning, and healthy values plus direct feedback; keep surrounding labels and configuration surfaces calm, and prefer stable alignment and generous spacing over visual density.
+Keep the UI simple, restrained, and lightly technical: fast quota-state scanning and lightweight configuration, not an analytics dashboard. Never use `minimumScaleFactor` as a truncation guard: it silently renders text smaller instead of exposing the squeeze (it made the balance row's amounts 90% of everything else). Let the long provider name give way; the numbers keep their size. Use status colour only for critical, warning, and healthy values plus direct feedback; keep surrounding labels and configuration surfaces calm, and prefer stable alignment and generous spacing over visual density.
 
 The menu bar panel is for viewing and lightweight actions only. Multi-provider management belongs in Console: Home owns display strategy (Primary Provider), API owns credentials and local configuration, Settings owns app preferences.
 
@@ -109,4 +109,4 @@ The package has no XCTest target: tests are a **custom executable runner**, so `
 - **Bilingual docs**: substantial planning/spec/README docs are paired — English `<name>.md` and Chinese `<name>_zh.md`. Any change to one must be synced to the other. See `docs/superpowers/documentation-conventions.md`.
 - **User conversation is usually in Chinese**; prefer asking the user to review the Chinese doc version.
 - **Triage labels**: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`.
-- **Releases**: bump `Scripts/version.env` so APP_VERSION, BUILD_NUMBER, RELEASE_TAG, DMG_BASENAME, VOLUME_NAME all match; verify the built app's `CFBundleShortVersionString`. Release notes are user-facing copy grouped into New Features / App Optimization / Bug Fixes (omit empty sections) — describe perceptible impact, not internal type names or file paths. The `CHANGELOG.md` / `CHANGELOG_zh.md` pair is updated at release time by folding `[Unreleased]` into the new version section and stamping its date.
+- **Releases**: bump `Scripts/version.env` so APP_VERSION, BUILD_NUMBER, RELEASE_TAG, DMG_BASENAME, VOLUME_NAME all match; verify the built app's `CFBundleShortVersionString`. Release notes are user-facing copy grouped into New Features / App Optimization / Bug Fixes (omit empty sections); numbers, file names and refactor wording go to the CHANGELOG instead. Writing rules and a worked example: `docs/release-writing.md` (`_zh` pair). The `CHANGELOG.md` / `CHANGELOG_zh.md` pair is updated at release time by folding `[Unreleased]` into the new version section and stamping its date.

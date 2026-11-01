@@ -23,6 +23,7 @@ Sources/
 docs/
   release-runbook*.md      release procedure, bilingual pair
   provider-onboarding*.md  how to add a provider, bilingual pair
+  release-writing*.md      how to write release notes and the CHANGELOG
   roadmap.md               capabilities and near-term plan
   releases/                per-version release notes
   superpowers/             historical plans and specs (frozen, links point into it)

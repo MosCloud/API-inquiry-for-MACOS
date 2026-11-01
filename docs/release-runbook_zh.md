@@ -93,7 +93,7 @@ shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256
 
 如果在发布后几分钟内就发现产物坏了、且只改了打包逻辑，用 `gh release upload --clobber` 就地替换两个资产是可接受的，但要在说明里讲清校验和已变化。
 
-发布说明写给用户看，不是变更日志：按 New Features / App Optimization / Bug Fixes 分组，没有内容的分组直接省略；不要出现内部类型名、文件路径、测试数量、框架名或重构措辞。优先写用户能感知的说法（"刷新更稳了""状态更好读"），而不是实现细节。
+发布说明写给用户看，不是变更日志。具体规则、改写示例与检查清单见 `docs/release-writing.md` / `_zh.md`：只保留三节、只写用户能感知的变化，数字与文件名移进 CHANGELOG。
 
 ## 6. 收尾
 
@@ -117,3 +117,4 @@ hdiutil info                               # 确认没有遗留挂载的镜像
 | `hdiutil create` 报 "operation not permitted" | 沙箱禁止创建磁盘映像 | 用完整文件权限执行打包 |
 | 3 条 Keychain 期望失败 `unexpectedStatus(100001)` | 沙箱内无钥匙串访问 | 在沙箱外跑；CI 是最终闸门 |
 | 桌面上留着测试卷的幽灵图标 | 先删了挂载点目录再卸载镜像 | 先看 `hdiutil info` 有无遗留镜像，`killall Finder` 重绘桌面 |
+| tag 的 CI 几秒内失败并报 `timeout: command not found` | 脚本依赖了 GNU coreutils，GitHub 的 macOS runner 没有 | 脚本只用 macOS 自带工具；修好后把 tag 移到修复提交（`git tag -d` 后重新打），不必重发一版 |

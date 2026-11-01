@@ -23,6 +23,7 @@ Sources/
 docs/
   release-runbook*.md      发布流程，中英配对
   provider-onboarding*.md  新增供应商的完整流程，中英配对
+  release-writing*.md      发布说明与 CHANGELOG 的写法，中英配对
   roadmap.md               能力与近期计划
   releases/                每个版本的发布说明
   superpowers/             历史计划与规格（冻结，链接仍指向这里）

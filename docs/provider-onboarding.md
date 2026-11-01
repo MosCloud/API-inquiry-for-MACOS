@@ -226,7 +226,19 @@ Five "wrong → right" pairs, in the order they happened. This is the most valua
 
 The same lesson runs through #9 and #80: the "three-column alignment" work was a downstream consequence of the split shape. Only once the data layer had one shape could the UI have one grid.
 
-## Appendix B: checklist
+## Appendix B: how this guide was tested
+
+It was blind-tested twice: a fresh agent with no context was told to add a fictional provider
+using only this document, once with an app-managed key and once with credentials read from a
+CLI file. Both produced implementations that passed `Scripts/verify.sh`, and both exposed gaps
+that had been invisible to the author — the test-suite registration step, the two existing
+tests that pin the provider list, the decorator wiring order, and the fixture illusion around
+local credentials. All of them are now written down above.
+
+If you change this guide substantially, run the same experiment: point an agent at it with a
+made-up provider and see where it stumbles. Reading it yourself is not a substitute.
+
+## Appendix C: checklist
 
 ```
 [ ] Three decisions: what it sells / what it returns / where credentials live
