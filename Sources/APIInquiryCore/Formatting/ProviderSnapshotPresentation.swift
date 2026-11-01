@@ -29,6 +29,10 @@ public struct ProviderSnapshotPresentation: Equatable {
     /// Balance providers may report how much of the total is granted credit; formatted
     /// like `detailText` so both money columns read the same.
     public let grantedBalanceText: String?
+    /// Money without the currency symbol, at the same precision the menu bar uses (one
+    /// decimal, truncated). The secondary grid carries the currency in its own column, so a
+    /// symbol here would say the same thing twice.
+    public let compactAmountText: String?
 }
 
 public extension ProviderSnapshotPresentation {
@@ -70,7 +74,14 @@ public extension ProviderSnapshotPresentation {
                         fractionDigits: 2,
                         includeCurrencyCode: true
                     )
-                }
+                },
+                compactAmountText: ProviderValueFormatter.formatAmount(
+                    balance.totalBalance,
+                    currency: balance.currency,
+                    fractionDigits: 1,
+                    includeCurrencyCode: false,
+                    includeSymbol: false
+                )
             )
 
         case .quotaUsage(let usage):
@@ -94,7 +105,8 @@ public extension ProviderSnapshotPresentation {
                 captionText: window.map { strings.quotaWindowLabel($0.label) } ?? "",
                 isAvailable: usage.isAvailable,
                 planName: usage.planName,
-                grantedBalanceText: nil
+                grantedBalanceText: nil,
+                compactAmountText: nil
             )
         }
     }

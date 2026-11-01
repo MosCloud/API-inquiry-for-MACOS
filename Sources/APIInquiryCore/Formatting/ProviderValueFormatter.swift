@@ -137,10 +137,15 @@ public enum ProviderValueFormatter {
         _ amount: Decimal,
         currency: String,
         fractionDigits: Int,
-        includeCurrencyCode: Bool
+        includeCurrencyCode: Bool,
+        includeSymbol: Bool = true
     ) -> String {
         let currencyCode = currency.uppercased()
         let number = formatNumber(truncate(amount, scale: fractionDigits), fractionDigits: fractionDigits)
+
+        if !includeSymbol {
+            return includeCurrencyCode ? "\(number) \(currencyCode)" : number
+        }
 
         if currencyCode == "CNY" {
             return includeCurrencyCode ? "¥\(number) \(currencyCode)" : "¥\(number)"

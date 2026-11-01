@@ -514,7 +514,7 @@ enum MenuBarBalanceViewModelTests {
         // A balance row fills the same three columns as a quota row (#80).
         let columns = viewModel.secondaryProviderRows.first?.balanceColumns
         harness.expectEqual(columns?.label, "Balance", "balance row labels the column like a window label")
-        harness.expectEqual(columns?.amount, "¥68.65", "balance amount keeps the symbol and sits in the value column")
+        harness.expectEqual(columns?.amount, "68.6", "balance amount drops the symbol and matches the menu bar precision")
         harness.expectEqual(columns?.currency, "CNY", "currency code sits in the reset column")
     }
 

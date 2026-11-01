@@ -332,7 +332,7 @@ struct MenuBarContentView: View {
     private var secondaryProviders: some View {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(viewModel.secondaryProviderRows, id: \.providerID) { row in
-                HStack(spacing: 10) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(row.displayName)
                             .font(.caption.weight(.semibold))
@@ -374,11 +374,11 @@ struct MenuBarContentView: View {
     }
 
     private var secondaryLabelFont: NSFont {
-        NSFont.systemFont(ofSize: NSFont.smallSystemFontSize - 1)
+        NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
     }
 
     private var secondaryValueFont: NSFont {
-        NSFont.systemFont(ofSize: NSFont.systemFontSize - 1, weight: .semibold)
+        NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
     }
 
     private func measuredWidth(_ text: String, font: NSFont) -> Double {
@@ -392,7 +392,7 @@ struct MenuBarContentView: View {
             // percentages sit and the currency where the reset dates sit (#80).
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(columns.label)
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .frame(width: secondaryColumnWidths.label, alignment: .trailing)
@@ -405,7 +405,7 @@ struct MenuBarContentView: View {
                     .frame(width: secondaryColumnWidths.value, alignment: .trailing)
 
                 Text(columns.currency)
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
                     .lineLimit(1)
@@ -421,7 +421,7 @@ struct MenuBarContentView: View {
                 ForEach(row.quotaWindowRows, id: \.label) { quotaRow in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(quotaRow.label)
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .frame(width: secondaryColumnWidths.label, alignment: .trailing)
@@ -433,7 +433,7 @@ struct MenuBarContentView: View {
                             .frame(width: secondaryColumnWidths.value, alignment: .trailing)
 
                         Text(quotaRow.resetShortText ?? "")
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                             .lineLimit(1)
