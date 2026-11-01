@@ -28,9 +28,10 @@ public struct ProviderLogoTemplate: Equatable, Sendable {
     public let canvasHeight: Double
     public let wordmarkHeight: Double
     public let xHeight: Double
-    /// Optical correction for typefaces whose weight or contrast makes them read
-    /// larger than a regular grotesque at the same x-height (OpenCode ships a heavy
-    /// pixel-block wordmark, so it gets a value below 1).
+    /// Multiplier applied after the x-height anchor: the rendered size is
+    /// `target * visualScale / xHeight`, so a value above 1 renders larger. Use it to
+    /// equalise how heavy or light a wordmark reads at the same x-height — OpenCode's
+    /// block lettering carries less height in its ink and takes an upward correction.
     public let visualScale: Double
 
     public init(
@@ -76,6 +77,8 @@ public enum ProviderLogoMetrics {
                 visualScale: 1.08
             )
         case .opencode:
+            // Heavy pixel-block lettering: the ink sits low relative to the canvas, so
+            // the anchored x-height reads small and the lockup takes an upward scale.
             return ProviderLogoTemplate(
                 canvasWidth: 539, canvasHeight: 154, wordmarkHeight: 70, xHeight: 50,
                 visualScale: 1.15

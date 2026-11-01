@@ -64,18 +64,37 @@ If the endpoint rejects generic clients (Cloudflare in front, for example), send
 | `.appManagedAPIKey` | The provider only issues a key the user pastes | Console can save/replace/delete; Keychain is the only source |
 | `.localExternalConfiguration` | The CLI already stores credentials (`~/.codex/auth.json`, OpenCode's SQLite, …) | Read-only. The Console offers no save/delete |
 
-Local-configuration providers are **decorators** wrapped around `KeychainCredentialStore`:
+Local-configuration providers are **decorators** wrapped around `KeychainCredentialStore`.
+
+### 3.1 Wire it into the running app (the step everyone forgets)
+
+Writing the decorator only makes it exist; the app never uses it until it is in the chain, which lives in `Sources/APIInquiryApp/App/APIInquiryApp.swift`:
 
 ```swift
-let store = OpenCodeCredentialStore(delegate: CodexCredentialStore(delegate: KeychainCredentialStore()))
+let store = LocalBoxCredentialStore(          // the new layer goes outermost
+    delegate: OpenCodeCredentialStore(
+        delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
+    )
+)
 ```
 
-Two hard rules:
+**The order is not cosmetic — the new layer must be outermost.** `CodexCredentialStore.configurationURL(for:)` returns `nil` for anything that is not Codex and does **not** forward to its delegate, so a decorator placed inside it loses its own "open config" answer. Nothing fails to compile; no test goes red.
 
-1. **Read-only.** Never write back to the CLI's file or database, never copy credentials elsewhere.
-2. **Express capabilities with protocols, not `as?`.** Once a decorator wraps the store, `as? CodexCredentialStore` is always `false` and features disappear silently — that is how the 打开配置 button vanished in #13. Add a protocol (like `LocalConfigurationProviding`) and have every decorator forward to its delegate.
+### 3.2 Capabilities are protocols, not `as?`
 
-A key deleted in the Console while the UI still says "configured" is expected: the real credential lives in the CLI.
+Once a decorator wraps the store, `as? CodexCredentialStore` is always `false` and features disappear silently — that is how the 打开配置 button vanished in #13. There are two capability protocols today; implement the ones you need and forward them through every layer:
+
+- `LocalConfigurationProviding` — which file the 打开配置 button opens;
+- `CodexCredentialProviding` — the warning shown when Codex's session file is malformed. **A new decorator that does not forward it silently removes that warning.**
+
+### 3.3 Two behaviour rules
+
+1. **Read-only.** Never write back to the CLI's file or database, never copy credentials elsewhere. A key deleted in the Console while the UI still says "configured" is expected: the real credential lives in the CLI.
+2. **What 打开配置 points at**: return the file when it exists, `nil` when it does not (button disabled, hint shown). Codex and OpenCode also fall back to the containing directory; if you copy that behaviour, put it in a test rather than leaving it to guesswork.
+
+### 3.4 Nothing tests the order of the chain
+
+The chain lives in `APIInquiryApp.init`, and the test runner does not compile the App. Write a **chain-forwarding test** (rebuild the same nesting over `InMemoryCredentialStore`) that at least checks: the new provider's `configurationURL` survives every layer, and `codexAuthFileStatus()` still reaches Codex. Then click 打开配置 once in Console → API by hand.
 
 ## 4. Descriptor and registry
 
@@ -118,6 +137,11 @@ Only three surfaces need a human look:
 
 **Never write `if id == .xxx` in a view.** When a provider needs different behaviour, put the answer in `APIProviderSummary` / `ProviderDetailRow` / `ProviderSnapshotPresentation` and let the view read fields.
 
+Two details that are easy to miss:
+
+- Providers write **short English labels** (`"5h"`, `"Week"`); the visible Chinese/English label is derived from `kind` by `LocalizedStrings`. Never write Chinese in the provider.
+- Brand assets do not wire themselves: the loader and switches in `ProviderVisualCatalog` are yours to add, or the app silently keeps drawing the text fallback even when the files are correct.
+
 ## 6. Brand assets
 
 1. **Prefer the official SVG** (brand page or the repo's `brand/` directory). Never typeset a wordmark with a system font.
@@ -126,11 +150,12 @@ Only three surfaces need a human look:
    - `canvasWidth/Height`: the asset's own canvas;
    - `wordmarkHeight`: full ink height of the lettering;
    - `xHeight`: the height of the small letters. **Anchor on x-height, not the bounding box** — lowercase, all-caps and pixel typefaces carry very different ascenders and descenders, so bbox-anchoring makes four providers look four sizes;
-   - `visualScale`: for typefaces that read larger at the same x-height. Judge with three questions: are the strokes clearly heavier? is it all caps? is it a block or pixel face? The more yeses, the lower the value (below 1).
+   - `visualScale`: compensation for the wordmark's visual weight. The code computes `size = target * visualScale / xHeight`, so **a larger value renders larger**. If the face looks small or light at the same x-height, raise it (Codex uses 1.08); if it looks heavy or large, lower it.
 4. The menu bar icon is separate: `<id>-menu-icon-template.png` (a template image so macOS can tint it).
-5. Fallback chain: SVG → PNG → text template. **Never** fall back to `Bundle.module`: SwiftPM's accessor calls `fatalError` when the resource is missing, and the packaged app crashes on launch.
+5. Add three switch cases and a loader in `ProviderVisualCatalog` for the new id: header lockup, menu icon size, menu icon. Copy OpenCode's order: `loadVector` → `loadPNG` → `textTemplateImage`. **Never** fall back to `Bundle.module`: SwiftPM's accessor calls `fatalError` when the resource is missing, and the packaged app crashes on launch.
+6. With no official asset (a fictional or internal provider): draw an SVG that does not depend on a font, and say so in a comment ("synthetic asset, no third-party rights"). Do not pass a system-font wordmark off as a company logo.
 
-Record the asset's origin and licence (for example: MIT / © 2025 opencode).
+Record the asset's origin and licence (for example: MIT / © 2025 opencode). The packaging script already copies `*.png` / `*.icns` / `*.svg` recursively; you only touch it for a **different** extension.
 
 ## 7. Tests and acceptance
 
@@ -139,8 +164,10 @@ Know who checks what, so you do not spend effort where something already does:
 | Checked by | What | If you forget |
 |---|---|---|
 | The compiler | Exhaustive switches on `ProviderID`: `ProviderLogoMetrics.template(for:)`, three in `ProviderVisualCatalog`, `FixtureMode.sampleSnapshot(for:)` | Build fails |
-| Tests | `ProviderOnboardingTests`: descriptor fields, unique credential accounts, logo metrics, fixture sample, window labels | Suite goes red |
-| You | The registry field *contents*, capability protocols forwarded by every decorator, localisation wording, README and release notes | Silently does nothing |
+| Tests | `ProviderOnboardingTests`: descriptor fields, unique credential accounts, logo metric values, fixture sample, window labels | Suite goes red |
+| You | The registry field *contents*, whether the asset files exist, the `ProviderVisualCatalog` loader, capability protocols forwarded through decorators, the app's decorator chain, README and release notes | Silently does nothing (text fallback, missing button) |
+
+`ProviderOnboardingTests` is **not** full coverage: it checks that the configuration data is complete, not that an asset exists or a view is wired. Green means half the job.
 
 Tests you must add:
 
@@ -150,10 +177,15 @@ Tests you must add:
 - window labels and reset formatting (one case per language);
 - logo metrics: `ProviderLogoMetrics.template(for:)` returns a value.
 
-Two steps that are easy to miss:
+Three steps that are easy to miss:
 
 1. **Register the new suite in** `Sources/APIInquiryCoreTestsRunner/main.swift` — an unregistered suite never runs, and nothing tells you.
-2. **Two existing tests will go red, and not because of your code**: `ProviderCatalogTests` and `FixtureModeTests` pin the provider list and its count. When you update them, prefer `ProviderID.allCases` / `allCases.count` so the next provider does not have to touch them again.
+2. **Two existing tests will go red, and not because of your code**: `ProviderCatalogTests` pins the provider order *and* the credential-account dictionary, `FixtureModeTests` pins the count. Prefer `ProviderID.allCases` / `allCases.count` where you can, so the next provider does not have to touch them again.
+3. **For a local-configuration provider, add the chain-forwarding test** (§3.4) — it is the only thing that catches a decorator in the wrong position.
+
+### Fixtures lie about local credentials
+
+A `--fixtures` scenario swaps the credential store for `InMemoryCredentialStore` and seeds `"fixture-key"` for every registered account. A local-configuration provider therefore always shows as configured under fixtures, so fixtures cannot verify "no file = not configured". Use a real copy of the app, or inject a temporary file in a unit test.
 
 Then:
 
@@ -174,7 +206,8 @@ Finally run `ProviderOnboardingTests`. It walks `ProviderID.allCases` and checks
 | The packaged app crashes on launch | `Bundle.module` used for a missing resource; SwiftPM calls `fatalError` | Ship the resource, and fall back to the text template |
 | The 打开配置 button disappears | A decorator does not implement/forward a capability protocol, so `as?` fails | Add a protocol and forward it in every decorator |
 | Four providers, four logo sizes | Hand-tuned frames with no shared anchor | Derive sizes from `ProviderLogoMetrics` x-height |
-| The DMG has no logo | The packaging script does not copy the new extension | Recursive resource copy; abort when `AppIcon.icns` is missing |
+| The DMG has no logo | The packaging script does not copy the new extension | It already copies `png/icns/svg` recursively; only a new extension needs a script change, and a missing `AppIcon.icns` aborts |
+| A new provider's 打开配置 is always disabled | The decorator sits inside `CodexCredentialStore`, whose `configurationURL` does not forward | Put the new decorator outermost (§3.1) |
 | A Keychain prompt appears while verifying | A rebuild changes the ad-hoc signature | Ask the user to click 始终允许 — it is expected |
 
 ## Appendix A: the OpenCode case
@@ -194,8 +227,8 @@ The same lesson runs through #9 and #80: the "three-column alignment" work was a
 ```
 [ ] Three decisions: what it sells / what it returns / where credentials live
 [ ] Provider file + error mapping + defensive decoding
-[ ] Credentials: app-managed, or decorator + capability protocol
-[ ] ProviderID case + registry entry (8 fields)
+[ ] Credentials: app-managed, or decorator + both capability protocols + wired into the APIInquiryApp chain (outermost)
+[ ] ProviderID case + registry entry (descriptor: 9 required fields + 1 optional)
 [ ] Brand assets: official SVG, <id>-logo-header, <id>-menu-icon-template
 [ ] ProviderLogoMetrics measurements (canvas / wordmark / x-height / visualScale)
 [ ] Fixture sample (the compiler reminds you)

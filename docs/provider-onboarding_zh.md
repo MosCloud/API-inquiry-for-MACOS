@@ -64,18 +64,37 @@ public final class ExampleProvider: BalanceProvider {
 | `.appManagedAPIKey` | 供应商只给 Key，用户手动粘贴 | Console 可以保存/替换/删除；Keychain 是唯一来源 |
 | `.localExternalConfiguration` | 凭证已经在本机 CLI 里（`~/.codex/auth.json`、OpenCode 的 SQLite 等） | 只读读取，**不写**；Console 不提供保存/删除 |
 
-本机配置型供应商用**装饰器**包在 `KeychainCredentialStore` 外面：
+本机配置型供应商用**装饰器**包在 `KeychainCredentialStore` 外面。
+
+### 3.1 接到运行中的 App 上（最容易漏的一步）
+
+装饰器写完只是"存在"，App 不会自己用它。链在 `Sources/APIInquiryApp/App/APIInquiryApp.swift` 的 init 里：
 
 ```swift
-let store = OpenCodeCredentialStore(delegate: CodexCredentialStore(delegate: KeychainCredentialStore()))
+let store = LocalBoxCredentialStore(          // ← 新的一层放最外层
+    delegate: OpenCodeCredentialStore(
+        delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
+    )
+)
 ```
 
-两条硬性规则：
+**顺序不是随便排的，必须在最外层。** `CodexCredentialStore.configurationURL(for:)` 对非 Codex 的 provider 直接返回 `nil`，**不转发**给下一层；把新装饰器放在它里面，它的「打开配置」答案会被吞掉。这个错误没有任何编译或测试信号。
 
-1. **只读**。不写回 CLI 的文件或数据库，不复制凭证到别处。
-2. **能力用协议表达，不要用 `as?` 判定具体类型。** 装饰器一旦包了一层，`as? CodexCredentialStore` 就永远是 `false`，功能会静默消失（#13 的「打开配置」按钮就这样丢过）。需要额外能力时抽协议（如 `LocalConfigurationProviding`），每个装饰器转发给下一层。
+### 3.2 能力用协议，不用 `as?`
 
-用户删掉 Keychain 里的 Key 之后界面仍显示"已配置"，是预期行为：真正的凭证还在 CLI 那边。
+装饰器一旦包了一层，`as? CodexCredentialStore` 就永远是 `false`，功能静默消失（#13 的「打开配置」按钮就这样丢过）。当前有两个能力协议，需要按需实现并逐层转发：
+
+- `LocalConfigurationProviding` → 「打开配置」按钮指向哪个文件；
+- `CodexCredentialProviding` → Codex 会话文件损坏时的提示。**新装饰器不转发它，Codex 的提示就没了。**
+
+### 3.3 两条行为约定
+
+1. **只读**。不写回 CLI 的文件或数据库，不复制凭证到别处；删除 Key 后界面仍显示"已配置"是预期行为，真正的凭证还在 CLI 那边。
+2. **「打开配置」指向哪里**：文件不存在时返回 `nil`（按钮置灰并给提示），存在时返回文件本身。Codex 和 OpenCode 还会退到"文件所在目录"，如果你要沿用，写进测试，不要靠猜。
+
+### 3.4 链的顺序没有自动化测试
+
+App 侧的链在 `APIInquiryApp.init`，而测试 runner 不编译 App。写一条**链转发测试**（用 `InMemoryCredentialStore` 复现同样的嵌套），至少覆盖：新 provider 的 `configurationURL` 能穿过每一层、Codex 的 `codexAuthFileStatus()` 仍然拿得到。改完链之后，再到 Console API 页实际点一次「打开配置」。
 
 ## 4. 描述符与注册表
 
@@ -118,6 +137,11 @@ ProviderRegistration(
 
 **不要在视图里写 `if id == .xxx`。** 需要按供应商分支时，把答案放进 `APIProviderSummary` / `ProviderDetailRow` / `ProviderSnapshotPresentation`，让视图读字段。
 
+两个容易漏的细节：
+
+- 窗口标签在 provider 里写**英文短标签**（`"5h"`、`"Week"`），显示时的中英文由 `kind` 交给 `LocalizedStrings`；provider 里不要写中文；
+- 品牌素材不会自动接上：`ProviderVisualCatalog` 里的 loader 和 switch 要自己加，否则素材放对了也只会静默退到文字模板。
+
 ## 6. 品牌素材
 
 1. **优先用官方 SVG**（品牌页或仓库的 `brand/` 目录），不要用系统字体拼字标；
@@ -126,11 +150,12 @@ ProviderRegistration(
    - `canvasWidth/Height`：素材原始画布；
    - `wordmarkHeight`：字标的完整墨迹高度；
    - `xHeight`：小写字母高度。**尺寸锚定在 x-height，不是外框** —— 全小写、全大写、方块字的 ascender/descender 差很多，按外框对齐会让四家视觉大小不一；
-   - `visualScale`：只补偿"同样 x-height 下看起来更大"的字体。判断依据是三个问题：笔画是否明显更粗？是否全大写？是否是方块/像素字？满足越多，补偿值越小（低于 1）。
+   - `visualScale`：字面视觉重量的补偿。代码是 `size = target * visualScale / xHeight`，**值越大渲染越大**。判断：同样 x-height 下这个字面显得偏小/偏轻 → 调大（Codex 1.08）；显得偏重/偏大 → 调小。
 4. 菜单栏图标单独一套：`<id>-menu-icon-template.png`（模板图，跟随系统着色）；
-5. 回退链是 SVG → PNG → 文字模板。**不要**回退到 `Bundle.module`：SwiftPM 的访问器在资源缺失时会 `fatalError`，打包后的 app 直接闪退。
+5. 在 `ProviderVisualCatalog` 里给新 id 补三处 switch 和 loader：头部锁版、菜单图标尺寸、菜单图标；加载顺序照抄 OpenCode：`loadVector` → `loadPNG` → `textTemplateImage`。**不要**回退到 `Bundle.module`：SwiftPM 的访问器在资源缺失时会 `fatalError`，打包后的 app 直接闪退；
+6. 没有官方素材时（虚构或内部供应商）：自己画一张不依赖字体的 SVG，并在注释里写明"合成素材、无第三方权利"，不要把系统字体渲染的字标当成公司 logo。
 
-写清素材出处与许可证（例如：MIT / © 2025 opencode）。
+写清素材出处与许可证（例如：MIT / © 2025 opencode）。打包脚本已经递归复制 `*.png` / `*.icns` / `*.svg`，只有新增**别的扩展名**才需要改脚本。
 
 ## 7. 测试与验收
 
@@ -139,8 +164,10 @@ ProviderRegistration(
 | 检查方式 | 覆盖什么 | 漏了会怎样 |
 |---|---|---|
 | 编译器 | `ProviderID` 上的穷举 switch：`ProviderLogoMetrics.template(for:)`、`ProviderVisualCatalog` 的三处、`FixtureMode.sampleSnapshot(for:)` | 编译失败 |
-| 测试 | `ProviderOnboardingTests`：描述符字段、凭证账号唯一、锁版模板、fixture 样本、窗口标签 | 测试变红 |
-| 只能靠人 | 注册表字段的**内容**、能力协议是否被装饰器转发、本地化文案是否通顺、README 与发布说明 | 静默不生效 |
+| 测试 | `ProviderOnboardingTests`：描述符字段、凭证账号唯一、锁版模板数值、fixture 样本、窗口标签 | 测试变红 |
+| 只能靠人 | 注册表字段的**内容**、素材文件是否真的存在、`ProviderVisualCatalog` 的 loader、能力协议是否被转发、App 装饰器链、README 与发布说明 | 静默不生效（界面退回文字模板 / 按钮消失） |
+
+`ProviderOnboardingTests` **不是全覆盖**：它检查的是"配置数据完整"，不检查素材文件是否存在、视图有没有接上。绿了只代表前半程没问题。
 
 必须补的测试：
 
@@ -150,10 +177,15 @@ ProviderRegistration(
 - 窗口标签与重置时间格式（中英文各一条）；
 - 锁版度量：`ProviderLogoMetrics.template(for:)` 有值。
 
-别忘了两件容易被忽略的事：
+别忘了三件容易被忽略的事：
 
 1. **把新测试登记到** `Sources/APIInquiryCoreTestsRunner/main.swift` —— 不登记就不会执行，而且不会有任何提示；
-2. **两个既有测试会变红，但它们不是你的错**：`ProviderCatalogTests` 和 `FixtureModeTests` 里写死了供应商列表与数量。更新它们时优先写成 `ProviderID.allCases` / `allCases.count`，下次新增供应商就不用再改。
+2. **两个既有测试会变红，但它们不是你的错**：`ProviderCatalogTests` 写死了供应商顺序、凭证账号字典，`FixtureModeTests` 写死了数量。能换成 `ProviderID.allCases` / `allCases.count` 的就换，下次不用再改；
+3. **本地配置型供应商补一条链转发测试**（见 §3.4），这是唯一能挡住"装饰器顺序错误"的手段。
+
+### 验收时注意 fixtures 的陷阱
+
+`--fixtures` 场景会把凭证层换成 `InMemoryCredentialStore`，并给每个账号塞 `"fixture-key"`。所以本地配置型供应商在 fixtures 下**永远显示已配置**，用它验证不了"文件缺失 = 未配置"。验证本地凭证要用真实副本，或写单测注入临时文件。
 
 然后：
 
@@ -174,7 +206,8 @@ Scripts/verify.sh        # 测试 + 编 App，缺一不可
 | 打包后的 app 一打开就闪退 | 资源缺失时用 `Bundle.module` 取图，SwiftPM 会 `fatalError` | 资源放进 target，加载失败退到文字模板 |
 | 「打开配置」按钮突然消失 | 装饰器没实现/转发能力协议，`as?` 探测失败 | 抽协议并逐层转发 |
 | 四家供应商 logo 大小不一 | 靠手调 frame，没有统一锚点 | 用 `ProviderLogoMetrics` 的 x-height 推导 |
-| 打出来的 DMG 里没有 logo | 打包脚本漏复制新扩展名 | 资源复制要递归，且缺 `AppIcon.icns` 时中止 |
+| 打出来的 DMG 里没有 logo | 打包脚本漏复制新扩展名 | 脚本已递归复制 `png/icns/svg`；新增别的扩展名时才改脚本，缺 `AppIcon.icns` 会中止 |
+| 新供应商的「打开配置」永远置灰 | 装饰器放在了 `CodexCredentialStore` 里面，它的 `configurationURL` 不转发 | 新装饰器放最外层（§3.1） |
 | 验证时弹钥匙串授权 | 重新编译改变了 ad-hoc 签名 | 让用户点「始终允许」，这是预期行为 |
 
 ## 附录 A：OpenCode 接入案例
@@ -194,8 +227,8 @@ Scripts/verify.sh        # 测试 + 编 App，缺一不可
 ```
 [ ] 三个决定：卖什么 / 返回什么形状 / 凭证在哪
 [ ] provider 文件 + 错误映射 + 宽容解码
-[ ] 凭证：appManaged 或 装饰器 + 能力协议
-[ ] ProviderID case + 注册表条目（8 个字段）
+[ ] 凭证：appManaged 或 装饰器 + 两个能力协议 + 接入 APIInquiryApp 链（最外层）
+[ ] ProviderID case + 注册表条目（描述符 9 个必填 + 1 个可选字段）
 [ ] 品牌素材：官方 SVG、<id>-logo-header、<id>-menu-icon-template
 [ ] ProviderLogoMetrics 测量值（canvas / wordmark / x-height / visualScale）
 [ ] fixture 样本（编译器会提醒）
