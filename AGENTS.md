@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file is the agent contract. `CLAUDE.md` is a local, untracked companion with more architecture detail; it is not distributed and can lag behind the code, so trust the code when they disagree. `AGENT.md` / `AGENT_zh.md` are redirect stubs kept only so links in older plans still resolve.
+This file is the agent contract. `CLAUDE.md` is a local, untracked companion with more architecture detail; it is not distributed and can lag behind the code, so trust the code when they disagree.
 
 ## Withdrawn Anthropic support
 

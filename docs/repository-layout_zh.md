@@ -5,7 +5,6 @@
 
 ```text
 AGENTS.md                  agent 约定
-AGENT.md / AGENT_zh.md     跳转 stub，仅为老计划里的链接保留
 README.md                  中文说明（正本）；README_en.md 是英文版
 Package.swift              SwiftPM 清单：一个 library + 两个 executable
 Scripts/                   可执行工具，见 Scripts/README.md
