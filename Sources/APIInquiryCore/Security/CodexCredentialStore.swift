@@ -44,7 +44,10 @@ public final class CodexCredentialStore: CredentialStore, CodexCredentialProvidi
 
     public func configurationURL(for providerID: ProviderID) -> URL? {
         guard providerID == .codex else {
-            return nil
+            // Forward what this layer does not own. Answering `nil` here would hide a
+            // provider's config entry whenever this store sits above it in the chain —
+            // silently, with no compile or test signal (#83).
+            return (delegate as? LocalConfigurationProviding)?.configurationURL(for: providerID)
         }
         return codexConfigTargetURL()
     }

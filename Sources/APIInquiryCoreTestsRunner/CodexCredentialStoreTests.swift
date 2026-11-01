@@ -3,6 +3,8 @@ import Foundation
 
 enum CodexCredentialStoreTests {
     static func run(using harness: TestHarness) {
+        testConfigurationURLForwardsProvidersItDoesNotOwn(using: harness)
+        testDecoratorOrderDoesNotHideConfigurationURLs(using: harness)
         testCodexAuthFileTakesPrecedenceOverFallback(using: harness)
         testMissingCodexAuthFileFallsBackToDelegate(using: harness)
         testCodexAuthFileStatusReportsMalformedFile(using: harness)
@@ -179,6 +181,74 @@ enum CodexCredentialStoreTests {
     private static func removeTemporaryFile(_ url: URL) {
         try? FileManager.default.removeItem(at: url)
     }
+
+    /// A decorator must forward providers it does not own; answering nil would hide the
+    /// 打开配置 entry of anything sitting above it in the chain (#83).
+    private static func testConfigurationURLForwardsProvidersItDoesNotOwn(using harness: TestHarness) {
+        let stubURL = URL(fileURLWithPath: "/tmp/stub-provider-config.json")
+        let store = CodexCredentialStore(
+            delegate: ConfigurationURLStubStore(url: stubURL),
+            authFileURLs: [URL(fileURLWithPath: "/tmp/does-not-exist-auth.json")]
+        )
+
+        harness.expectEqual(
+            store.configurationURL(for: .deepseek),
+            stubURL,
+            "codex store forwards providers it does not own"
+        )
+        harness.expectTrue(
+            store.configurationURL(for: .codex) != stubURL,
+            "codex store answers for codex itself instead of forwarding"
+        )
+    }
+
+    /// The chain the app builds must resolve every provider, whatever the order of the
+    /// decorators: a config entry cannot be swallowed by a layer above it.
+    private static func testDecoratorOrderDoesNotHideConfigurationURLs(using harness: TestHarness) {
+        let stubURL = URL(fileURLWithPath: "/tmp/stub-provider-config.json")
+        let stub = ConfigurationURLStubStore(url: stubURL)
+
+        let openCodeOutside = OpenCodeCredentialStore(
+            delegate: CodexCredentialStore(delegate: stub, authFileURLs: [URL(fileURLWithPath: "/tmp/does-not-exist-auth.json")]),
+            openCodeAccount: "opencode-api-key",
+            databaseURL: URL(fileURLWithPath: "/tmp/does-not-exist-opencode.db"),
+            configDirectoryURL: URL(fileURLWithPath: "/tmp/does-not-exist-opencode")
+        )
+        harness.expectEqual(
+            openCodeOutside.configurationURL(for: .zhipuCodingPlan),
+            stubURL,
+            "a provider nobody owns still reaches the delegate through both layers"
+        )
+
+        let codexOutside = CodexCredentialStore(
+            delegate: OpenCodeCredentialStore(
+                delegate: stub,
+                openCodeAccount: "opencode-api-key",
+                databaseURL: URL(fileURLWithPath: "/tmp/does-not-exist-opencode.db"),
+                configDirectoryURL: URL(fileURLWithPath: "/tmp/does-not-exist-opencode")
+            ),
+            authFileURLs: [URL(fileURLWithPath: "/tmp/does-not-exist-auth.json")]
+        )
+        harness.expectEqual(
+            codexOutside.configurationURL(for: .zhipuCodingPlan),
+            stubURL,
+            "the same answer holds with the decorators in the opposite order"
+        )
+    }
+}
+
+/// Answers `configurationURL` for every provider, unlike the real Keychain store.
+private final class ConfigurationURLStubStore: CredentialStore, LocalConfigurationProviding {
+    let url: URL
+
+    init(url: URL) {
+        self.url = url
+    }
+
+    func credential(forAccount account: String) throws -> String? { nil }
+    func saveCredential(_ credential: String, forAccount account: String) throws {}
+    func deleteCredential(forAccount account: String) throws {}
+    func configurationURL(for providerID: ProviderID) -> URL? { url }
 }
 
 private final class RecordingCredentialStore: CredentialStore {
