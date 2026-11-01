@@ -115,8 +115,8 @@ Scripts/package-dmg.sh
 The script creates:
 
 ```text
-dist/API-Inquiry-v0.3.16.dmg
-dist/API-Inquiry-v0.3.16.dmg.sha256
+dist/API-Inquiry-v0.4.0.dmg
+dist/API-Inquiry-v0.4.0.dmg.sha256
 ```
 
 Version sync, artifact acceptance, and known failure modes are documented in [docs/release-runbook.md](docs/release-runbook.md).
@@ -131,11 +131,11 @@ Scripts/clean-development-apps.sh
 
 This project uses a free GitHub Releases distribution strategy. The DMG is ad-hoc signed but not Apple notarized.
 
-1. Download `API-Inquiry-v0.3.16.dmg` and `API-Inquiry-v0.3.16.dmg.sha256` from GitHub Releases.
+1. Download `API-Inquiry-v0.4.0.dmg` and `API-Inquiry-v0.4.0.dmg.sha256` from GitHub Releases.
 2. Verify the download:
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.3.16.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.4.0.dmg.sha256
    ```
 
 3. Open the DMG.
@@ -252,7 +252,7 @@ Deferred:
 
 ## Roadmap
 
-- Latest released version: `v0.3.16`
+- Latest released version: `v0.4.0`
 - Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
 - Later direction: more providers, provider display controls, automatic updates, and better install/upgrade flows.
 

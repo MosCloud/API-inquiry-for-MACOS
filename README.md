@@ -24,7 +24,7 @@
   <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/console-setting.png" alt="API Inquiry 控制台设置页面" width="573">
 </p>
 
-API Inquiry 是一个原生 macOS 菜单栏应用，用于查看 API 供应商状态并管理供应商 API 密钥。它支持 DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询和 Codex/ChatGPT 会话额度查询，会将供应商 API 密钥保存到 macOS 密钥串，每 5 分钟刷新已配置供应商，在菜单栏显示 Primary Provider，并提供一个轻量本地控制台用于供应商管理。
+API Inquiry 是一个原生 macOS 菜单栏应用，用于查看 API 供应商状态并管理供应商 API 密钥。它支持 DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询和 OpenCode 用量查询，会将供应商 API 密钥保存到 macOS 密钥串，每 5 分钟刷新已配置供应商，在菜单栏显示 Primary Provider，并提供一个轻量本地控制台用于供应商管理。
 
 仓库结构与开发约定见 [docs/repository-layout_zh.md](docs/repository-layout_zh.md)。
 
@@ -34,6 +34,7 @@ API Inquiry 是一个原生 macOS 菜单栏应用，用于查看 API 供应商�
 - Swift 5.9+ / Xcode Command Line Tools
 - 用于真实余额查询的 DeepSeek API 密钥，或用于 plan 用量查询的智谱 GLM Coding Plan API 密钥
 - 如需查询 Codex 额度，本机需要已通过 Codex 登录，生成 `$CODEX_HOME/auth.json` 或 `~/.codex/auth.json`
+- 如需查询 OpenCode 用量，本机需要已登录 OpenCode（`~/.local/share/opencode/opencode.db`）
 
 ## 安全说明
 
@@ -115,8 +116,8 @@ Scripts/package-dmg.sh
 脚本会生成：
 
 ```text
-dist/API-Inquiry-v0.3.16.dmg
-dist/API-Inquiry-v0.3.16.dmg.sha256
+dist/API-Inquiry-v0.4.0.dmg
+dist/API-Inquiry-v0.4.0.dmg.sha256
 ```
 
 发版前的版本号同步、产物验收与常见故障，见 [docs/release-runbook_zh.md](docs/release-runbook_zh.md)。
@@ -131,11 +132,11 @@ Scripts/clean-development-apps.sh
 
 本项目采用免费的 GitHub Releases 发布策略。DMG 中的 app 已进行 ad-hoc 签名，但没有 Apple notarization 公证。
 
-1. 从 GitHub Releases 下载 `API-Inquiry-v0.3.16.dmg` 和 `API-Inquiry-v0.3.16.dmg.sha256`。
+1. 从 GitHub Releases 下载 `API-Inquiry-v0.4.0.dmg` 和 `API-Inquiry-v0.4.0.dmg.sha256`。
 2. 校验下载文件：
 
    ```bash
-   shasum -a 256 -c API-Inquiry-v0.3.16.dmg.sha256
+   shasum -a 256 -c API-Inquiry-v0.4.0.dmg.sha256
    ```
 
 3. 打开 DMG。
@@ -252,7 +253,7 @@ Scripts/restart-installed-app.sh
 
 ## 路线图
 
-- 最新已发布版本：`v0.3.16`
+- 最新已发布版本：`v0.4.0`
 - 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
 - 后续方向：更多供应商、供应商显示控制、自动更新和更完善的安装/升级体验。
 

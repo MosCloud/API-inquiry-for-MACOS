@@ -6,9 +6,9 @@ Last updated: 2026-10-30
 
 ### 当前状态
 
-- 最新已发布版本：`v0.3.16`
-- 当前主线能力：DeepSeek 余额查询、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、Console Home 原始 Credits 余额展示（显示截断到两位小数）、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、Console 管理、系统时区自适应时间展示、详情页额度健康色彩提示、克制的 UI 微交互与可访问性补充、质量修复与 CI 基线、DMG 打包发布。
-- 下一计划版本：`v0.4.0`，聚焦更多供应商与通用 Provider 能力。
+- 最新已发布版本：`v0.4.0`
+- 当前主线能力：DeepSeek 余额查询（含赠送余额）、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、OpenCode 用量查询与本地配置入口、Console Home 原始 Credits 余额展示（显示截断到两位小数）、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、余额与配额供应商统一三列对齐、系统时区自适应时间展示、克制的 UI 微交互与可访问性补充、质量修复与 CI 基线、DMG 打包发布。
+- 下一计划版本：`v0.5.0`，聚焦分发体验（自动更新、安装与卸载流程）。
 
 ### v0.3.2：中文本地化与语言切换
 
@@ -136,12 +136,14 @@ Last updated: 2026-10-30
 - 不完整拆分 `MenuBarContentView`。
 - 不引入 Sparkle 自动更新、Homebrew Cask 或低余额通知。
 
-### v0.4.0：更多供应商与通用 Provider 能力
+### v0.4.0：架构收敛与新供应商（已发布）
 
-- 增加更多内置供应商。
-- 抽象更完整的 `balance`、`plan usage`、`quota` 类型。
-- 支持供应商排序、隐藏、启用/停用。
-- 为未来自定义 endpoint 或 plugin provider 做结构准备。
+- 新增 OpenCode 供应商，并在 Console 提供本地配置入口。
+- 统一供应商快照语义，删掉 `planUsage` 双轨结构，余额与配额共用同一套展示模型。
+- 菜单栏面板重构：主区只保留当前窗口，其余窗口收成一行摘要；次要供应商统一三列。
+- 清理架构债务：死代码、凭证读取缓存、版本与 User-Agent 来源。
+
+未纳入本版本：供应商排序/隐藏/启停、自定义 endpoint 或 plugin provider —— 留待后续版本。
 
 ### v0.5.0：分发体验优化
 
@@ -160,7 +162,7 @@ Last updated: 2026-10-30
 
 - Latest released version: `v0.3.16`
 - Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, raw Credits balance display on Console Home (truncated to two decimals for display), Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, quality fixes with a CI baseline, and DMG release packaging.
-- Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
+- Next planned version: `v0.5.0`, focused on distribution experience (automatic updates, install and uninstall flows).
 
 ### v0.3.2: Chinese Localization and Language Switching
 
@@ -288,12 +290,14 @@ Design boundaries:
 - No full `MenuBarContentView` split.
 - No Sparkle automatic updates, Homebrew Cask, or low-balance notifications.
 
-### v0.4.0: More Providers and Generic Provider Capabilities
+### v0.4.0: Architecture Consolidation and a New Provider (Released)
 
-- Add more built-in providers.
-- Further generalize `balance`, `plan usage`, and `quota` detail types.
-- Support provider ordering, hiding, enabling, and disabling.
-- Prepare the structure for future custom endpoints or plugin providers.
+- Added the OpenCode provider, including a local configuration entry in the Console.
+- Unified the provider snapshot model and removed the parallel `plan usage` shape; balance and quota providers share one presentation model.
+- Rebuilt the menu bar panel: the hero area keeps only the current window and folds the rest into a summary line; secondary providers share one three-column grid.
+- Cleared architecture debt: dead code, credential read caching, version and User-Agent sources.
+
+Not in this release: provider ordering/hiding/enabling, custom endpoints or plugin providers.
 
 ### v0.5.0: Distribution Experience Polish
 
