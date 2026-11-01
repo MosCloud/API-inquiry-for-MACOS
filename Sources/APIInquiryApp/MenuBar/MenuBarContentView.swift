@@ -342,9 +342,14 @@ struct MenuBarContentView: View {
                             .foregroundStyle(statusColor(for: row.statusTone))
                     }
 
-                    Spacer()
+                    Spacer(minLength: 8)
 
+                    // The grid keeps its measured widths: when the row is tight, the
+                    // provider name (which has its own line limit) gives way, never the
+                    // numbers. Values must not shrink, or the percentages and the money
+                    // amount end up at different sizes.
                     secondaryProviderDetail(for: row)
+                        .layoutPriority(1)
                 }
             }
         }
@@ -401,7 +406,6 @@ struct MenuBarContentView: View {
                     .font(.caption.weight(.semibold))
                     .monospacedDigit()
                     .lineLimit(1)
-                    .minimumScaleFactor(0.9)
                     .frame(width: secondaryColumnWidths.value, alignment: .trailing)
 
                 Text(columns.currency)
@@ -409,7 +413,6 @@ struct MenuBarContentView: View {
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
                     .lineLimit(1)
-                    .minimumScaleFactor(0.9)
                     .frame(width: secondaryColumnWidths.trailing, alignment: .trailing)
             }
             .multilineTextAlignment(.trailing)
