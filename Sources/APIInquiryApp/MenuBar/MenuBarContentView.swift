@@ -350,30 +350,67 @@ struct MenuBarContentView: View {
         }
     }
 
+    /// Fitted per render from the rows actually on screen: compact when every value is a
+    /// percentage, wider only when a money value needs the room (#80).
+    private var secondaryColumnWidths: SecondaryRowColumnWidths {
+        var labels: [Double] = []
+        var values: [Double] = []
+        var trailing: [Double] = []
+
+        for row in viewModel.secondaryProviderRows {
+            if let columns = row.balanceColumns {
+                labels.append(measuredWidth(columns.label, font: secondaryLabelFont))
+                values.append(measuredWidth(columns.amount, font: secondaryValueFont))
+                trailing.append(measuredWidth(columns.currency, font: secondaryLabelFont))
+            }
+            for quotaRow in row.quotaWindowRows {
+                labels.append(measuredWidth(quotaRow.label, font: secondaryLabelFont))
+                values.append(measuredWidth("\(quotaRow.amountText)%", font: secondaryValueFont))
+                trailing.append(measuredWidth(quotaRow.resetShortText ?? "", font: secondaryLabelFont))
+            }
+        }
+
+        return SecondaryRowColumnWidths.fit(label: labels, value: values, trailing: trailing)
+    }
+
+    private var secondaryLabelFont: NSFont {
+        NSFont.systemFont(ofSize: NSFont.smallSystemFontSize - 1)
+    }
+
+    private var secondaryValueFont: NSFont {
+        NSFont.systemFont(ofSize: NSFont.systemFontSize - 1, weight: .semibold)
+    }
+
+    private func measuredWidth(_ text: String, font: NSFont) -> Double {
+        (text as NSString).size(withAttributes: [.font: font]).width
+    }
+
     @ViewBuilder
     private func secondaryProviderDetail(for row: ProviderDetailRow) -> some View {
         if let columns = row.balanceColumns {
             // Same three columns as the quota rows, so the money value sits where the
             // percentages sit and the currency where the reset dates sit (#80).
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(columns.label)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .frame(width: strings.secondaryQuotaLabelColumnWidth, alignment: .trailing)
+                    .frame(width: secondaryColumnWidths.label, alignment: .trailing)
 
                 Text(columns.amount)
                     .font(.caption.weight(.semibold))
                     .monospacedDigit()
                     .lineLimit(1)
-                    .frame(width: strings.secondaryQuotaValueColumnWidth, alignment: .trailing)
+                    .minimumScaleFactor(0.9)
+                    .frame(width: secondaryColumnWidths.value, alignment: .trailing)
 
                 Text(columns.currency)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
                     .lineLimit(1)
-                    .frame(width: strings.secondaryQuotaResetColumnWidth, alignment: .trailing)
+                    .minimumScaleFactor(0.9)
+                    .frame(width: secondaryColumnWidths.trailing, alignment: .trailing)
             }
             .multilineTextAlignment(.trailing)
         } else if !row.quotaWindowRows.isEmpty {
@@ -382,25 +419,25 @@ struct MenuBarContentView: View {
             // sizing itself.
             VStack(alignment: .trailing, spacing: 3) {
                 ForEach(row.quotaWindowRows, id: \.label) { quotaRow in
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(quotaRow.label)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
-                            .frame(width: strings.secondaryQuotaLabelColumnWidth, alignment: .trailing)
+                            .frame(width: secondaryColumnWidths.label, alignment: .trailing)
 
                         Text("\(quotaRow.amountText)%")
                             .font(.caption.weight(.semibold))
                             .monospacedDigit()
                             .lineLimit(1)
-                            .frame(width: strings.secondaryQuotaValueColumnWidth, alignment: .trailing)
+                            .frame(width: secondaryColumnWidths.value, alignment: .trailing)
 
                         Text(quotaRow.resetShortText ?? "")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                             .lineLimit(1)
-                            .frame(width: strings.secondaryQuotaResetColumnWidth, alignment: .trailing)
+                            .frame(width: secondaryColumnWidths.trailing, alignment: .trailing)
                     }
                 }
             }
