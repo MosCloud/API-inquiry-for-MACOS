@@ -81,7 +81,65 @@ run_with_deadline() {
     shift 2
 
     local rc=0
-    timeout -k 10 "$deadline" "$@" || rc=$?
+    local tool="${VERIFY_DEADLINE_TOOL:-auto}"
+
+    if [ "$tool" = "auto" ]; then
+        if type -P timeout >/dev/null 2>&1; then
+            tool=timeout
+        elif type -P gtimeout >/dev/null 2>&1; then
+            tool=gtimeout
+        else
+            tool=watchdog
+        fi
+    fi
+
+    case "$tool" in
+        timeout)
+            timeout -k 10 "$deadline" "$@" || rc=$?
+            ;;
+        gtimeout)
+            gtimeout -k 10 "$deadline" "$@" || rc=$?
+            ;;
+        watchdog)
+            # GitHub's macOS runners ship no coreutils, and release verification died on
+            # `timeout: command not found` (#90). A watchdog keeps the deadline without
+            # depending on a tool the host may not have.
+            "$@" &
+            local command_pid=$!
+            (
+                # The watcher must not inherit the caller's stdout: an orphaned
+                # `sleep` would keep the pipe open, so `verify.sh | tail` waited out
+                # the whole deadline after the command had already finished. Polling
+                # in one-second steps also means a killed watcher leaves at most one
+                # second of orphan behind.
+                exec >/dev/null 2>&1
+                elapsed=0
+                while [ "$elapsed" -lt "$deadline" ]; do
+                    sleep 1
+                    elapsed=$((elapsed + 1))
+                    kill -0 "$command_pid" 2>/dev/null || exit 0
+                done
+                kill -TERM "$command_pid" 2>/dev/null || true
+                sleep 5
+                kill -KILL "$command_pid" 2>/dev/null || true
+            ) &
+            local watchdog_pid=$!
+
+            wait "$command_pid" || rc=$?
+            kill "$watchdog_pid" 2>/dev/null || true
+            wait "$watchdog_pid" 2>/dev/null || true
+
+            # A killed command exits 143 (SIGTERM) or 137 (SIGKILL); report it as the
+            # same timeout code the real `timeout` uses.
+            case "$rc" in
+                143 | 137) rc=124 ;;
+            esac
+            ;;
+        *)
+            echo "error: unknown VERIFY_DEADLINE_TOOL '$tool' (use auto, timeout, gtimeout or watchdog)" >&2
+            return 2
+            ;;
+    esac
 
     case "$rc" in
         0)
