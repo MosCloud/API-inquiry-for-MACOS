@@ -6,6 +6,7 @@ the structure changes; the pairs are `docs/repository-layout.md` / `_zh.md`.
 ```text
 AGENTS.md                  agent contract for this repository
 README.md                  Chinese readme (the canonical one); README_en.md is English
+CHANGELOG.md               cumulative release history (English); CHANGELOG_zh.md is Chinese
 Package.swift              SwiftPM manifest: one library plus two executables
 LICENSE                    MIT
 THIRD-PARTY.md             brand assets, trademarks, dependency notes

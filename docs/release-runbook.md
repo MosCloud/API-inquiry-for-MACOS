@@ -19,6 +19,7 @@ All of these must agree, or `ReleaseVersionConsistencyTests` fails:
 - `docs/roadmap.md` (date, latest version, capability summary — both languages)
 - `AGENTS.md` (current version sentence)
 - New `docs/releases/vX.Y.Z_github.md`, bilingual, user-facing sections only: New Features / App Optimization / Bug Fixes (omit empty sections), then download verification and known limitations.
+- `CHANGELOG.md` / `CHANGELOG_zh.md`: before packaging, fold everything under `[Unreleased]` into a new `## [X.Y.Z] - YYYY-MM-DD` section dated with the release day, and leave `[Unreleased]` empty.
 
 ## 2. Build environment
 
