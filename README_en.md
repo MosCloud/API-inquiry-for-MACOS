@@ -257,3 +257,7 @@ Deferred:
 - Later direction: more providers, provider display controls, automatic updates, and better install/upgrade flows.
 
 See [docs/roadmap.md](docs/roadmap.md) for the detailed plan.
+
+## License
+
+[MIT](LICENSE). See [THIRD-PARTY.md](THIRD-PARTY.md) for brand assets and trademark notices.

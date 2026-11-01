@@ -7,6 +7,8 @@
 AGENTS.md                  agent 约定
 README.md                  中文说明（正本）；README_en.md 是英文版
 Package.swift              SwiftPM 清单：一个 library + 两个 executable
+LICENSE                    MIT 许可证
+THIRD-PARTY.md             品牌素材、商标与依赖说明
 Scripts/                   可执行工具，见 Scripts/README.md
 Sources/
   APIInquiryCore/          全部逻辑，不含 UI；子目录按领域划分，测试与之同层

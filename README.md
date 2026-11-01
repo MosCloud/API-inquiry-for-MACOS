@@ -257,3 +257,7 @@ Scripts/restart-installed-app.sh
 - 后续方向：更多供应商、供应商显示控制、自动更新和更完善的安装/升级体验。
 
 详细计划见 [docs/roadmap.md](docs/roadmap.md)。
+
+## 许可证
+
+[MIT](LICENSE)。第三方品牌素材与商标声明见 [THIRD-PARTY.md](THIRD-PARTY.md)。
