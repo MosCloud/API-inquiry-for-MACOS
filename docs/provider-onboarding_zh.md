@@ -68,17 +68,19 @@ public final class ExampleProvider: BalanceProvider {
 
 ### 3.1 接到运行中的 App 上（最容易漏的一步）
 
-装饰器写完只是"存在"，App 不会自己用它。链在 `Sources/APIInquiryApp/App/APIInquiryApp.swift` 的 init 里：
+装饰器写完只是"存在"，App 不会自己用它。链在 `Sources/APIInquiryApp/App/APIInquiryApp.swift` 的 init 里，把新的一层加进去：
 
 ```swift
-let store = LocalBoxCredentialStore(          // ← 新的一层放最外层
+let store = LocalBoxCredentialStore(
     delegate: OpenCodeCredentialStore(
         delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
     )
 )
 ```
 
-**顺序不是随便排的，必须在最外层。** `CodexCredentialStore.configurationURL(for:)` 对非 Codex 的 provider 直接返回 `nil`，**不转发**给下一层；把新装饰器放在它里面，它的「打开配置」答案会被吞掉。这个错误没有任何编译或测试信号。
+**顺序不重要，但转发很重要**：每个装饰器对**自己不认识**的 provider 必须原样转发给 delegate（照抄 `OpenCodeCredentialStore.configurationURL`）。只回答自己关心的那几个、其余返回 `nil`，就会把它上层/下层供应商的「打开配置」吞掉 —— 编译通过、测试全绿，按钮永远置灰。
+
+（这条以前是坑：Codex 曾对非 Codex 直接返回 `nil`，于是顺序变成了隐性规则，见 #83。）
 
 ### 3.2 能力用协议，不用 `as?`
 
@@ -92,9 +94,11 @@ let store = LocalBoxCredentialStore(          // ← 新的一层放最外层
 1. **只读**。不写回 CLI 的文件或数据库，不复制凭证到别处；删除 Key 后界面仍显示"已配置"是预期行为，真正的凭证还在 CLI 那边。
 2. **「打开配置」指向哪里**：文件不存在时返回 `nil`（按钮置灰并给提示），存在时返回文件本身。Codex 和 OpenCode 还会退到"文件所在目录"，如果你要沿用，写进测试，不要靠猜。
 
-### 3.4 链的顺序没有自动化测试
+### 3.4 写一条转发测试
 
-App 侧的链在 `APIInquiryApp.init`，而测试 runner 不编译 App。写一条**链转发测试**（用 `InMemoryCredentialStore` 复现同样的嵌套），至少覆盖：新 provider 的 `configurationURL` 能穿过每一层、Codex 的 `codexAuthFileStatus()` 仍然拿得到。改完链之后，再到 Console API 页实际点一次「打开配置」。
+转发是行为，不是配置，所以给它一条测试：用 `InMemoryCredentialStore` 垫底，把你的装饰器包上去，断言**一个它不拥有的 provider** 仍能拿到 delegate 的答案；再断言它自己负责的 provider 返回自己的答案。
+
+App 侧的链本身没有自动化测试（测试 runner 不编译 App），所以改完链之后，再到 Console API 页实际点一次「打开配置」。
 
 ## 4. 描述符与注册表
 
@@ -207,7 +211,7 @@ Scripts/verify.sh        # 测试 + 编 App，缺一不可
 | 「打开配置」按钮突然消失 | 装饰器没实现/转发能力协议，`as?` 探测失败 | 抽协议并逐层转发 |
 | 四家供应商 logo 大小不一 | 靠手调 frame，没有统一锚点 | 用 `ProviderLogoMetrics` 的 x-height 推导 |
 | 打出来的 DMG 里没有 logo | 打包脚本漏复制新扩展名 | 脚本已递归复制 `png/icns/svg`；新增别的扩展名时才改脚本，缺 `AppIcon.icns` 会中止 |
-| 新供应商的「打开配置」永远置灰 | 装饰器放在了 `CodexCredentialStore` 里面，它的 `configurationURL` 不转发 | 新装饰器放最外层（§3.1） |
+| 新供应商的「打开配置」永远置灰 | 某个装饰器对自己不认识的 provider 返回 `nil` 而不是转发 | 每一层都转发（§3.1），并用测试锁住 |
 | 验证时弹钥匙串授权 | 重新编译改变了 ad-hoc 签名 | 让用户点「始终允许」，这是预期行为 |
 
 ## 附录 A：OpenCode 接入案例
@@ -227,7 +231,7 @@ Scripts/verify.sh        # 测试 + 编 App，缺一不可
 ```
 [ ] 三个决定：卖什么 / 返回什么形状 / 凭证在哪
 [ ] provider 文件 + 错误映射 + 宽容解码
-[ ] 凭证：appManaged 或 装饰器 + 两个能力协议 + 接入 APIInquiryApp 链（最外层）
+[ ] 凭证：appManaged 或 装饰器 + 两个能力协议 + 接入 APIInquiryApp 链（不认识就转发）
 [ ] ProviderID case + 注册表条目（描述符 9 个必填 + 1 个可选字段）
 [ ] 品牌素材：官方 SVG、<id>-logo-header、<id>-menu-icon-template
 [ ] ProviderLogoMetrics 测量值（canvas / wordmark / x-height / visualScale）

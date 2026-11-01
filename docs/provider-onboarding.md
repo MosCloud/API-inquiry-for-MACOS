@@ -71,14 +71,16 @@ Local-configuration providers are **decorators** wrapped around `KeychainCredent
 Writing the decorator only makes it exist; the app never uses it until it is in the chain, which lives in `Sources/APIInquiryApp/App/APIInquiryApp.swift`:
 
 ```swift
-let store = LocalBoxCredentialStore(          // the new layer goes outermost
+let store = LocalBoxCredentialStore(
     delegate: OpenCodeCredentialStore(
         delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
     )
 )
 ```
 
-**The order is not cosmetic — the new layer must be outermost.** `CodexCredentialStore.configurationURL(for:)` returns `nil` for anything that is not Codex and does **not** forward to its delegate, so a decorator placed inside it loses its own "open config" answer. Nothing fails to compile; no test goes red.
+**Order does not matter, forwarding does.** Every decorator must pass providers it does not own straight to its delegate (copy `OpenCodeCredentialStore.configurationURL`). Answering `nil` for the rest swallows the 打开配置 entry of a provider above or below it — it compiles, every test stays green, and the button is simply disabled forever.
+
+(This used to be a trap: Codex answered `nil` for non-Codex providers, which turned the order into an undocumented rule. Fixed in #83.)
 
 ### 3.2 Capabilities are protocols, not `as?`
 
@@ -92,9 +94,11 @@ Once a decorator wraps the store, `as? CodexCredentialStore` is always `false` a
 1. **Read-only.** Never write back to the CLI's file or database, never copy credentials elsewhere. A key deleted in the Console while the UI still says "configured" is expected: the real credential lives in the CLI.
 2. **What 打开配置 points at**: return the file when it exists, `nil` when it does not (button disabled, hint shown). Codex and OpenCode also fall back to the containing directory; if you copy that behaviour, put it in a test rather than leaving it to guesswork.
 
-### 3.4 Nothing tests the order of the chain
+### 3.4 Test the forwarding
 
-The chain lives in `APIInquiryApp.init`, and the test runner does not compile the App. Write a **chain-forwarding test** (rebuild the same nesting over `InMemoryCredentialStore`) that at least checks: the new provider's `configurationURL` survives every layer, and `codexAuthFileStatus()` still reaches Codex. Then click 打开配置 once in Console → API by hand.
+Forwarding is behaviour, not configuration, so give it a test: wrap your decorator over `InMemoryCredentialStore` and assert that **a provider it does not own** still returns the delegate's answer, while its own provider returns its own.
+
+The chain itself has no automated test (the runner does not compile the App), so after changing it, click 打开配置 once in Console → API by hand.
 
 ## 4. Descriptor and registry
 
@@ -207,7 +211,7 @@ Finally run `ProviderOnboardingTests`. It walks `ProviderID.allCases` and checks
 | The 打开配置 button disappears | A decorator does not implement/forward a capability protocol, so `as?` fails | Add a protocol and forward it in every decorator |
 | Four providers, four logo sizes | Hand-tuned frames with no shared anchor | Derive sizes from `ProviderLogoMetrics` x-height |
 | The DMG has no logo | The packaging script does not copy the new extension | It already copies `png/icns/svg` recursively; only a new extension needs a script change, and a missing `AppIcon.icns` aborts |
-| A new provider's 打开配置 is always disabled | The decorator sits inside `CodexCredentialStore`, whose `configurationURL` does not forward | Put the new decorator outermost (§3.1) |
+| A new provider's 打开配置 is always disabled | A decorator answers `nil` for providers it does not own instead of forwarding | Forward in every layer (§3.1) and lock it with a test |
 | A Keychain prompt appears while verifying | A rebuild changes the ad-hoc signature | Ask the user to click 始终允许 — it is expected |
 
 ## Appendix A: the OpenCode case
@@ -227,7 +231,7 @@ The same lesson runs through #9 and #80: the "three-column alignment" work was a
 ```
 [ ] Three decisions: what it sells / what it returns / where credentials live
 [ ] Provider file + error mapping + defensive decoding
-[ ] Credentials: app-managed, or decorator + both capability protocols + wired into the APIInquiryApp chain (outermost)
+[ ] Credentials: app-managed, or decorator + both capability protocols + wired into the APIInquiryApp chain (forward what you do not own)
 [ ] ProviderID case + registry entry (descriptor: 9 required fields + 1 optional)
 [ ] Brand assets: official SVG, <id>-logo-header, <id>-menu-icon-template
 [ ] ProviderLogoMetrics measurements (canvas / wordmark / x-height / visualScale)
