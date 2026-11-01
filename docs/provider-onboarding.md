@@ -150,6 +150,11 @@ Tests you must add:
 - window labels and reset formatting (one case per language);
 - logo metrics: `ProviderLogoMetrics.template(for:)` returns a value.
 
+Two steps that are easy to miss:
+
+1. **Register the new suite in** `Sources/APIInquiryCoreTestsRunner/main.swift` — an unregistered suite never runs, and nothing tells you.
+2. **Two existing tests will go red, and not because of your code**: `ProviderCatalogTests` and `FixtureModeTests` pin the provider list and its count. When you update them, prefer `ProviderID.allCases` / `allCases.count` so the next provider does not have to touch them again.
+
 Then:
 
 ```bash
@@ -157,6 +162,8 @@ Scripts/verify.sh        # tests and app build — neither is optional
 ```
 
 Take three screenshots: menu bar panel, Console Home, Console API.
+
+Two provider lists also live in prose: `README.md` / `README_en.md`, and the sentence near the top of `AGENTS.md` that names the providers.
 
 Finally run `ProviderOnboardingTests`. It walks `ProviderID.allCases` and checks descriptor fields, unique credential accounts, logo templates, the fixture sample and window labels. **If you forgot something, it goes red.**
 
