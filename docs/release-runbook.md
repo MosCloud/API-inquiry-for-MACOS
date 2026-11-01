@@ -93,7 +93,7 @@ shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256
 
 If a bad artifact is caught within minutes of publishing and only the packaging changed, replacing the two assets with `gh release upload --clobber` is acceptable; document that the checksum changed.
 
-Write release notes for users, not as a changelog: New Features / App Optimization / Bug Fixes, empty sections omitted, and no internal type names, file paths, test counts, framework names, or refactor wording. Prefer perceptible phrasing ("refresh feels steadier", "status is easier to read") over implementation wording.
+Write release notes for users, not as a changelog. The rules, a worked example and a checklist live in `docs/release-writing.md` (`_zh` pair): three sections, perceptible changes only, numbers and file names moved to the CHANGELOG.
 
 ## 6. Cleanup
 
@@ -117,3 +117,4 @@ hdiutil info                               # no leftover mounted images
 | `hdiutil create` → "operation not permitted" | agent sandbox blocks disk images | run packaging with full file access |
 | 3 Keychain expectations fail with `unexpectedStatus(100001)` | no Keychain access inside the sandbox | run outside the sandbox; CI is the release gate |
 | Desktop keeps a phantom disk icon for a test volume | the image was detached after its mountpoint directory had been deleted | `killall Finder`; check `hdiutil info` for stray images first |
+| Tag CI fails in seconds with `timeout: command not found` | a script assumed GNU coreutils, which GitHub's macOS runners do not ship | keep scripts on stock macOS tools; fix the script, then move the tag to the fixed commit (`git tag -d` + tag again) instead of cutting a new release |
