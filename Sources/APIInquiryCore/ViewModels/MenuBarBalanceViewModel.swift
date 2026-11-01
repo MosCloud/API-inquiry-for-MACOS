@@ -196,7 +196,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         let presentation = ProviderSnapshotPresentation.make(from: snapshot, strings: strings)
         return SecondaryRowColumns(
             label: strings.balanceRowLabel,
-            amount: "\(presentation.leadingText)\(presentation.amountText)",
+            amount: presentation.compactAmountText ?? presentation.amountText,
             currency: presentation.trailingText
         )
     }
