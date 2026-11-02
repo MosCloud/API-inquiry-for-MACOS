@@ -467,6 +467,32 @@ Three steps that are easy to miss:
 2. **Two existing tests will go red, and not because of your code**: `ProviderCatalogTests` pins the provider order *and* the credential-account dictionary, `FixtureModeTests` pins the count. Prefer `ProviderID.allCases` / `allCases.count` where you can, so the next provider does not have to touch them again.
 3. **For a local-configuration provider, add the chain-forwarding test** (§3.4) — it is the only thing that catches a decorator in the wrong position.
 
+### Reconciling against the vendor's own screen
+
+Green tests do not mean the numbers are right. They mean the numbers match **what you
+asserted**, and if your reading of the API is wrong, the tests are wrong in the same
+direction.
+
+The real lesson: WorkBuddy's endpoint answered **HTTP 200**, `code: 0`, and produced a
+perfectly plausible **2,389 credits** instead of **2,856**. The package window was
+mis-specified, so the monthly allowance was silently filtered out. Every test passed,
+`verify.sh` passed, and the Console showed a believable number. It was only caught by
+opening WorkBuddy's own 套餐与积分 page and comparing.
+
+So after the wiring is green:
+
+1. **Find the vendor's own screen** that shows the same number (their console, dashboard,
+   or the CLI's own status command).
+2. **Compare values field by field**, not just the total — the total can be right while
+   one component is missing and another is double-counted.
+3. **If they disagree, trust the vendor's screen.** Your decoding is the suspect until
+   proven otherwise.
+4. **Pin the disagreement as a regression test.** A fixed total alone would not have caught
+   this; the test has to assert the *request* or the *component*, not only the sum.
+
+A provider whose data you cannot independently verify has not been accepted yet — you have
+only proved that it returns parseable JSON.
+
 ### Fixtures lie about local credentials
 
 A `--fixtures` scenario swaps the credential store for `InMemoryCredentialStore` and seeds `"fixture-key"` for every registered account. A local-configuration provider therefore always shows as configured under fixtures, so fixtures cannot verify "no file = not configured". Use a real copy of the app, or inject a temporary file in a unit test.
