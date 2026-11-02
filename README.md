@@ -28,7 +28,7 @@ WorkBuddy 目前只支持国内版（`www.codebuddy.cn`），国际版尚未接�
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/MosCloud/API-inquiry-for-MACOS/releases) 下载最新的 DMG 和校验文件。
+从 [GitHub Releases](https://github.com/MosCloud/API-inquiry-for-MACOS/releases) 下载最新的 DMG 和校验文件：中文版 `API-Inquiry-vX.Y.Z.dmg`，英文版 `API-Inquiry-vX.Y.Z-en.dmg`，两者装的是同一个 app，只有安装窗口的语言不同。
 
 ```bash
 shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256
@@ -123,7 +123,7 @@ Scripts/run-dev-app.sh --fixtures multi
 
 ```bash
 Scripts/package-mac-app.sh    # → dist/API Inquiry.app
-Scripts/package-dmg.sh        # → dist/API-Inquiry-vX.Y.Z.dmg + .sha256
+Scripts/package-dmg.sh --all  # → dist/API-Inquiry-vX.Y.Z.dmg / -en.dmg，各带 .sha256
 ```
 
 版本号在 `Scripts/version.env` 里统一维护。完整清单和常见故障见 [docs/release-runbook_zh.md](docs/release-runbook_zh.md)。

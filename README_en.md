@@ -28,7 +28,7 @@ WorkBuddy is currently CN-region only (`www.codebuddy.cn`); the international bu
 
 ## Install
 
-Download the latest DMG and checksum from [GitHub Releases](https://github.com/MosCloud/API-inquiry-for-MACOS/releases).
+Download the latest DMG and checksum from [GitHub Releases](https://github.com/MosCloud/API-inquiry-for-MACOS/releases): `API-Inquiry-vX.Y.Z.dmg` for the Chinese installer, `API-Inquiry-vX.Y.Z-en.dmg` for the English one. They contain the same app; only the install window's language differs.
 
 ```bash
 shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256
@@ -123,7 +123,7 @@ Quit the copy with `pkill -x APIInquiryDevelopment`.
 
 ```bash
 Scripts/package-mac-app.sh    # → dist/API Inquiry.app
-Scripts/package-dmg.sh        # → dist/API-Inquiry-vX.Y.Z.dmg + .sha256
+Scripts/package-dmg.sh --all  # → dist/API-Inquiry-vX.Y.Z.dmg / -en.dmg, each with a .sha256
 ```
 
 The version lives in one place, `Scripts/version.env`. Full checklist and failure table: [docs/release-runbook.md](docs/release-runbook.md).

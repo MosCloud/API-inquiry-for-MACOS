@@ -10,12 +10,12 @@ repository root; each script resolves `ROOT_DIR` itself.
 | `run-local-app.sh` | Builds via the script above, then `pkill -x APIInquiry` and opens the bundle | `build-local-app.sh` |
 | `run-dev-app.sh` | Builds `Development under <checkout>` (`APIInquiryDevelopment`) and launches it without touching the running app; refuses a dirty tree so the copy matches a commit. `--fixtures <scenario>` injects in-memory credentials and scripted provider data, so state checks need no keychain prompt | `build-local-app.sh --dev` |
 | `package-mac-app.sh` | Builds the release bundle, writes `Info.plist`, ad-hoc signs → `dist/API Inquiry.app`; refuses a `0.0.0-dev` version | `generate-app-icon.swift` |
-| `package-dmg.sh` | Packages the app, lays out the DMG window through Finder → `dist/API-Inquiry-vX.Y.Z.dmg` + `.sha256` | `package-mac-app.sh` |
+| `package-dmg.sh` | Packages the app, lays out the DMG window through Finder. `--lang zh` (default) → `dist/API-Inquiry-vX.Y.Z.dmg`, `--lang en` → `dist/API-Inquiry-vX.Y.Z-en.dmg`, `--all` builds both and asserts they carry the same binary. Each artifact gets a `.sha256` | `package-mac-app.sh`, `generate-dmg-background.swift` |
 | `install-mac-app.sh` | Packages, then copies into `~/Applications` | `package-mac-app.sh` |
 | `restart-installed-app.sh` | Relaunches the copy installed under `~/Applications` | — |
 | `clean-development-apps.sh` | Removes local dev bundles after release verification | — |
 | `generate-app-icon.swift` | Regenerates `Resources/AppIcon.icns`; the build scripts call it automatically | — |
-| `generate-dmg-background.js` | Regenerates `Assets/dmg-background.png` | — |
+| `generate-dmg-background.swift` | Draws both install-window backgrounds, `Assets/dmg-background-zh.png` and `-en.png`; `package-dmg.sh` calls it every time | `dmg-layout.env` |
 
 Fixture scenarios (development copy, `--fixtures`):
 
@@ -34,7 +34,8 @@ Fixtures replace only the credential store and provider factory; the coordinator
 
 Support files:
 
-- `version.env` — the release version values (`APP_VERSION`, `BUILD_NUMBER`, `RELEASE_TAG`, …). Release versions exist only in artifacts, never in a dev build.
+- `version.env` — the release version values (`APP_VERSION`, `BUILD_NUMBER`, `RELEASE_TAG`, `DMG_BASENAME`, `DMG_BASENAME_EN`, `VOLUME_NAME`). Release versions exist only in artifacts, never in a dev build.
+- `dmg-layout.env` — the install-window geometry (window size, icon size, both icon positions). The background generator and `package-dmg.sh` read it, so the art and Finder cannot drift apart.
 - `Assets/` — source images for the app icon and the DMG background.
 - `lib/toolchain.sh` — shared guards: `ensure_xcode_toolchain` picks Xcode's developer directory when `DEVELOPER_DIR` is unset, and `assert_modern_build_sdk` fails the build when the product links against the deployment-target SDK (13.0) instead of a real one.
 
@@ -43,6 +44,7 @@ Notes:
 - The two app scripts select the Xcode toolchain themselves; a bare `swift build` still needs `DEVELOPER_DIR`.
 - They build with SwiftPM's default build system and pass the active SDK to the linker (`-Xlinker -platform_version`); a bare `swift build` records the deployment-target SDK (13.0) and opts the app out of the current design.
 - Both build scripts skip `generate-app-icon.swift` when `AppIcon.icns` is newer than its source and the generator; delete the `.icns` (or touch the generator) to force regeneration.
+- The DMG backgrounds are never skipped: the headline carries the version number, so `package-dmg.sh` redraws both every run and a release always dirties those two PNGs.
 - Scripts run outside SwiftPM's sandbox; pass `--disable-sandbox` if you invoke SwiftPM directly under one.
 - `verify.sh` terminates a step that outlives its deadline and exits non-zero with the failing step named. A gate that blocks forever is worse than one that fails: it looks like a slow build and makes `| tail -3` print nothing.
 - Release packaging is a release-candidate step. The full checklist is

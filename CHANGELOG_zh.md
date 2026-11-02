@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+### 新增功能
+
+- 安装窗口改由 `Scripts/generate-dmg-background.swift` 绘制，取代手写 PNG 编码器；并出中英两份：`package-dmg.sh --all` 用同一次构建产出 `API-Inquiry-vX.Y.Z.dmg` 与 `-en.dmg`，并断言两份里的 app 二进制一致。静态图片无法跟随用户的系统语言，所以这个选择放在下载时做。(#107)
+- `Scripts/dmg-layout.env` 成为窗口坐标的唯一来源，背景生成器和 `package-dmg.sh` 都读它。当初各存一份数字，箭头才会偏出图标中线 9.5pt。(#107)
+
+### 变更
+
+- `Scripts/version.env` 增加 `DMG_BASENAME_EN`；`ReleaseVersionConsistencyTests` 现在会同时校验两个 DMG 文件名与版本号一致。(#107)
+
 ## [0.4.2] - 2026-11-02
 
 ### 新增功能
