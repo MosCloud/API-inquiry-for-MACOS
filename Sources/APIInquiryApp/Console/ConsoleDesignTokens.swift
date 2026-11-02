@@ -23,6 +23,15 @@ enum ConsoleMetrics {
     static let navigationIconSize: CGFloat = 18
     static let sectionHeaderHeight: CGFloat = 28
     static let projectHomepageURL = URL(string: "https://github.com/MosCloud/API-inquiry-for-MACOS")!
+
+    /// Room reserved on the trailing edge of the Console's scrolling lists so the
+    /// scroller never draws on top of a card (#114). macOS draws both overlay and
+    /// legacy scrollers inside the scroll view's bounds, so the content has to step
+    /// aside; the width comes from the system instead of a guessed constant, because
+    /// it changes with the scroll-bar setting and accessibility sizes.
+    static var scrollerGutter: CGFloat {
+        NSScroller.scrollerWidth(for: .regular, scrollerStyle: NSScroller.preferredScrollerStyle)
+    }
 }
 
 /// App-wide semantic palette. The file sits next to the Console metrics, but the
