@@ -167,16 +167,29 @@ public final class WorkBuddyBalanceProvider: BalanceProvider {
             // monthly allowance REFRESHES at its cycle end and never lapses. Summing them
             // into one date would answer neither question — the granted side is what can
             // be lost, so its nearest expiry is the one worth surfacing.
-            expiringAt: packages
-                .filter { !$0.isMonthly }
-                .compactMap(\.expiry)
-                .min(),
+            expiringAt: Self.nextExpiry(in: packages, after: fetchedAt),
             refreshingAt: packages
                 .filter(\.isMonthly)
                 .compactMap(\.refreshAt)
                 .min(),
             fetchedAt: fetchedAt
         )
+    }
+
+    /// The soonest date at which one-off credits are still at stake.
+    ///
+    /// Only a package that can still lose something counts, in two senses: it has to hold
+    /// credits, and its expiry has to be ahead of this refresh. Skipping either reports a
+    /// lapsed package as the next expiry — a date that has already passed. Real account,
+    /// #102: a check-in package lapsed at 11/02 16:15 but kept a cycle end of 11/05, so the
+    /// endpoint kept returning it, and `min()` showed 11/02 where the vendor's own screen
+    /// said 11/08.
+    static func nextExpiry(in packages: [WorkBuddyPackage], after fetchedAt: Date) -> Date? {
+        packages
+            .filter { !$0.isMonthly && $0.remaining > 0 }
+            .compactMap(\.expiry)
+            .filter { $0 > fetchedAt }
+            .min()
     }
 }
 
