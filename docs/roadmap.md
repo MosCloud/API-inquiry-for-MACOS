@@ -1,13 +1,13 @@
 # API Inquiry Roadmap
 
-Last updated: 2026-10-30
+Last updated: 2026-11-02
 
 ## 中文
 
 ### 当前状态
 
-- 最新已发布版本：`v0.4.0`
-- 当前主线能力：DeepSeek 余额查询（含赠送余额）、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、OpenCode 用量查询与本地配置入口、Console Home 原始 Credits 余额展示（显示截断到两位小数）、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、余额与配额供应商统一三列对齐、系统时区自适应时间展示、克制的 UI 微交互与可访问性补充、质量修复与 CI 基线、DMG 打包发布。
+- 最新已发布版本：`v0.4.2`
+- 当前主线能力：DeepSeek 余额查询（含赠送余额）、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、OpenCode 用量查询与本地配置入口、WorkBuddy 积分查询（国内版，分「总积分」「赠送积分」并各自带刷新/到期时间）、Console Home 原始 Credits 余额展示（显示截断到两位小数）、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、余额与配额供应商统一三列对齐、系统时区自适应时间展示、克制的 UI 微交互与可访问性补充、质量修复与 CI 基线、DMG 打包发布。
 - 下一计划版本：`v0.5.0`，聚焦分发体验（自动更新、安装与卸载流程）。
 
 ### v0.3.2：中文本地化与语言切换
@@ -160,8 +160,8 @@ Last updated: 2026-10-30
 
 ### Current Status
 
-- Latest released version: `v0.3.16`
-- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, raw Credits balance display on Console Home (truncated to two decimals for display), Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, quality fixes with a CI baseline, and DMG release packaging.
+- Latest released version: `v0.4.2`
+- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, OpenCode usage checks with a local config entry, WorkBuddy credit checks (CN region, splitting total from granted credits and dating each), raw Credits balance display on Console Home (truncated to two decimals for display), Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, quality fixes with a CI baseline, and DMG release packaging.
 - Next planned version: `v0.5.0`, focused on distribution experience (automatic updates, install and uninstall flows).
 
 ### v0.3.2: Chinese Localization and Language Switching

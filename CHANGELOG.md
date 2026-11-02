@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-02
+
+### Added
+
+- `WorkBuddyBalanceProvider.nextExpiry(in:after:)`, which ranks only packages that can still lose something: remaining credits above zero, and an expiry ahead of this refresh. (#102)
+- `docs/provider-onboarding.md` now separates derived fields from the total: a correct sum does not make a date, ratio or label correct, and the vendor's own page is authoritative for semantics but can lag on numbers. (#104)
+
+### Fixed
+
+- WorkBuddy's "next expiry" ranked a lapsed package. A check-in package that expired at 11/02 16:15 still carried a cycle end of 11/05, so it survived the package window holding nothing, and its expiry won the minimum — the Console showed a date in the past while the vendor's screen showed 11/08. Replayed against the live account after the fix: 2026-11-08 15:06:51. (#102)
+
 ## [0.4.1] - 2026-11-02
 
 ### Added
