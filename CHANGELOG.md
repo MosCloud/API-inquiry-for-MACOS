@@ -5,14 +5,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-11-02
+
 ### Added
 
+- A Refresh control in the Console's Home header: it refreshes every added provider and, when Codex is present, the manual-reset credits too. The credits keep their own subsystem — only the trigger is shared, and failures stay isolated. (#109)
+- Provider cards on Home can be reordered from a grip in the bottom-right dead strip. The list reflows live while dragging and auto-scrolls within 40 pt of either edge; order persists, the menu bar primary does not move, and the context menu plus accessibility actions share the same code path. (#110)
 - The install window is drawn by `Scripts/generate-dmg-background.swift` instead of a hand-written PNG encoder, and ships in two languages: `package-dmg.sh --all` builds `API-Inquiry-vX.Y.Z.dmg` and `-en.dmg` from one app and asserts both carry the same binary. A static picture cannot follow the user's system language, so the choice is made at download time. (#107)
 - `Scripts/dmg-layout.env` is the single owner of the window geometry, read by the background generator and by `package-dmg.sh`. Duplicating it is how the old chevron sat 9.5 pt off the icon midpoint. (#107)
 
 ### Changed
 
 - `Scripts/version.env` gained `DMG_BASENAME_EN`, and `ReleaseVersionConsistencyTests` now checks both DMG basenames against the app version. (#107)
+- `AGENTS.md` stage 2 now requires a six-line boundary checklist in the issue before implementation, and records why: four rounds of #110 went into cases nobody asked about. (#118)
+
+### Fixed
+
+- The Console's scroller drew over the provider cards. The content now reserves the scroller's width and the scroll view bleeds that much into the window margin, so both margins stay symmetric. (#114)
+- A cancelled drag left the reordered card stuck in its lifted state; a mouse-button watcher now ends the gesture wherever it ends. Per-row drop targets also oscillated — up to six hops in 130 ms — and are replaced by one drop target indexed by pointer position. (#110)
 
 ## [0.4.2] - 2026-11-02
 
