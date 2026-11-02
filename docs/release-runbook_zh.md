@@ -33,6 +33,11 @@
 
 ## 3. 打包流水线
 
+**在主检出目录打包，不要在 worktree 里打。** `dist/` 被 gitignore，但它落在你运行脚本的
+那个目录里；在 `.worktrees/<name>/` 里打包，DMG 就放进了稍后 `git worktree remove` 会删掉
+的地方——而删除的时候正是你要拿它发版的时候。非在 worktree 打包不可，就在删除前把
+`dist/` 复制出来。
+
 `Scripts/package-mac-app.sh`
 
 1. 生成 app 图标、构建 `release` 产物、清理 staging app、写 `Info.plist`、ad-hoc 签名、验签。
@@ -99,6 +104,7 @@ shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256
 
 ```bash
 Scripts/clean-development-apps.sh          # 删除开发态 app，保留 DMG
+cp -R .worktrees/<name>/dist . 2>/dev/null # 在 worktree 里打过包才需要——见 §3
 git worktree remove .worktrees/<name> && git worktree prune
 git branch -D <merged-branch>
 hdiutil info                               # 确认没有遗留挂载的镜像

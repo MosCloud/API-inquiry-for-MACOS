@@ -33,6 +33,11 @@ All of these must agree, or `ReleaseVersionConsistencyTests` fails:
 
 ## 3. Packaging pipeline
 
+**Package from the primary checkout, not a worktree.** `dist/` is gitignored but lives inside
+whatever directory you run the scripts in, so packaging in `.worktrees/<name>/` puts the DMG
+somewhere `git worktree remove` will delete later. The DMG disappears at cleanup, right when
+you need it for the release. If you must package in a worktree, copy `dist/` out before removing it.
+
 `Scripts/package-mac-app.sh`
 
 1. Generates the app icon, builds the `release` product, strips the staging app, writes `Info.plist`, ad-hoc signs, verifies.
@@ -99,6 +104,7 @@ Write release notes for users, not as a changelog. The rules, a worked example a
 
 ```bash
 Scripts/clean-development-apps.sh          # removes dev app bundles, keeps the DMGs
+cp -R .worktrees/<name>/dist . 2>/dev/null # if you packaged in a worktree — see §3
 git worktree remove .worktrees/<name> && git worktree prune
 git branch -D <merged-branch>
 hdiutil info                               # no leftover mounted images
