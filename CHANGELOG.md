@@ -5,6 +5,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-02
+
+### Added
+
+- WorkBuddy provider (CN region only): reads the desktop app's sign-in, decrypts its at-rest credential, and shows the remaining credits in the menu bar and Console. The Console API page opens WorkBuddy's own config file. (#94)
+- `BalanceSnapshot.refreshingAt`, the counterpart to `expiringAt`: a subscription allowance is topped up at its cycle end while a promotional grant is lost at its expiry, so the two dates answer different questions. (#94)
+- The `CREDITS` unit in `ProviderValueFormatter`, rendered as a localised unit rather than a currency symbol. (#94)
+- Console titles for a credit balance (「总积分」/「赠送积分」), carried on the summary rather than derived in the view. (#94)
+- `docs/provider-onboarding.md` gained a section on encrypted credentials, the UI constraints that were only in code, and Appendix D walking the WorkBuddy case. (#95)
+
+### Changed
+
+- The menu bar panel's balance row keeps the unit in its trailing cell; it had carried the expiry date, which read as a fraction beside the amount. (#94)
+- The Console shows a prefixed date line under each credit metric (`Refreshes 11/30` / `Expires 11/05`) instead of joining value and date into one string. (#94)
+- WorkBuddy's menu bar icon is 16×16, sized by optical weight: a filled badge covers more ink than a bare glyph in the same box. (#94)
+- `ProviderLogoMetrics` documents the two-line case: the x-height anchor is one line's cap height, not the total. (#95)
+
+### Fixed
+
+- WorkBuddy's brand assets render as knockout art. The official lockup is a solid colour bitmap (45.4% opaque) while every other provider's asset is a transparent knockout (67–81%), so a template render collapsed it into two blank white slabs. Now 41.8% opaque. (#94)
+- The billing request's package window reaches the client's own ~100-year horizon. A 36.9-day window still answered HTTP 200 but silently dropped the monthly package: 36 packages / 2,389 credits instead of 37 / 2,856. (#94)
+- A non-zero application-level `code` inside an HTTP 200 body is treated as an error instead of an empty balance. (#94)
+- The menu-bar icon loader rejects a solid bitmap's alpha channel before wiring, pinned by the measurement documented in the guide. (#95)
+
 ## [0.4.0] - 2026-11-01
 
 ### Added
