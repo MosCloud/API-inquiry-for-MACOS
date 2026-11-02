@@ -490,6 +490,23 @@ So after the wiring is green:
 4. **Pin the disagreement as a regression test.** A fixed total alone would not have caught
    this; the test has to assert the *request* or the *component*, not only the sum.
 
+One more warning, and it has nothing to do with the total: **a correct total does not make
+the other fields correct.** In #102 the Console's "next expiry" showed a date that had
+**already passed** (11/02) while WorkBuddy's own page said 11/08 — the balance was right to
+the cent. The endpoint kept returning a lapsed package whose `ExpiredTime` was gone but
+whose `CycleEndTime` was still ahead. It held nothing, so it added nothing to the sum, and
+it still dragged `min()` into the past.
+
+So check the **derived fields** (dates, ratios, status labels) on their own — that **a date
+shown to the user is never in the past** is the cheapest self-check there is. And when
+aggregating, ask whether an input is still meaningful before asking how much it contributes.
+
+"If they disagree, trust the vendor's screen" has a precondition too: **the vendor's page
+lags.** At the same moment its balance read 12.38 higher than live data — exactly the
+remainder that package held before it lapsed, not yet written off. Split the two: trust the
+vendor on **semantics** (what a field means, how a date is computed), but reload its page
+before trusting a **number**, and never pin a cached value as your own assertion.
+
 A provider whose data you cannot independently verify has not been accepted yet — you have
 only proved that it returns parseable JSON.
 
@@ -524,6 +541,7 @@ Finally run `ProviderOnboardingTests`. It walks `ProviderID.allCases` and checks
 | The Console shows 0 while the vendor's own panel shows a balance | A non-zero application-level `code` inside an HTTP 200 body, or a query window that silently excludes packages | Treat a non-zero envelope code as an error, and pin the window with a regression test |
 | The brand lockup renders as a blank white slab | The official asset is a solid colour bitmap; a template render keeps only alpha, so the whole tile is ink | Rebuild it as a knockout (§6.2) |
 | The menu bar icon looks bigger than its neighbours | It is a filled badge, so the same box covers far more ink | Size by optical weight, not by copying a number (§6.6) |
+| The "next expiry" shows a date that has already passed | The endpoint returns lapsed packages too: `ExpiredTime` is gone while `CycleEndTime` is still ahead, so the window keeps them with nothing left in them | Ask whether a package can still lose credits before ranking it: remainder above zero, expiry after this refresh (#102) |
 
 ## Appendix A: the OpenCode case
 
