@@ -1,18 +1,37 @@
 import APIInquiryCore
 import SwiftUI
+import UniformTypeIdentifiers
+
+/// Everything a row needs to take part in reordering, grouped so the row does not
+/// grow nine separate parameters.
+struct ProviderReorderState {
+    let isDragging: Bool
+    let isDropTarget: Bool
+    let canMoveUp: Bool
+    let canMoveDown: Bool
+    let startedDragging: () -> Void
+    let targeted: (Bool) -> Void
+    let dropped: () -> Void
+    let moveUp: () -> Void
+    let moveDown: () -> Void
+}
 
 struct UsageConsoleHomeSection: View {
     let summaries: [APIProviderSummary]
     let strings: LocalizedStrings
     let setPrimaryProvider: (ProviderID) -> Void
+    let moveProvider: (ProviderID, Int) -> Void
     let manualResetRefreshFeedback: RefreshActionFeedback
     let manualResetRefreshTurn: Int
     let refreshManualResetCredits: () -> Void
     let showManualResetDetails: () -> Void
 
+    @State private var draggedProviderID: ProviderID?
+    @State private var dropTargetID: ProviderID?
+
     var body: some View {
         VStack(alignment: .leading, spacing: ConsoleMetrics.homeProviderListSpacing) {
-            ForEach(summaries, id: \.id) { summary in
+            ForEach(Array(summaries.enumerated()), id: \.element.id) { index, summary in
                 ProviderStatusRow(
                     summary: summary,
                     strings: strings,
@@ -20,10 +39,46 @@ struct UsageConsoleHomeSection: View {
                     manualResetRefreshFeedback: manualResetRefreshFeedback,
                     manualResetRefreshTurn: manualResetRefreshTurn,
                     refreshManualResetCredits: refreshManualResetCredits,
-                    showManualResetDetails: showManualResetDetails
+                    showManualResetDetails: showManualResetDetails,
+                    reorder: reorderState(for: summary, at: index)
                 )
             }
         }
+    }
+
+    /// Dropping on a card moves the dragged provider to that card's position: the
+    /// list is short, and "put it where I dropped it" is easier to predict than
+    /// tracking an insertion edge on every row.
+    private func reorderState(for summary: APIProviderSummary, at index: Int) -> ProviderReorderState {
+        ProviderReorderState(
+            isDragging: draggedProviderID == summary.id,
+            isDropTarget: dropTargetID == summary.id && draggedProviderID != summary.id,
+            canMoveUp: summaries.count > 1 && index > 0,
+            canMoveDown: summaries.count > 1 && index < summaries.count - 1,
+            startedDragging: { draggedProviderID = summary.id },
+            targeted: { isInside in
+                if isInside {
+                    dropTargetID = summary.id
+                } else if dropTargetID == summary.id {
+                    dropTargetID = nil
+                }
+            },
+            dropped: { finishDrop(on: summary.id, at: index) },
+            moveUp: { moveProvider(summary.id, index - 1) },
+            moveDown: { moveProvider(summary.id, index + 1) }
+        )
+    }
+
+    private func finishDrop(on targetID: ProviderID, at index: Int) {
+        defer {
+            draggedProviderID = nil
+            dropTargetID = nil
+        }
+
+        guard let draggedProviderID, draggedProviderID != targetID else {
+            return
+        }
+        moveProvider(draggedProviderID, index)
     }
 }
 
@@ -37,6 +92,7 @@ struct ProviderStatusRow: View {
     let manualResetRefreshTurn: Int
     let refreshManualResetCredits: () -> Void
     let showManualResetDetails: () -> Void
+    let reorder: ProviderReorderState
 
     var body: some View {
         VStack(alignment: .leading, spacing: ConsoleMetrics.providerHeaderMetricsSpacing) {
@@ -50,6 +106,43 @@ struct ProviderStatusRow: View {
             providerRowBackground
         }
         .clipShape(RoundedRectangle(cornerRadius: ConsoleMetrics.providerRowCornerRadius, style: .continuous))
+        .overlay(alignment: .bottomTrailing) {
+            ProviderReorderGrip(strings: strings, isActive: reorder.isDragging)
+                .padding(.trailing, 10)
+                .padding(.bottom, 4)
+                .onDrag {
+                    reorder.startedDragging()
+                    return NSItemProvider(object: summary.id.rawValue as NSString)
+                }
+        }
+        .overlay(alignment: .top) {
+            if reorder.isDropTarget {
+                RoundedRectangle(cornerRadius: 1, style: .continuous)
+                    .fill(Color.accentColor)
+                    .frame(height: 2)
+                    .padding(.horizontal, 6)
+                    .offset(y: -1)
+            }
+        }
+        .opacity(reorder.isDragging ? 0.45 : 1)
+        .onDrop(
+            of: [UTType.text],
+            isTargeted: Binding(
+                get: { reorder.isDropTarget },
+                set: { reorder.targeted($0) }
+            )
+        ) { _ in
+            reorder.dropped()
+            return true
+        }
+        .contextMenu {
+            Button(strings.moveUp) { reorder.moveUp() }
+                .disabled(!reorder.canMoveUp)
+            Button(strings.moveDown) { reorder.moveDown() }
+                .disabled(!reorder.canMoveDown)
+        }
+        .accessibilityAction(named: Text(strings.moveUp)) { reorder.moveUp() }
+        .accessibilityAction(named: Text(strings.moveDown)) { reorder.moveDown() }
         .apiInquirySubtleAnimation(value: summary.healthTone, reduceMotion: accessibilityReduceMotion)
         .apiInquirySubtleAnimation(value: summary.statusTone, reduceMotion: accessibilityReduceMotion)
         .apiInquirySubtleAnimation(value: summary.isPrimary, reduceMotion: accessibilityReduceMotion)

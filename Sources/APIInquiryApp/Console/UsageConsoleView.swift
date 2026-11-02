@@ -82,6 +82,7 @@ struct UsageConsoleView: View {
                 summaries: viewModel.providerSummaries,
                 strings: strings,
                 setPrimaryProvider: { viewModel.setPrimaryProvider($0) },
+                moveProvider: { viewModel.moveProvider($0, to: $1) },
                 manualResetRefreshFeedback: manualResetRefreshFeedbackController.feedback,
                 manualResetRefreshTurn: manualResetRefreshFeedbackController.refreshTurn,
                 refreshManualResetCredits: triggerManualResetRefresh,

@@ -356,6 +356,10 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
     }
 
+    public func moveProvider(_ id: ProviderID, to index: Int) {
+        coordinator.moveProvider(id, to: index)
+    }
+
     public func addProvider(_ id: ProviderID) {
         coordinator.addProvider(id)
     }

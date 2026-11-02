@@ -81,6 +81,9 @@ public struct LocalizedStrings: Equatable {
     public var versionTitle: String { text(en: "Version", zh: "版本") }
     public var projectHomepage: String { text(en: "Project Homepage", zh: "项目主页") }
     public var providersTitle: String { text(en: "Providers", zh: "供应商") }
+    public var moveUp: String { text(en: "Move Up", zh: "上移") }
+    public var moveDown: String { text(en: "Move Down", zh: "下移") }
+    public var reorderProviders: String { text(en: "Drag to reorder", zh: "拖动排序") }
     public var addProvider: String { text(en: "Add Provider", zh: "添加供应商") }
     public var apiProvidersTitle: String { text(en: "API Providers", zh: "API 供应商") }
     public var menuBar: String { text(en: "Menu Bar", zh: "菜单栏") }
