@@ -28,6 +28,22 @@ Unless the user explicitly asks for a one-shot end-to-end delivery, every change
 
 1. **Issue first.** File the problem as a GitHub issue (`gh issue create`) with the observed behaviour, expected behaviour, and where in the code it lives. No implementation before there is an issue (or the user explicitly waives it).
 2. **Joint diagnosis.** Locate the cause *with* the user: read the code, then prove the hypothesis with a measurement, a demo, or a failing test. Present evidence (numbers, screenshots, test output) and 2–3 candidate solutions with trade-offs. **Wait for the user to choose** before writing production code.
+
+   For anything that touches an interaction, a layout or a package, answer these six lines in the issue before the first line of production code. They take ten minutes and save the round trips:
+
+   ```
+   Scope:        what it does, and what it deliberately does not
+   Counts:       how it behaves with 0 / 1 / many
+   Interactions: drag, keyboard, VoiceOver, scrolling, zoom
+   Failure paths: cancelled, dropped outside the window,
+                  data changing mid-flight, permission denied
+   Side effects: does a transform, clip or animation break another element?
+   Acceptance:   three to five steps reproducible on the real app
+   ```
+
+   The issue can be written in Chinese; the six headings matter, not the language.
+
+   Why this is in the contract: four rounds of #110 were spent on boundary cases nobody asked about — a cancelled drag left the card stuck in its lifted state, per-row drop targets oscillated and flickered, a scaled card lost its rounded corners, and the list could not be dragged past one screen. None of them was hard to fix; all of them were questions the list would have raised before any code existed. A visual fix is not verified by looking at it either: the first #114 gutter looked applied and changed nothing, which only pixel measurements caught.
 3. **Implement + PR.** Only then change code, keep the diff scoped to the chosen issue, run `Scripts/verify.sh` (tests **and** the app build; see Commands) — the tests never compile `APIInquiryApp` — and open a PR that states the evidence and the verification steps. A PR is ready when the tests pass, the app builds, the diff stays scoped, and every fact it touches in this file or in the release runbook is still true — stale documentation counts as a bug.
 4. **Joint testing.** The agent verifies what it can (`Scripts/verify.sh`, screenshots where possible). For anything that changes what the app does — feature, UI, response behaviour — it then builds a side-by-side development copy with `Scripts/run-dev-app.sh`; the running app and `.build/APIInquiry.app` stay untouched, and the user tests that copy. Prefer `--fixtures <scenario>` for state and visual checks (in-memory credentials, no keychain prompt); use the real copy when credentials, network, packaging or system integration is what changed. Docs-, script- and tooling-only changes stop at `Scripts/verify.sh`. Merging waits for the user's sign-off.
 5. **Ask, then merge.** Opening a PR is never permission to merge it. After stage 4 sign-off, **ask the user explicitly** ("可以合入吗？") and wait for a yes. Rebase-merge only on that explicit approval, then delete the branch and confirm the local suite on `main`. This applies to every PR, including docs and chore changes, and it is per-PR: an approval for one PR does not carry to the next. Merging is the irreversible step — it moves `main`, closes issues, and changes what everyone builds from — so the user keeps the pacing.
