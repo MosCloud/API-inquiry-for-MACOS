@@ -16,6 +16,7 @@ enum WorkBuddyProviderTests {
         decoderTests(using: harness)
         storeDecryptionTests(using: harness)
         creditFormattingTests(using: harness)
+        await secondaryRowTests(using: harness)
         await providerTests(using: harness)
     }
 
@@ -53,6 +54,17 @@ enum WorkBuddyProviderTests {
         )
         harness.expectEqual(monthlyOnly.expiringAt, nil, "a monthly package does not expire")
         harness.expectEqual(monthlyOnly.grantedBalance, 0, "no one-off grants means no granted portion")
+
+        // Two dates, two meanings: a monthly allowance REFRESHES at its cycle end and
+        // never lapses; a one-off grant EXPIRES. Conflating them would tell the user the
+        // wrong thing about half the balance.
+        harness.expectEqual(snapshot.refreshingAt, later, "the monthly cycle end is the refresh date")
+        harness.expectEqual(monthlyOnly.refreshingAt, soon, "a monthly-only balance refreshes")
+        harness.expectEqual(monthlyOnly.expiringAt, nil, "a monthly package never expires")
+        harness.expectEqual(
+            WorkBuddyPackage(name: "o", capacityType: 1, remaining: 1).refreshAt, nil,
+            "a one-off grant never refreshes"
+        )
 
         let empty = WorkBuddyBalanceProvider.makeSnapshot(from: [], providerID: .workbuddy, fetchedAt: now)
         harness.expectEqual(empty.totalBalance, 0, "no packages means a zero balance")
@@ -301,6 +313,36 @@ enum WorkBuddyProviderTests {
     }
 
     // MARK: - Formatting
+
+    /// The menu bar's secondary row carries the unit, never a bare date.
+    ///
+    /// "2877.7 11/05" read as a fraction: the date has its own slashes, so putting it
+    /// where the currency code goes needed a second separator. The date lives in the
+    /// Console, where the prefix says which date means what.
+    private static func secondaryRowTests(using harness: TestHarness) async {
+        let expiring = Date(timeIntervalSince1970: 1_800_000_000)
+        let balance = BalanceSnapshot(
+            providerID: .workbuddy,
+            totalBalance: Decimal(string: "2877.74")!,
+            currency: "CREDITS",
+            isAvailable: true,
+            grantedBalance: Decimal(string: "2377.74")!,
+            toppedUpBalance: 500,
+            expiringAt: expiring,
+            refreshingAt: expiring.addingTimeInterval(20 * 86_400),
+            fetchedAt: expiring
+        )
+        let snapshot = ProviderSnapshot.balance(balance)
+        let presentation = ProviderSnapshotPresentation.make(
+            from: snapshot,
+            strings: LocalizedStrings(language: .zh)
+        )
+        harness.expectEqual(presentation.trailingText, "积分", "the trailing cell is the unit")
+        harness.expectTrue(
+            presentation.trailingText != presentation.compactAmountText,
+            "the trailing cell is not a repeat of the amount"
+        )
+    }
 
     private static func creditFormattingTests(using harness: TestHarness) {
         let english = LocalizedStrings(language: .en)

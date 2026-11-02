@@ -174,6 +174,12 @@ public struct BalanceSnapshot: Equatable {
     /// promotional grant does, and "you have 2,899 credits" is misleading three days
     /// before 2,399 of them lapse. Nil for providers without expiring credit.
     public let expiringAt: Date?
+    /// When the paid/subscription portion next refreshes.
+    ///
+    /// The counterpart to `expiringAt`: a subscription allowance does not lapse, it is
+    /// topped back up at the cycle end, so the two dates answer different questions and
+    /// must not be conflated on screen.
+    public let refreshingAt: Date?
     public let fetchedAt: Date
 
     public init(
@@ -184,6 +190,7 @@ public struct BalanceSnapshot: Equatable {
         grantedBalance: Decimal?,
         toppedUpBalance: Decimal?,
         expiringAt: Date? = nil,
+        refreshingAt: Date? = nil,
         fetchedAt: Date
     ) {
         self.providerID = providerID
@@ -193,6 +200,7 @@ public struct BalanceSnapshot: Equatable {
         self.grantedBalance = grantedBalance
         self.toppedUpBalance = toppedUpBalance
         self.expiringAt = expiringAt
+        self.refreshingAt = refreshingAt
         self.fetchedAt = fetchedAt
     }
 }
