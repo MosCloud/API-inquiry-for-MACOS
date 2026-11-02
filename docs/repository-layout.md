@@ -27,7 +27,7 @@ docs/
   roadmap.md               capabilities and near-term plan
   releases/                per-version release notes
   superpowers/             historical plans and specs (frozen, links point into it)
-  assets/                  screenshots used by the READMEs (fixed raw.githubusercontent URLs)
+  assets/                  screenshots embedded in per-version release notes
 .github/workflows/         CI, runs only for release/* tags
 dist/ .build/ .worktrees/  generated, gitignored
 CLAUDE.md docs/agents/ docs/reviews/  local-only notes, gitignored by design
@@ -50,5 +50,6 @@ CLAUDE.md docs/agents/ docs/reviews/  local-only notes, gitignored by design
 
 Scripts are named by phase already, so moving them into subfolders would rewrite about 45
 references for no functional gain. `docs/superpowers/` holds ~67 interlinked historical files;
-renaming it would break those links. `docs/assets/` paths are embedded in README image URLs
-served from `raw.githubusercontent.com`, so moving them breaks the published page.
+renaming it would break those links. `docs/assets/` paths are embedded in the image URLs of
+`docs/releases/*.md`, which are served from `raw.githubusercontent.com`, so moving them breaks
+pages that are already published.

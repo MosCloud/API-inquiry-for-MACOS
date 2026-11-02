@@ -27,7 +27,7 @@ docs/
   roadmap.md               能力与近期计划
   releases/                每个版本的发布说明
   superpowers/             历史计划与规格（冻结，链接仍指向这里）
-  assets/                  README 引用的截图（raw.githubusercontent 固定路径）
+  assets/                  各版本发布说明里引用的截图
 .github/workflows/         CI，仅在 release/* tag 上运行
 dist/ .build/ .worktrees/  生成物，已忽略
 CLAUDE.md docs/agents/ docs/reviews/  本地笔记，按设计不入库
@@ -47,5 +47,5 @@ CLAUDE.md docs/agents/ docs/reviews/  本地笔记，按设计不入库
 ## 为什么不再细分或改名
 
 脚本名已自带阶段前缀，再分目录要改约 45 处引用却没有功能收益。`docs/superpowers/`
-有约 67 个互链的历史文件，改名会让链接全断。`docs/assets/` 的路径写死在 README 的
-`raw.githubusercontent.com` 图片地址里，移动会破坏已发布的页面。
+有约 67 个互链的历史文件，改名会让链接全断。`docs/assets/` 的路径写死在
+`docs/releases/*.md` 里的 `raw.githubusercontent.com` 图片地址中，移动会破坏已发布的页面。
