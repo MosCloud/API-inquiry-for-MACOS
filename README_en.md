@@ -1,263 +1,157 @@
 # API Inquiry
 
-[中文](README.md)
+[English](README_en.md) · [简体中文](README.md)
 
-Repository layout and conventions: [docs/repository-layout.md](docs/repository-layout.md).
+A native macOS menu bar app for keeping an eye on how much quota you have left across the AI coding services you use. It sits in your menu bar, refreshes every five minutes, and only opens a lightweight console when you need to change something.
 
-## Screenshots
+Supports **DeepSeek**, **Zhipu GLM Coding Plan**, **Codex**, **OpenCode** and **WorkBuddy**.
 
-<p>
-  <strong>MenuBar</strong><br>
-  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/menu-bar.png" alt="API Inquiry menu bar details panel" width="280">
-</p>
+## Features
 
-<p>
-  <strong>Console Home</strong><br>
-  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/console-home.png" alt="API Inquiry console home" width="573">
-</p>
+- **Always in the menu bar**: shows your chosen Primary Provider; click it for an overview of every provider.
+- **Five providers, each shown honestly**: balances, plan usage and quota windows are not forced through one template.
+- **Credentials stay where they belong**: keys this app owns go into the macOS Keychain; Codex, OpenCode and WorkBuddy credentials are owned by their own CLI or desktop app, and this app only reads them.
+- **Bilingual**: follows the system language by default, switchable in the Console.
+- **No dashboard**: no analytics, no history graphs, no sixth provider invented in a config file.
 
-<p>
-  <strong>Console API</strong><br>
-  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/console-api.png" alt="API Inquiry console API page" width="573">
-</p>
+## Supported providers
 
-<p>
-  <strong>Console Setting</strong><br>
-  <img src="https://raw.githubusercontent.com/MosCloud/API-inquiry-for-MACOS/main/docs/assets/v0.3.6-refactor/console-setting.png" alt="API Inquiry console settings page" width="573">
-</p>
+| Provider | What you see | Credential source |
+|---|---|---|
+| **DeepSeek** | Account balance, granted and topped-up shown apart | macOS Keychain |
+| **Zhipu GLM Coding Plan** | Plan usage and reset time | macOS Keychain |
+| **Codex** | Session quota (5-hour / weekly) | Local Codex sign-in, read-only |
+| **OpenCode** | Usage windows (5-hour / weekly / monthly) | Local OpenCode database, read-only |
+| **WorkBuddy** | Remaining credits, with next refresh and nearest expiry | Local WorkBuddy desktop sign-in, read-only |
 
-API Inquiry is a native macOS menu bar app for checking API provider status and managing provider API keys. It supports DeepSeek balance checks, Zhipu GLM Coding Plan usage, Codex/ChatGPT session quota checks, automatic Chinese/English UI matching, and manual language switching. It stores provider API keys in macOS Keychain, refreshes configured providers every 5 minutes, shows the Primary Provider in the menu bar, and provides a lightweight local console for provider management.
+WorkBuddy is currently CN-region only (`www.codebuddy.cn`); the international build is not supported yet.
 
-## Requirements
+## Install
+
+Download the latest DMG and checksum from [GitHub Releases](https://github.com/MosCloud/API-inquiry-for-MACOS/releases).
+
+```bash
+shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256
+```
+
+Open the DMG, drag `API Inquiry.app` into Applications, and launch it from there.
+
+**The first launch may be blocked**: this project is not notarized by Apple. Right-click the app and choose Open, or allow it under System Settings → Privacy & Security.
+
+**The first launch asks for Keychain access**: that is the app reading the API keys you saved. Click Always Allow. You will be asked again after every local rebuild, because the ad-hoc signature changes.
+
+## Usage
+
+### Menu bar
+
+Click the item: the Primary Provider fills the top, the other added providers sit in rows below. The refresh button refreshes all of them at once.
+
+### Console
+
+| Page | What it owns |
+|---|---|
+| **Home** | Which provider goes in the menu bar (Primary Provider), and each provider's status |
+| **API** | API keys, credential state, and opening a provider's local config file |
+| **Settings** | Launch at login, language, version info |
+
+**Codex, OpenCode and WorkBuddy have no "paste a key" step**: their credentials belong to their own CLI or desktop app, and this app only reads them. To switch accounts, switch them in that tool.
+
+## Development
+
+### Requirements
 
 - macOS 13 or later
-- Swift 5.9+ / Xcode Command Line Tools
-- A DeepSeek API key for real balance checks, or a Zhipu GLM Coding Plan API key for plan usage checks
-- For Codex quota checks, this Mac needs an existing Codex login with `$CODEX_HOME/auth.json` or `~/.codex/auth.json`
+- **Xcode** (not just Command Line Tools) — compiling `APIInquiryApp` needs it to resolve the SwiftUI macros
+- Core work and the test runner are fine with Command Line Tools alone
 
-## Security
+### Build
 
-- API keys are stored only in macOS Keychain through `KeychainCredentialStore`.
-- The Codex provider first reads the local Codex auth file as read-only state. It does not modify, delete, or copy that file into UserDefaults; Keychain is only a manual fallback.
-- Saved keys are never shown in plain text after saving. API key setup, replacement, and deletion happen in the local console.
-- Tests use fake keys only and do not require real DeepSeek, Zhipu, or Codex accounts.
-- Do not put real API keys, Codex access tokens, session tokens, or account ids in source files, docs, logs, screenshots, or shell history.
+```bash
+Scripts/build-local-app.sh      # build .build/APIInquiry.app
+Scripts/run-local-app.sh        # build and launch
+```
 
-## Test
+Both scripts pick Xcode's developer directory themselves; you do not need to set `DEVELOPER_DIR`.
 
-This project uses a local executable runner because this development machine has Command Line Tools but not a full XCTest runtime.
+If you run `swift build` directly you have to pass it yourself, or you will see a wall of `SwiftUIMacros not found`:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift build
+```
+
+### Test
+
+This project **does not use XCTest**, and it is not because the machine is missing anything — there is simply no `testTarget` in `Package.swift`. Tests are a plain executable runner:
 
 ```bash
 swift run APIInquiryCoreTestsRunner
 ```
 
-Expected result:
+A successful run prints:
 
 ```text
-PASS: 679 expectations
+PASS: N expectations
 ```
 
-## Build
+`N` moves as tests are added or removed; take the number from the output. The runner is all-or-nothing and exits non-zero on any failure.
 
-Compile all package targets:
+### Verify everything at once
 
 ```bash
-swift build
+Scripts/verify.sh
 ```
 
-Regenerate the bundled macOS app icon:
+Tests plus the app build — the gate before opening a pull request.
+
+### Run a side-by-side development copy
 
 ```bash
-swift Scripts/generate-app-icon.swift
+Scripts/run-dev-app.sh
 ```
 
-Build a local macOS app bundle:
+It stages an independent `APIInquiryDevelopment` copy under `/private/tmp` and launches it without touching the copy you are using. The copy has its own preferences domain but shares the same Keychain service.
+
+To view the UI with fake data (no network, no Keychain prompt):
 
 ```bash
-Scripts/build-local-app.sh
+Scripts/run-dev-app.sh --fixtures multi
 ```
 
-Build and start the local macOS app bundle for quick validation:
+Quit the copy with `pkill -x APIInquiryDevelopment`.
+
+### Release packaging
 
 ```bash
-Scripts/run-local-app.sh
+Scripts/package-mac-app.sh    # → dist/API Inquiry.app
+Scripts/package-dmg.sh        # → dist/API-Inquiry-vX.Y.Z.dmg + .sha256
 ```
 
-During in-progress development, use this script for fast local validation. Full .app release packaging and DMG generation are reserved for release candidate validation.
+The version lives in one place, `Scripts/version.env`. Full checklist and failure table: [docs/release-runbook.md](docs/release-runbook.md).
 
-The script creates:
+## Documentation
 
-```text
-.build/APIInquiry.app
-```
+| Document | What it covers |
+|---|---|
+| [docs/repository-layout.md](docs/repository-layout.md) | Where files belong |
+| [docs/provider-onboarding.md](docs/provider-onboarding.md) | How to add a provider |
+| [docs/release-runbook.md](docs/release-runbook.md) | Release process and troubleshooting |
+| [docs/release-writing.md](docs/release-writing.md) | How to write release notes and the CHANGELOG |
+| [CHANGELOG.md](CHANGELOG.md) | Full version history |
+| [AGENTS.md](AGENTS.md) | This repository's working agreement (written for agents) |
 
-The app sets its accessory activation policy at launch, so it runs as a menu bar utility while remaining visible in installer DMGs.
-The build scripts regenerate and bundle the custom `AppIcon.icns` automatically.
+## Known limitations
 
-Package a release macOS app bundle:
-
-```bash
-Scripts/package-mac-app.sh
-```
-
-The script creates and ad-hoc signs:
-
-```text
-dist/API Inquiry.app
-```
-
-Package a GitHub Release DMG:
-
-```bash
-Scripts/package-dmg.sh
-```
-
-The script creates:
-
-```text
-dist/API-Inquiry-v0.4.0.dmg
-dist/API-Inquiry-v0.4.0.dmg.sha256
-```
-
-Version sync, artifact acceptance, and known failure modes are documented in [docs/release-runbook.md](docs/release-runbook.md).
-
-After release validation and upload, remove local development app bundles so Launchpad only indexes the installed app:
-
-```bash
-Scripts/clean-development-apps.sh
-```
-
-## Install From GitHub DMG
-
-This project uses a free GitHub Releases distribution strategy. The DMG is ad-hoc signed but not Apple notarized.
-
-1. Download `API-Inquiry-v0.4.0.dmg` and `API-Inquiry-v0.4.0.dmg.sha256` from GitHub Releases.
-2. Verify the download:
-
-   ```bash
-   shasum -a 256 -c API-Inquiry-v0.4.0.dmg.sha256
-   ```
-
-3. Open the DMG.
-4. Drag `API Inquiry.app` into `Applications`.
-5. Launch API Inquiry from Applications.
-
-If macOS blocks the first launch because the developer cannot be verified:
-
-1. Right-click `API Inquiry.app`.
-2. Choose `Open`.
-3. Confirm `Open` in the system prompt.
-
-You can also allow the app from `System Settings > Privacy & Security`.
-
-## Run Locally
-
-```bash
-Scripts/run-local-app.sh
-```
-
-Open the existing local app bundle directly:
-
-```bash
-open .build/APIInquiry.app
-```
-
-Run the packaged release app:
-
-```bash
-open "dist/API Inquiry.app"
-```
-
-Install the packaged app into your user Applications folder:
-
-```bash
-Scripts/install-mac-app.sh
-```
-
-Restart the installed app:
-
-```bash
-Scripts/restart-installed-app.sh
-```
-
-The installed app path is:
-
-```text
-~/Applications/API Inquiry.app
-```
-
-Manual checks:
-
-- First launch with no key shows setup state.
-- When no key is configured, the menu bar panel points you to the local console.
-- Saving a key from the console clears the input field and stores the key in Keychain.
-- After a key is configured, the console shows `Configured` without revealing the saved key.
-- The menu bar uses a dynamic DeepSeek template label plus compact balance formatting, for example `¥68.6`.
-- The menu bar icon is larger than the amount text, matching common macOS status items, while the amount uses regular weight to keep the label light.
-- The expanded panel logo adapts automatically to light and dark appearance.
-- The panel uses full balance formatting, for example `¥68.65 CNY`, with a smaller header logo, the numeric amount dominant at medium weight, and the currency symbol/code smaller at regular weight.
-- The installed app uses the custom Apple-style icon from `AppIcon.icns`.
-- The details panel header shows `Console` and refresh as matched icon actions.
-- The footer shows two evenly sized actions: `AutoStart` and `Quit`.
-- The console Home page shows provider API key status, validation status, and balance.
-- The console API page manages configured provider API keys.
-- Console provider names open the provider's API page; DeepSeek opens `https://platform.deepseek.com/usage`.
-- The `AutoStart` action toggles launch at login and changes color when enabled.
-- The last updated time follows the system 12-hour or 24-hour clock setting.
-- The default language is `Auto`, which follows the macOS preferred language and resolves to Chinese or English.
-- Console Home can switch between `Auto / 中文 / English`; language changes update both the menu details panel and Console.
-- Chinese UI uses compact quota labels, `5 时` and `1 周`, to preserve the menu bar and details layout.
-- Manual refresh uses the same refresh path as automatic refresh.
-- Deleting the key from the console returns the app to setup state.
-- The menu bar shows only the Primary Provider detail: DeepSeek shows compact balance such as `¥68.6`; Zhipu GLM Coding Plan shows usage such as `5h 17%`.
-- When Codex is the Primary Provider, the menu bar shows the ChatGPT/GPT mark plus `5h xx%` remaining quota.
-- The Codex detail panel shows both 5h and Week remaining quota windows.
-- The OpenAI/Codex card in Console Home shows manual reset credits, can refresh that information independently, and opens detailed credit records.
-- Codex first auto-reads local Codex login state; you do not need to enter an OpenAI Platform API key in the Console.
-- The expanded panel shows the Primary Provider in the top hero area and other providers as compact rows.
-- The expanded panel refresh action refreshes all added providers.
-- Zhipu GLM Coding Plan shows `Resets` in the expanded panel and `Plan Next Resets` in Console Home.
-- Console can add Zhipu GLM Coding Plan and Codex, and set a provider as the Primary Provider shown in the menu bar.
-- Deleting one provider key from the console does not affect other provider keys or snapshots.
-
-## Scope
-
-Included in this release:
-
-- DeepSeek balance API integration
-- Zhipu GLM Coding Plan usage integration
-- Codex/ChatGPT session quota checks with 5h and Week remaining quota
-- Codex manual reset credit display, independent refresh, and detail sheet
-- Built-in multi-provider catalog
-- Secure per-provider Keychain storage
-- 5-minute automatic refresh and manual refresh
-- Minimal native `MenuBarExtra` status UI for the Primary Provider
-- Local API Inquiry console window
-- Local API provider console with Home and API pages
-- Automatic Chinese/English UI matching and manual language switching
-- Provider status summary with API key, validation, balance, and plan usage state
-- Plan reset time display for coding-plan providers
-- Local `.app` bundle generation
-- Custom macOS app icon generation and bundling
-- Launch at login control from the details panel
-- Restrained refresh, error, state, and settings feedback microinteractions
-- macOS 14+ numeric transitions and settings feedback enhancements with macOS 13 fallback
-- Accessibility semantics for menu bar, provider rows, quota rows, status badges, and icon buttons
-- Free GitHub DMG packaging without Apple notarization
-
-Deferred:
-
-- Arbitrary custom providers
-- Automatic updates and better install/upgrade flows
-
-## Roadmap
-
-- Latest released version: `v0.4.0`
-- Next planned version: `v0.4.0`, focused on more providers and generic provider capabilities.
-- Later direction: more providers, provider display controls, automatic updates, and better install/upgrade flows.
-
-See [docs/roadmap.md](docs/roadmap.md) for the detailed plan.
+- Not notarized by Apple; the first launch needs a manual allow.
+- Codex, OpenCode and WorkBuddy usage depends on each tool's own sign-in state; when it expires, sign in there again.
+- WorkBuddy is CN-region only.
+- Providers are limited to the five built in; custom providers are not supported.
 
 ## License
 
-[MIT](LICENSE). See [THIRD-PARTY.md](THIRD-PARTY.md) for brand assets and trademark notices. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+[MIT](LICENSE).
+
+Third-party brand assets and trademark notices are in [THIRD-PARTY.md](THIRD-PARTY.md). The names and marks of DeepSeek, Zhipu, OpenAI, OpenCode and WorkBuddy belong to their respective owners; they are used here only to identify the services this app connects to, and imply no affiliation or endorsement.
+
+## Credits
+
+Thanks to Swift and SwiftUI, to [OpenCode](https://github.com/anomalyco/opencode) (whose public brand assets are MIT), and to everyone who has ever wanted one square of their menu bar to tell them how much quota is left.
