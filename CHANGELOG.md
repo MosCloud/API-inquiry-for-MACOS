@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+### Added
+
+- The install window is drawn by `Scripts/generate-dmg-background.swift` instead of a hand-written PNG encoder, and ships in two languages: `package-dmg.sh --all` builds `API-Inquiry-vX.Y.Z.dmg` and `-en.dmg` from one app and asserts both carry the same binary. A static picture cannot follow the user's system language, so the choice is made at download time. (#107)
+- `Scripts/dmg-layout.env` is the single owner of the window geometry, read by the background generator and by `package-dmg.sh`. Duplicating it is how the old chevron sat 9.5 pt off the icon midpoint. (#107)
+
+### Changed
+
+- `Scripts/version.env` gained `DMG_BASENAME_EN`, and `ReleaseVersionConsistencyTests` now checks both DMG basenames against the app version. (#107)
+
 ## [0.4.2] - 2026-11-02
 
 ### Added

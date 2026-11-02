@@ -6,10 +6,15 @@ enum ReleaseVersionConsistencyTests {
         let versionEnvPath = root.appendingPathComponent("Scripts").appendingPathComponent("version.env")
         let localBuildPath = root.appendingPathComponent("Scripts").appendingPathComponent("build-local-app.sh")
         let packagePath = root.appendingPathComponent("Scripts").appendingPathComponent("package-mac-app.sh")
+        let layoutPath = root.appendingPathComponent("Scripts").appendingPathComponent("dmg-layout.env")
+        let backgroundGeneratorPath = root
+            .appendingPathComponent("Scripts")
+            .appendingPathComponent("generate-dmg-background.swift")
 
         let versionEnv = (try? String(contentsOf: versionEnvPath, encoding: .utf8)) ?? ""
         let localBuild = (try? String(contentsOf: localBuildPath, encoding: .utf8)) ?? ""
         let package = (try? String(contentsOf: packagePath, encoding: .utf8)) ?? ""
+        let layout = (try? String(contentsOf: layoutPath, encoding: .utf8)) ?? ""
 
         // The file is the single source of truth, so check that it agrees with itself
         // rather than pinning one release number here (#44).
@@ -20,10 +25,29 @@ enum ReleaseVersionConsistencyTests {
         harness.expectEqual(values["RELEASE_VERSION"], version, "release version matches the app version")
         harness.expectEqual(values["RELEASE_TAG"], "release/v\(version)", "release tag matches the app version")
         harness.expectEqual(values["DMG_BASENAME"], "API-Inquiry-v\(version)", "dmg basename matches the app version")
+        harness.expectEqual(values["DMG_BASENAME_EN"], "API-Inquiry-v\(version)-en", "english dmg basename matches the app version")
         harness.expectEqual(values["VOLUME_NAME"], "API Inquiry v\(version)", "volume name matches the app version")
         harness.expectTrue(
             (Int(values["BUILD_NUMBER"] ?? "") ?? 0) > 0,
             "build number is a positive integer"
+        )
+
+        // Two languages ship side by side (#107), so the window geometry lives in
+        // one file that both the background generator and package-dmg.sh read.
+        // A second copy is how the arrow ended up 9.5 pt off the icon midpoint.
+        let layoutValues = parseVersionEnv(layout)
+        let requiredLayoutKeys = [
+            "DMG_WINDOW_WIDTH", "DMG_WINDOW_HEIGHT", "DMG_WINDOW_LEFT", "DMG_WINDOW_TOP",
+            "DMG_ICON_SIZE", "DMG_APP_ICON_X", "DMG_APP_ICON_Y", "DMG_FOLDER_ICON_X", "DMG_FOLDER_ICON_Y"
+        ]
+        let missingLayoutKeys = requiredLayoutKeys.filter { (layoutValues[$0] ?? "").isEmpty }
+        harness.expectTrue(
+            missingLayoutKeys.isEmpty,
+            "dmg-layout.env declares the shared window geometry (missing: \(missingLayoutKeys.joined(separator: ", ")))"
+        )
+        harness.expectTrue(
+            FileManager.default.fileExists(atPath: backgroundGeneratorPath.path),
+            "the DMG background generator is present"
         )
 
         // Development builds must not advertise the release version, and must record

@@ -12,7 +12,7 @@ Operational notes for cutting an API Inquiry release. Written from the v0.3.16 r
 
 All of these must agree, or `ReleaseVersionConsistencyTests` fails:
 
-- `Scripts/version.env`: `APP_VERSION`, `BUILD_NUMBER`, `RELEASE_TAG`, `RELEASE_VERSION`, `DMG_BASENAME`, `VOLUME_NAME`
+- `Scripts/version.env`: `APP_VERSION`, `BUILD_NUMBER`, `RELEASE_TAG`, `RELEASE_VERSION`, `DMG_BASENAME`, `DMG_BASENAME_EN`, `VOLUME_NAME`
 - `Sources/APIInquiryApp/App/AppVersion.swift` (`vX.Y.Z`)
 - `Sources/APIInquiryCoreTestsRunner/ReleaseVersionConsistencyTests.swift` (version, tag, dmg name, volume name, build number)
 - `README.md`, `README_en.md` (DMG name examples, "latest released version")
@@ -44,13 +44,16 @@ you need it for the release. If you must package in a worktree, copy `dist/` out
 2. Copies `*.png` / `*.icns` from the SwiftPM resource bundle **anywhere inside it** into `Contents/Resources`, and aborts if `AppIcon.icns` did not arrive.
 3. `ditto`s the staged app into `dist/`, runs `xattr -cr` (FileProvider detritus), then verifies again.
 
-`Scripts/package-dmg.sh`
+`Scripts/package-dmg.sh --all`
 
-1. Builds the app via the script above.
-2. Creates a read-write HFS+ image in `/private/tmp`, mounts it, copies the app plus the `Applications` symlink, hides `.background/dmg-background.png`.
-3. Drives Finder: **activate Finder, open the window, wait for it to materialize, set view options (background picture, 152 pt icons, no arrangement, bounds `{160,160,920,580}`, icon positions `{210,180}` / `{550,180}`), `update` the folder.**
+1. Builds the app **once** via the script above, then draws both install-window backgrounds with `Scripts/generate-dmg-background.swift`. They are never skipped when current: the headline carries the version number, so a cached picture would ship the previous release's stamp.
+2. Per language (`zh` → `API-Inquiry-vX.Y.Z.dmg`, `en` → `API-Inquiry-vX.Y.Z-en.dmg`): creates a read-write HFS+ image in `/private/tmp`, mounts it, copies the app plus the `Applications` symlink, and hides `.background/dmg-background.png` — the Chinese or the English picture, under the same in-volume name.
+3. Drives Finder: **activate Finder, open the window, wait for it to materialize, set view options (background picture, 152 pt icons, no arrangement, the bounds and icon positions from `Scripts/dmg-layout.env` — `{160,160,920,580}`, `{210,196}` / `{550,196}`), `update` the folder.**
 4. Polls the staging volume's `.DS_Store` until it contains `dmg-background.png`; fails on timeout. Then closes the window, syncs, detaches.
 5. Converts to UDZO, verifies, mounts the result read-only and asserts: app present and not hidden, executable, bundle id, version, build, `Applications` symlink, and `.DS_Store` containing the background alias. Writes `.sha256`.
+6. Asserts both installers carry the same `Contents/MacOS/APIInquiry` hash: one build, two wrappers. Passing `--lang zh` or `--lang en` builds a single artifact and skips that cross-check.
+
+Window geometry has one owner: `Scripts/dmg-layout.env`. The background generator and the packaging script both read it, because duplicating those numbers is how the chevron ended up 9.5 pt off the icon midpoint (#107).
 
 Why step 3/4 matter: Finder only applies and persists window view options while it is the frontmost app and the window is actually open. Scripted from the background it silently drops them and the volume ends up with a 6 KB `.DS_Store` stub (`Bud1` only) — the DMG then opens as a plain window with no background and default icon arrangement. Never wrap the background assignment in `try`.
 
@@ -58,20 +61,25 @@ Why step 3/4 matter: Finder only applies and persists window view options while 
 
 Acceptance is the **app inside the final DMG**, not the `dist` copy (that one keeps picking up Finder metadata).
 
+Both languages ship, so check both:
+
 ```bash
-M=$(mktemp -d /private/tmp/relcheck.XXXXXX)
-hdiutil attach -nobrowse -readonly -mountpoint "$M" dist/API-Inquiry-vX.Y.Z.dmg
-ls -l "$M/.DS_Store"                      # ~10 KB; a 6 KB file means the layout is missing
-strings -a "$M/.DS_Store" | grep dmg-background.png
-ls "$M/API Inquiry.app/Contents/Resources" # 8 files: AppIcon.icns/.png + 6 provider logos
-/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$M/API Inquiry.app/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$M/API Inquiry.app/Contents/Info.plist"
-codesign --verify --deep --strict -v "$M/API Inquiry.app"
-hdiutil detach "$M"
-(cd dist && shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256)
+for DMG in API-Inquiry-vX.Y.Z.dmg API-Inquiry-vX.Y.Z-en.dmg; do
+  M=$(mktemp -d /private/tmp/relcheck.XXXXXX)
+  hdiutil attach -nobrowse -readonly -mountpoint "$M" "dist/$DMG"
+  ls -l "$M/.DS_Store"                      # ~10 KB; a 6 KB file means the layout is missing
+  strings -a "$M/.DS_Store" | grep dmg-background.png
+  ls "$M/API Inquiry.app/Contents/Resources" # AppIcon.icns/.png + one logo per provider
+  /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$M/API Inquiry.app/Contents/Info.plist"
+  /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$M/API Inquiry.app/Contents/Info.plist"
+  codesign --verify --deep --strict -v "$M/API Inquiry.app"
+  shasum -a 256 "$M/API Inquiry.app/Contents/MacOS/APIInquiry"   # must match the other DMG
+  hdiutil detach "$M"
+done
+(cd dist && shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256 && shasum -a 256 -c API-Inquiry-vX.Y.Z-en.dmg.sha256)
 ```
 
-Reference values from a good build (`v0.3.15`): `.DS_Store` 10244 bytes, window bounds `{{160, 527}, {760, 420}}`, background alias to `.background/dmg-background.png`.
+Reference values from a good build: `.DS_Store` about 10 KB for either language, window bounds `{{160, …}, {760, 420}}` (the origin depends on where Finder places the window), both icons at y `196`, background alias to `.background/dmg-background.png`. Open both volumes once and confirm the Chinese one says 拖拽安装 and the English one says Drag to install.
 
 - Native chrome parity cannot be proven from a source diff: inspect the built app's menu bar panel (screenshot or accessibility state). Do not hide a linked-SDK regression behind custom corners or backgrounds.
 - Open the packaged app once and confirm Settings shows `vX.Y.Z`; a release is not done until it does.
@@ -84,19 +92,21 @@ git push origin main
 git push origin release/vX.Y.Z
 gh release create release/vX.Y.Z \
   dist/API-Inquiry-vX.Y.Z.dmg dist/API-Inquiry-vX.Y.Z.dmg.sha256 \
+  dist/API-Inquiry-vX.Y.Z-en.dmg dist/API-Inquiry-vX.Y.Z-en.dmg.sha256 \
   --title "API Inquiry vX.Y.Z" --notes-file docs/releases/vX.Y.Z_github.md \
   --latest --verify-tag
 gh release view release/vX.Y.Z --json tagName,isDraft,isPrerelease,assets
 ```
 
-Release must be non-draft, non-prerelease, carry exactly two assets, and the DMG should be downloaded once and checksum-verified after upload:
+Release must be non-draft, non-prerelease, carry exactly four assets (two DMGs, two checksums), and each DMG should be downloaded once and checksum-verified after upload:
 
 ```bash
-gh release download release/vX.Y.Z --pattern "API-Inquiry-vX.Y.Z.dmg*"
+gh release download release/vX.Y.Z --pattern "API-Inquiry-vX.Y.Z*.dmg*"
 shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256
+shasum -a 256 -c API-Inquiry-vX.Y.Z-en.dmg.sha256
 ```
 
-If a bad artifact is caught within minutes of publishing and only the packaging changed, replacing the two assets with `gh release upload --clobber` is acceptable; document that the checksum changed.
+If a bad artifact is caught within minutes of publishing and only the packaging changed, replacing the assets with `gh release upload --clobber` is acceptable; document that the checksums changed. Replacing only one language leaves the two installers from different packaging runs, so always re-upload both.
 
 Write release notes for users, not as a changelog. The rules, a worked example and a checklist live in `docs/release-writing.md` (`_zh` pair): three sections, perceptible changes only, numbers and file names moved to the CHANGELOG.
 

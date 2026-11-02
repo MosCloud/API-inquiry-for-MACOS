@@ -12,7 +12,7 @@
 
 以下位置必须完全一致，否则 `ReleaseVersionConsistencyTests` 会失败：
 
-- `Scripts/version.env`：`APP_VERSION`、`BUILD_NUMBER`、`RELEASE_TAG`、`RELEASE_VERSION`、`DMG_BASENAME`、`VOLUME_NAME`
+- `Scripts/version.env`：`APP_VERSION`、`BUILD_NUMBER`、`RELEASE_TAG`、`RELEASE_VERSION`、`DMG_BASENAME`、`DMG_BASENAME_EN`、`VOLUME_NAME`
 - `Sources/APIInquiryApp/App/AppVersion.swift`（`vX.Y.Z`）
 - `Sources/APIInquiryCoreTestsRunner/ReleaseVersionConsistencyTests.swift`（版本、tag、dmg 名、卷名、build 号）
 - `README.md`、`README_en.md`（DMG 文件名示例、「最新已发布版本」）
@@ -44,13 +44,16 @@
 2. 从 SwiftPM 资源包**任意层级**复制 `*.png` / `*.icns` 到 `Contents/Resources`；若 `AppIcon.icns` 没到位直接失败退出。
 3. 用 `ditto` 把 staging app 复制到 `dist/`，先 `xattr -cr` 清掉 FileProvider 元数据，再验签一次。
 
-`Scripts/package-dmg.sh`
+`Scripts/package-dmg.sh --all`
 
-1. 先调用上面的脚本产出 app。
-2. 在 `/private/tmp` 建可写 HFS+ 镜像、挂载、拷入 app 与 `Applications` 软链、隐藏 `.background/dmg-background.png`。
-3. 驱动 Finder：**激活 Finder → 打开窗口 → 等窗口真正出现 → 设置视图选项（背景图、152pt 图标、不自动排列、窗口 `{160,160,920,580}`、图标位置 `{210,180}` / `{550,180}`）→ `update` 强制刷新。**
+1. 先调用上面的脚本产出 app，**只构建一次**，然后用 `Scripts/generate-dmg-background.swift` 画出中英两张安装窗背景。即使文件已存在也不会跳过：标语里带版本号，缓存的图会把上一次发版的版本号一起发出去。
+2. 按语言各做一份（`zh` → `API-Inquiry-vX.Y.Z.dmg`，`en` → `API-Inquiry-vX.Y.Z-en.dmg`）：在 `/private/tmp` 建可写 HFS+ 镜像、挂载、拷入 app 与 `Applications` 软链、隐藏 `.background/dmg-background.png`——中文版放中文图，英文版放英文图，卷内文件名保持同一个。
+3. 驱动 Finder：**激活 Finder → 打开窗口 → 等窗口真正出现 → 设置视图选项（背景图、152pt 图标、不自动排列、窗口与图标坐标取自 `Scripts/dmg-layout.env`，即 `{160,160,920,580}`、`{210,196}` / `{550,196}`）→ `update` 强制刷新。**
 4. 轮询 staging 卷的 `.DS_Store`，直到出现 `dmg-background.png` 别名，超时即失败；之后才关窗、`sync`、卸载。
 5. 转成 UDZO、`hdiutil verify`、再只读挂载最终 DMG，断言：app 存在且未隐藏、可执行文件存在、bundle id、版本、build、`Applications` 软链、`.DS_Store` 含背景别名。最后写 `.sha256`。
+6. 断言两份 DMG 里的 `Contents/MacOS/APIInquiry` 哈希一致：一次构建、两个包装。只传 `--lang zh` 或 `--lang en` 时只出一份，跳过这一步互校。
+
+窗口坐标只有一个来源：`Scripts/dmg-layout.env`。背景生成器和打包脚本都读它——当初就是因为这两处各存一份数字，箭头才会偏出图标中线 9.5pt（#107）。
 
 第 3、4 步为什么重要：Finder 只有在**自己是前台应用**且窗口**真的打开着**时才会应用并把视图选项写进 `.DS_Store`。从后台脚本化时它会静默丢弃，卷里只留一个 6KB 的 `.DS_Store` 空壳（只有 `Bud1`），DMG 打开就是默认窗口：没有背景、没有箭头、图标乱排。**绝对不要把背景设置包进 `try`。**
 
@@ -58,20 +61,25 @@
 
 验收对象是**最终 DMG 里挂载出来的 app**，不是 `dist` 里那份（后者会持续被 Finder 补元数据）。
 
+中英两份都要验：
+
 ```bash
-M=$(mktemp -d /private/tmp/relcheck.XXXXXX)
-hdiutil attach -nobrowse -readonly -mountpoint "$M" dist/API-Inquiry-vX.Y.Z.dmg
-ls -l "$M/.DS_Store"                      # 约 10KB；6KB 说明窗口布局丢了
-strings -a "$M/.DS_Store" | grep dmg-background.png
-ls "$M/API Inquiry.app/Contents/Resources" # 8 个文件：AppIcon.icns/.png + 6 个 provider logo
-/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$M/API Inquiry.app/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$M/API Inquiry.app/Contents/Info.plist"
-codesign --verify --deep --strict -v "$M/API Inquiry.app"
-hdiutil detach "$M"
-(cd dist && shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256)
+for DMG in API-Inquiry-vX.Y.Z.dmg API-Inquiry-vX.Y.Z-en.dmg; do
+  M=$(mktemp -d /private/tmp/relcheck.XXXXXX)
+  hdiutil attach -nobrowse -readonly -mountpoint "$M" "dist/$DMG"
+  ls -l "$M/.DS_Store"                      # 约 10KB；6KB 说明窗口布局丢了
+  strings -a "$M/.DS_Store" | grep dmg-background.png
+  ls "$M/API Inquiry.app/Contents/Resources" # AppIcon.icns/.png + 每个 provider 一个 logo
+  /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$M/API Inquiry.app/Contents/Info.plist"
+  /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$M/API Inquiry.app/Contents/Info.plist"
+  codesign --verify --deep --strict -v "$M/API Inquiry.app"
+  shasum -a 256 "$M/API Inquiry.app/Contents/MacOS/APIInquiry"   # 必须与另一份 DMG 一致
+  hdiutil detach "$M"
+done
+(cd dist && shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256 && shasum -a 256 -c API-Inquiry-vX.Y.Z-en.dmg.sha256)
 ```
 
-健康产物的参考值（`v0.3.15`）：`.DS_Store` 10244 字节、窗口边界 `{{160, 527}, {760, 420}}`、背景别名指向 `.background/dmg-background.png`。
+健康产物的参考值：任一份的 `.DS_Store` 约 10KB、窗口边界 `{{160, …}, {760, 420}}`（原点取决于 Finder 把窗口放在哪）、两枚图标都在 y `196`、背景别名指向 `.background/dmg-background.png`。两份都打开看一眼：中文版写「拖拽安装」，英文版写「Drag to install」。
 
 - 原生外观一致性无法用源码 diff 证明：必须看构建产物里的真实菜单栏面板（截图或可访问性状态）。不许用自定义圆角或背景掩盖 linked-SDK 回归。
 - 打开一次打包后的 app，确认 Settings 显示的版本是 `vX.Y.Z`；没看到就不算发布完成。
@@ -84,19 +92,21 @@ git push origin main
 git push origin release/vX.Y.Z
 gh release create release/vX.Y.Z \
   dist/API-Inquiry-vX.Y.Z.dmg dist/API-Inquiry-vX.Y.Z.dmg.sha256 \
+  dist/API-Inquiry-vX.Y.Z-en.dmg dist/API-Inquiry-vX.Y.Z-en.dmg.sha256 \
   --title "API Inquiry vX.Y.Z" --notes-file docs/releases/vX.Y.Z_github.md \
   --latest --verify-tag
 gh release view release/vX.Y.Z --json tagName,isDraft,isPrerelease,assets
 ```
 
-Release 必须非草稿、非预发布，且只带两个资产；上传后建议下载回来验一次校验和：
+Release 必须非草稿、非预发布，且带四个资产（两份 DMG + 两个校验和）；上传后建议把每份 DMG 都下载回来验一次校验和：
 
 ```bash
-gh release download release/vX.Y.Z --pattern "API-Inquiry-vX.Y.Z.dmg*"
+gh release download release/vX.Y.Z --pattern "API-Inquiry-vX.Y.Z*.dmg*"
 shasum -a 256 -c API-Inquiry-vX.Y.Z.dmg.sha256
+shasum -a 256 -c API-Inquiry-vX.Y.Z-en.dmg.sha256
 ```
 
-如果在发布后几分钟内就发现产物坏了、且只改了打包逻辑，用 `gh release upload --clobber` 就地替换两个资产是可接受的，但要在说明里讲清校验和已变化。
+如果在发布后几分钟内就发现产物坏了、且只改了打包逻辑，用 `gh release upload --clobber` 就地替换资产是可接受的，但要在说明里讲清校验和已变化。只换其中一个语言版会让两份安装包来自不同次打包，所以要么都换、要么都不换。
 
 发布说明写给用户看，不是变更日志。具体规则、改写示例与检查清单见 `docs/release-writing.md` / `_zh.md`：只保留三节、只写用户能感知的变化，数字与文件名移进 CHANGELOG。
 
