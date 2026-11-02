@@ -8,7 +8,7 @@ Last updated: 2026-11-02
 
 - 最新已发布版本：`v0.4.2`
 - 当前主线能力：DeepSeek 余额查询（含赠送余额）、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、OpenCode 用量查询与本地配置入口、WorkBuddy 积分查询（国内版，分「总积分」「赠送积分」并各自带刷新/到期时间）、Console Home 原始 Credits 余额展示（显示截断到两位小数）、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、余额与配额供应商统一三列对齐、系统时区自适应时间展示、克制的 UI 微交互与可访问性补充、质量修复与 CI 基线、DMG 打包发布。
-- 下一计划版本：`v0.5.0`，聚焦分发体验（自动更新、安装与卸载流程）。
+- 下一计划版本：`v0.4.3`，聚焦 Console 使用体验（首页刷新、卡片拖拽排序、刷新间隔可配置）；其后 `v0.5.0` 聚焦分发体验（自动更新、安装与卸载流程）。
 
 ### v0.3.2：中文本地化与语言切换
 
@@ -145,6 +145,16 @@ Last updated: 2026-11-02
 
 未纳入本版本：供应商排序/隐藏/启停、自定义 endpoint 或 plugin provider —— 留待后续版本。
 
+### v0.4.3：Console 体验（计划中）
+
+目标：让 Console 从「只能看」变成「能操作」——现在想立刻更新数据只能等自动刷新或回菜单栏，想调整供应商顺序则完全做不到。
+
+- **首页刷新按钮**：一次刷新所有已添加的供应商，不用等 5 分钟；复用现有状态机，失败时保留旧值并标记陈旧。(#109)
+- **供应商卡片拖拽排序**：首页按自己的顺序排列，顺序持久化；只改展示顺序，不改变菜单栏显示的 primary。(#110)
+- **自动刷新间隔可配置**：设置页提供 1 / 5 / 10 / 30 分钟与「关闭」，改动立即生效，重启后保留。(#111)
+
+排序是 v0.4.0 明确留到后续的项（当时记的是「供应商排序/隐藏/启停」）；本版本只做排序，隐藏与启停仍不做。
+
 ### v0.5.0：分发体验优化
 
 - 自动更新机制。
@@ -162,7 +172,7 @@ Last updated: 2026-11-02
 
 - Latest released version: `v0.4.2`
 - Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, OpenCode usage checks with a local config entry, WorkBuddy credit checks (CN region, splitting total from granted credits and dating each), raw Credits balance display on Console Home (truncated to two decimals for display), Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, quality fixes with a CI baseline, and DMG release packaging.
-- Next planned version: `v0.5.0`, focused on distribution experience (automatic updates, install and uninstall flows).
+- Next planned version: `v0.4.3`, focused on the Console experience (a refresh control on Home, drag to reorder provider cards, a configurable refresh interval); `v0.5.0` follows with distribution experience (automatic updates, install and uninstall flows).
 
 ### v0.3.2: Chinese Localization and Language Switching
 
@@ -298,6 +308,16 @@ Design boundaries:
 - Cleared architecture debt: dead code, credential read caching, version and User-Agent sources.
 
 Not in this release: provider ordering/hiding/enabling, custom endpoints or plugin providers.
+
+### v0.4.3: Console Experience (Planned)
+
+Goal: let the Console act, not only observe. Today, updating data immediately means waiting for the automatic refresh or going back to the menu bar, and reordering providers is impossible.
+
+- **Refresh control on Home**: refresh every added provider at once instead of waiting five minutes. It reuses the existing state machine; a failure keeps the previous value and marks it stale. (#109)
+- **Drag to reorder provider cards**: Home keeps the order the user gives it, and that order persists. It changes presentation only — the provider shown in the menu bar stays independent. (#110)
+- **Configurable refresh interval**: Settings offers 1 / 5 / 10 / 30 minutes and Off. Changes take effect immediately and survive a relaunch. (#111)
+
+Ordering is the item v0.4.0 explicitly deferred ("provider ordering/hiding/enabling"); this release does ordering only — hiding and enabling stay out.
 
 ### v0.5.0: Distribution Experience Polish
 
