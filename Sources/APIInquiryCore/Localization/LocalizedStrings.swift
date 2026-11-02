@@ -93,6 +93,14 @@ public struct LocalizedStrings: Equatable {
     public var detailMetricTitle: String { text(en: "Detail", zh: "详情") }
     public var totalBalanceMetricTitle: String { text(en: "Total balance", zh: "总余额") }
     public var grantedBalanceMetricTitle: String { text(en: "Granted balance", zh: "赠送余额") }
+
+    /// Console titles for a credit balance.
+    ///
+    /// Credits are a unit of account, not money, so "balance" reads slightly wrong for
+    /// them — 余额 carries a monetary connotation in Chinese and "balance" implies cash in
+    /// English. The provider's own vocabulary is 「积分」, so the credit case says so.
+    public var totalCreditsMetricTitle: String { text(en: "Total credits", zh: "总积分") }
+    public var grantedCreditsMetricTitle: String { text(en: "Granted credits", zh: "赠送积分") }
     /// Label for a balance provider's row in the secondary provider grid.
     public var balanceRowLabel: String { text(en: "Balance", zh: "余额") }
     public var planMetricTitle: String { text(en: "Plan", zh: "计划") }

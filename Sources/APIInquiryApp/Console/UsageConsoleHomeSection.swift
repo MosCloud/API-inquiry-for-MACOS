@@ -90,7 +90,7 @@ struct ProviderStatusRow: View {
 
         if let grantedBalanceText = summary.grantedBalanceText {
             metrics.append(
-                ProviderMetricItem(title: strings.grantedBalanceMetricTitle, value: grantedBalanceText)
+                ProviderMetricItem(title: summary.grantedBalanceMetricTitle, value: grantedBalanceText)
             )
         }
 

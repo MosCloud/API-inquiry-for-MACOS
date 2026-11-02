@@ -30,6 +30,12 @@ public struct APIProviderSummary: Equatable {
     /// "Total balance" for a prepaid balance, "Detail" for a quota provider.
     public let detailMetricTitle: String
     public let grantedBalanceText: String?
+    /// The title shown above `grantedBalanceText`.
+    ///
+    /// Carried as its own field rather than derived in the view: a credit balance is not
+    /// money, so it says 「赠送积分 / Granted credits」 while a prepaid balance keeps
+    /// 「赠送余额 / Granted balance」. The view reads whatever it is handed.
+    public let grantedBalanceMetricTitle: String
     public let planNameText: String?
     public let manualResetCreditsText: String?
     public let isManualResetCreditsRefreshing: Bool
@@ -55,6 +61,7 @@ public struct APIProviderSummary: Equatable {
         statusMetricValue: String = "",
         detailMetricTitle: String = "",
         grantedBalanceText: String? = nil,
+        grantedBalanceMetricTitle: String = "",
         planNameText: String? = nil,
         manualResetCreditsText: String? = nil,
         isManualResetCreditsRefreshing: Bool = false,
@@ -79,6 +86,7 @@ public struct APIProviderSummary: Equatable {
         self.statusMetricValue = statusMetricValue
         self.detailMetricTitle = detailMetricTitle
         self.grantedBalanceText = grantedBalanceText
+        self.grantedBalanceMetricTitle = grantedBalanceMetricTitle
         self.planNameText = planNameText
         self.manualResetCreditsText = manualResetCreditsText
         self.isManualResetCreditsRefreshing = isManualResetCreditsRefreshing
@@ -180,6 +188,12 @@ public final class UsageConsoleViewModel: ObservableObject {
             let validationStatusText = validationStatusText(for: state)
             let isCredentialConfigured = coordinator.isCredentialConfigured(for: id)
             let isCodexProvider = id == .codex
+            // A credit balance is denominated in credits rather than money, which the
+            // Console mirrors in its metric titles.
+            let isCreditBalance: Bool = {
+                guard case .balance(let balance) = state.lastSnapshot else { return false }
+                return ProviderValueFormatter.isCreditCurrency(balance.currency)
+            }()
             return APIProviderSummary(
                 id: id,
                 displayName: descriptor.displayName,
@@ -207,12 +221,17 @@ public final class UsageConsoleViewModel: ObservableObject {
                 statusMetricValue: isCodexProvider
                     ? (ProviderDisplayFormatter.creditsBalanceText(for: state.lastSnapshot, strings: strings) ?? "--")
                     : validationStatusText,
-                detailMetricTitle: descriptor.detailKind == .balance
-                    ? strings.totalBalanceMetricTitle
-                    : strings.detailMetricTitle,
+                detailMetricTitle: isCreditBalance
+                    ? strings.totalCreditsMetricTitle
+                    : (descriptor.detailKind == .balance
+                        ? strings.totalBalanceMetricTitle
+                        : strings.detailMetricTitle),
                 grantedBalanceText: state.lastSnapshot.map {
                     ProviderSnapshotPresentation.make(from: $0, strings: strings).grantedBalanceText
                 } ?? nil,
+                grantedBalanceMetricTitle: isCreditBalance
+                    ? strings.grantedCreditsMetricTitle
+                    : strings.grantedBalanceMetricTitle,
                 planNameText: isCodexProvider ? nil : state.lastQuotaUsageSnapshot?.planName,
                 manualResetCreditsText: isCodexProvider && isCredentialConfigured
                     ? codexManualResetCreditsSummaryText()
