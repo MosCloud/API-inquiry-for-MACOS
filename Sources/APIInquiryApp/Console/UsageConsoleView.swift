@@ -10,6 +10,7 @@ struct UsageConsoleView: View {
     @State private var replacingProviderIDs: Set<ProviderID> = []
     @State private var providerRemovalConfirmationID: ProviderID?
     @StateObject private var manualResetRefreshFeedbackController = RefreshActionFeedbackController()
+    @StateObject private var refreshAllFeedbackController = RefreshActionFeedbackController()
     @State private var isManualResetDetailsPresented = false
 
     init(viewModel: UsageConsoleViewModel, initialSection: UsageConsoleSection = .home) {
@@ -30,7 +31,11 @@ struct UsageConsoleView: View {
                     strings: strings,
                     availableProviderIDsToAdd: viewModel.availableProviderIDsToAdd,
                     displayName: { viewModel.displayName(for: $0) },
-                    addProvider: { viewModel.addProvider($0) }
+                    addProvider: { viewModel.addProvider($0) },
+                    refreshFeedback: refreshAllFeedbackController.feedback,
+                    refreshTurn: refreshAllFeedbackController.refreshTurn,
+                    canRefresh: !viewModel.providerSummaries.isEmpty,
+                    refresh: triggerRefreshAll
                 )
 
                 ScrollView(.vertical) {
@@ -109,6 +114,38 @@ struct UsageConsoleView: View {
 
     private var appVersionText: String {
         AppVersion.identity.displayText(using: strings)
+    }
+
+    /// Spins only while the work is in flight: providers fail individually and
+    /// the cards already say so, so a green tick here would have to lie about
+    /// the ones that failed.
+    private func triggerRefreshAll() {
+        guard refreshAllFeedbackController.begin(reduceMotion: accessibilityReduceMotion) else {
+            return
+        }
+
+        let refreshesManualResetCredits = viewModel.providerSummaries.contains {
+            $0.id == .codex && $0.manualResetCreditsText != nil
+        }
+        if refreshesManualResetCredits {
+            manualResetRefreshFeedbackController.syncExternalRefreshing(
+                true,
+                reduceMotion: accessibilityReduceMotion
+            )
+        }
+
+        Task {
+            await viewModel.refreshAll()
+            await MainActor.run {
+                refreshAllFeedbackController.reset()
+                if refreshesManualResetCredits {
+                    manualResetRefreshFeedbackController.syncExternalRefreshing(
+                        false,
+                        reduceMotion: accessibilityReduceMotion
+                    )
+                }
+            }
+        }
     }
 
     private func triggerManualResetRefresh() {

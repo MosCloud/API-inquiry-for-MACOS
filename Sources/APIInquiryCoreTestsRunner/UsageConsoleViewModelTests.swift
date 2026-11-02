@@ -49,6 +49,8 @@ enum UsageConsoleViewModelTests {
         await testRemovingCodexClearsManualResetCreditsState(using: harness)
         await testInFlightManualResetRefreshDoesNotRestoreRemovedCodexState(using: harness)
         await testStaleManualResetRefreshDoesNotClearNewRefreshState(using: harness)
+        await testRefreshAllRefreshesProvidersAndManualResetCredits(using: harness)
+        await testRefreshAllSkipsManualResetCreditsWithoutCodex(using: harness)
     }
 
     @MainActor
@@ -298,6 +300,66 @@ enum UsageConsoleViewModelTests {
         await viewModel.refreshCodexManualResetCredits(force: true)
 
         harness.expectEqual(provider.fetchCount, 2, "manual reset force refresh bypasses cache")
+    }
+
+    @MainActor
+    private static func testRefreshAllRefreshesProvidersAndManualResetCredits(using harness: TestHarness) async {
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let codexProvider = MockBalanceProvider(
+            id: .codex,
+            results: [.success(.quotaUsage(makeCodexSnapshot()))]
+        )
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["codex-session-token": "codex-token"])
+        let coordinator = MultiProviderBalanceCoordinator(
+            registrations: [testRegistration(for: codexProvider)],
+            credentialStore: credentialStore,
+            preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.codex], primaryProviderID: .codex),
+            defaultProviderID: .codex
+        )
+        let manualResetProvider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z"))
+        ])
+        let viewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: credentialStore,
+            manualResetCreditsProvider: manualResetProvider,
+            now: { now }
+        )
+
+        await viewModel.refreshAll()
+
+        harness.expectEqual(codexProvider.fetchCount, 1, "refresh all refreshes the added provider")
+        harness.expectEqual(manualResetProvider.fetchCount, 1, "refresh all refreshes manual reset credits too")
+    }
+
+    @MainActor
+    private static func testRefreshAllSkipsManualResetCreditsWithoutCodex(using harness: TestHarness) async {
+        let now = isoDate("2026-07-01T00:00:00Z")
+        let deepSeek = MockBalanceProvider(
+            id: .deepseek,
+            results: [.success(.balance(makeSnapshot(providerID: .deepseek, total: "68.65")))]
+        )
+        let credentialStore = InMemoryCredentialStore(credentialsByAccount: ["deepseek-api-key": "sk-test"])
+        let coordinator = MultiProviderBalanceCoordinator(
+            registrations: [testRegistration(for: deepSeek)],
+            credentialStore: credentialStore,
+            preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek], primaryProviderID: .deepseek),
+            defaultProviderID: .deepseek
+        )
+        let manualResetProvider = RecordingManualResetCreditsProvider(results: [
+            .success(manualResetSnapshot(now: now, expiry: "2026-07-18T00:35:47Z"))
+        ])
+        let viewModel = UsageConsoleViewModel(
+            coordinator: coordinator,
+            credentialStore: credentialStore,
+            manualResetCreditsProvider: manualResetProvider,
+            now: { now }
+        )
+
+        await viewModel.refreshAll()
+
+        harness.expectEqual(deepSeek.fetchCount, 1, "refresh all refreshes the added provider")
+        harness.expectEqual(manualResetProvider.fetchCount, 0, "refresh all leaves manual reset credits alone without codex")
     }
 
     @MainActor

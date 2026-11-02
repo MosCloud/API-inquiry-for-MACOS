@@ -279,6 +279,20 @@ public final class UsageConsoleViewModel: ObservableObject {
         await coordinator.refreshAddedProviders()
     }
 
+    /// Refreshes everything Home shows, not just the balance providers: the
+    /// Codex manual-reset credits live in their own subsystem with their own
+    /// endpoint, but a user who presses one Refresh button expects the card in
+    /// front of them to update too (#109). Failures stay isolated — the credits
+    /// keep their own state.
+    public func refreshAll() async {
+        await coordinator.refreshAddedProviders()
+
+        guard coordinator.addedProviderIDs.contains(.codex) else {
+            return
+        }
+        _ = await refreshCodexManualResetCredits(force: true)
+    }
+
     public func refreshCodexManualResetCreditsIfNeeded() {
         Task { [weak self] in
             _ = await self?.refreshCodexManualResetCredits(force: false)
