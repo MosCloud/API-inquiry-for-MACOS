@@ -92,9 +92,10 @@ enum ProviderVisualCatalog {
         case .opencode:
             return NSSize(width: 16, height: 16)
         case .workbuddy:
-            // A filled rounded badge reads heavier than a bare glyph at the same box,
-            // so it is sized against Zhipu's badge rather than Codex's mark.
-            return NSSize(width: 20, height: 20)
+            // 16x16, matching Codex and OpenCode. The mark is a FILLED rounded badge, so
+            // at 20x20 it covered far more ink than the bare glyphs beside it and read a
+            // size larger than it is; the badge loses that optical weight at 16.
+            return NSSize(width: 16, height: 16)
         }
     }
 

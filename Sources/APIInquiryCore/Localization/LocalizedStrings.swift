@@ -101,6 +101,13 @@ public struct LocalizedStrings: Equatable {
     /// English. The provider's own vocabulary is 「积分」, so the credit case says so.
     public var totalCreditsMetricTitle: String { text(en: "Total credits", zh: "总积分") }
     public var grantedCreditsMetricTitle: String { text(en: "Granted credits", zh: "赠送积分") }
+
+    /// Prefixes for the date line under a credit metric.
+    ///
+    /// Spelled out instead of a bare slash so the line never reads as a fraction, and so
+    /// 「刷新」 and 「到期」 stay distinguishable: one is a top-up, the other a loss.
+    public var refreshesOnPrefix: String { text(en: "Refreshes", zh: "下次刷新") }
+    public var expiresOnPrefix: String { text(en: "Expires", zh: "最近到期") }
     /// Label for a balance provider's row in the secondary provider grid.
     public var balanceRowLabel: String { text(en: "Balance", zh: "余额") }
     public var planMetricTitle: String { text(en: "Plan", zh: "计划") }

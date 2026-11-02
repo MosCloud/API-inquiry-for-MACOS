@@ -163,11 +163,17 @@ public final class WorkBuddyBalanceProvider: BalanceProvider {
             isAvailable: total > 0,
             grantedBalance: granted,
             toppedUpBalance: paid,
-            // The nearest expiry among packages that can lapse. Monthly allowances
-            // refresh rather than expire, so they are not a loss risk and are excluded.
+            // Two dates, two meanings. A one-off grant LAPSES at its nearest expiry; a
+            // monthly allowance REFRESHES at its cycle end and never lapses. Summing them
+            // into one date would answer neither question — the granted side is what can
+            // be lost, so its nearest expiry is the one worth surfacing.
             expiringAt: packages
                 .filter { !$0.isMonthly }
                 .compactMap(\.expiry)
+                .min(),
+            refreshingAt: packages
+                .filter(\.isMonthly)
+                .compactMap(\.refreshAt)
                 .min(),
             fetchedAt: fetchedAt
         )
@@ -188,6 +194,10 @@ public struct WorkBuddyPackage: Equatable, Decodable {
 
     /// When this package's credits are lost. Monthly packages refresh instead.
     public var expiry: Date? { isMonthly ? nil : (expiresAt ?? cycleEnd) }
+
+    /// When a monthly package's allowance is topped back up. One-off grants never
+    /// refresh, so they answer nil.
+    public var refreshAt: Date? { isMonthly ? cycleEnd : nil }
 
     private enum CodingKeys: String, CodingKey {
         case name = "PackageName"

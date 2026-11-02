@@ -3,17 +3,24 @@ import SwiftUI
 struct ProviderMetricItem {
     let title: String
     let value: String
+    /// A quieter second line under the value, for a date or unit that qualifies it.
+    ///
+    /// Kept separate from `value` so the number keeps the value's size and weight: the
+    /// number is what gets scanned, the date is what explains it.
+    let detail: String?
     let accessory: ProviderMetricAccessory?
     let valueAction: ProviderMetricValueAction?
 
     init(
         title: String,
         value: String,
+        detail: String? = nil,
         accessory: ProviderMetricAccessory? = nil,
         valueAction: ProviderMetricValueAction? = nil
     ) {
         self.title = title
         self.value = value
+        self.detail = detail
         self.accessory = accessory
         self.valueAction = valueAction
     }
@@ -76,6 +83,13 @@ struct ProviderMetricBox: View {
             .frame(height: 14, alignment: .center)
 
             valueView
+
+            if let detail = item.detail {
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
         .padding(.vertical, 7)
         .padding(.horizontal, 12)

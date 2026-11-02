@@ -36,6 +36,10 @@ public struct APIProviderSummary: Equatable {
     /// money, so it says 「赠送积分 / Granted credits」 while a prepaid balance keeps
     /// 「赠送余额 / Granted balance」. The view reads whatever it is handed.
     public let grantedBalanceMetricTitle: String
+    /// The date line under the total balance / total credits cell.
+    public let totalBalanceDetail: String?
+    /// The date line under the granted cell.
+    public let grantedBalanceDetail: String?
     public let planNameText: String?
     public let manualResetCreditsText: String?
     public let isManualResetCreditsRefreshing: Bool
@@ -62,6 +66,8 @@ public struct APIProviderSummary: Equatable {
         detailMetricTitle: String = "",
         grantedBalanceText: String? = nil,
         grantedBalanceMetricTitle: String = "",
+        totalBalanceDetail: String? = nil,
+        grantedBalanceDetail: String? = nil,
         planNameText: String? = nil,
         manualResetCreditsText: String? = nil,
         isManualResetCreditsRefreshing: Bool = false,
@@ -87,6 +93,8 @@ public struct APIProviderSummary: Equatable {
         self.detailMetricTitle = detailMetricTitle
         self.grantedBalanceText = grantedBalanceText
         self.grantedBalanceMetricTitle = grantedBalanceMetricTitle
+        self.totalBalanceDetail = totalBalanceDetail
+        self.grantedBalanceDetail = grantedBalanceDetail
         self.planNameText = planNameText
         self.manualResetCreditsText = manualResetCreditsText
         self.isManualResetCreditsRefreshing = isManualResetCreditsRefreshing
@@ -175,6 +183,25 @@ public final class UsageConsoleViewModel: ObservableObject {
         }
     }
 
+    /// The date line under a credit cell, e.g. 「下次刷新 11/30」.
+    ///
+    /// Only credit balances carry these dates, and the prefix is spelled out rather than
+    /// a bare "/": an “11/30” on its own next to a number reads as a fraction, and pairing it
+    /// with a slash separator put two slashes in one line.
+    private func creditDetail(
+        _ snapshot: ProviderSnapshot?,
+        date: (BalanceSnapshot) -> Date?,
+        prefix: String
+    ) -> String? {
+        guard case .balance(let balance) = snapshot,
+              ProviderValueFormatter.isCreditCurrency(balance.currency),
+              let value = date(balance),
+              let text = lastRefreshTimeFormatter.expiryShortText(for: value) else {
+            return nil
+        }
+        return "\(prefix) \(text)"
+    }
+
     public func displayName(for id: ProviderID) -> String {
         coordinator.descriptor(for: id)?.displayName ?? id.rawValue
     }
@@ -232,6 +259,10 @@ public final class UsageConsoleViewModel: ObservableObject {
                 grantedBalanceMetricTitle: isCreditBalance
                     ? strings.grantedCreditsMetricTitle
                     : strings.grantedBalanceMetricTitle,
+                // Two dates with two meanings: the subscription allowance is topped back
+                // up at `refreshingAt`, the promotional grant is lost at `expiringAt`.
+                totalBalanceDetail: creditDetail(state.lastSnapshot, date: \.refreshingAt, prefix: strings.refreshesOnPrefix),
+                grantedBalanceDetail: creditDetail(state.lastSnapshot, date: \.expiringAt, prefix: strings.expiresOnPrefix),
                 planNameText: isCodexProvider ? nil : state.lastQuotaUsageSnapshot?.planName,
                 manualResetCreditsText: isCodexProvider && isCredentialConfigured
                     ? codexManualResetCreditsSummaryText()
