@@ -197,8 +197,26 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         return SecondaryRowColumns(
             label: strings.balanceRowLabel,
             amount: presentation.compactAmountText ?? presentation.amountText,
-            currency: presentation.trailingText
+            currency: balanceTrailingText(for: snapshot, presentation: presentation)
         )
+    }
+
+    /// The trailing cell of a balance row.
+    ///
+    /// Usually the currency code. A credit balance with an expiry replaces it with the
+    /// expiry date, because "2,899 credits" three days before 2,399 of them lapse
+    /// overstates what the user actually has, while the unit is already implied by the
+    /// panel. Prepaid money never expires, so it keeps its currency code.
+    private func balanceTrailingText(
+        for snapshot: ProviderSnapshot,
+        presentation: ProviderSnapshotPresentation
+    ) -> String {
+        guard case .balance(let balance) = snapshot,
+              ProviderValueFormatter.isCreditCurrency(balance.currency),
+              let expiringAt = balance.expiringAt else {
+            return presentation.trailingText
+        }
+        return timeFormatter.expiryShortText(for: expiringAt) ?? presentation.trailingText
     }
 
     private func quotaWindowRows(for state: BalanceState, suffixText: String) -> [QuotaWindowDisplayRow] {

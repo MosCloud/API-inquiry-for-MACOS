@@ -133,15 +133,24 @@ public enum ProviderValueFormatter {
         }
     }
 
-    static func formatAmount(
+    public static func formatAmount(
         _ amount: Decimal,
         currency: String,
         fractionDigits: Int,
         includeCurrencyCode: Bool,
-        includeSymbol: Bool = true
+        includeSymbol: Bool = true,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
     ) -> String {
         let currencyCode = currency.uppercased()
         let number = formatNumber(truncate(amount, scale: fractionDigits), fractionDigits: fractionDigits)
+
+        // Credits are a unit of account, not money: they carry no symbol and the label is
+        // localised, so "2,899.64 credits" reads as a quantity rather than as a currency
+        // this app failed to recognise.
+        if currencyCode == creditCurrencyCode {
+            let unit = strings.creditUnitLabel
+            return includeCurrencyCode ? "\(number) \(unit)" : number
+        }
 
         if !includeSymbol {
             return includeCurrencyCode ? "\(number) \(currencyCode)" : number
@@ -152,6 +161,14 @@ public enum ProviderValueFormatter {
         }
 
         return includeCurrencyCode ? "\(number) \(currencyCode)" : "\(currencyCode) \(number)"
+    }
+
+    /// The currency code that means "credits" rather than a currency.
+    public static let creditCurrencyCode = "CREDITS"
+
+    /// Whether a currency code denotes a credit balance rather than money.
+    public static func isCreditCurrency(_ currency: String) -> Bool {
+        currency.uppercased() == creditCurrencyCode
     }
 
     private static func formatPercentage(_ percentage: Decimal) -> String {

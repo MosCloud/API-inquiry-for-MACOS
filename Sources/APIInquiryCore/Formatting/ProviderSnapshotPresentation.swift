@@ -43,18 +43,26 @@ public extension ProviderSnapshotPresentation {
         switch snapshot {
         case .balance(let balance):
             let currencyCode = balance.currency.uppercased()
+            let isCredits = ProviderValueFormatter.isCreditCurrency(balance.currency)
+            // Credits have no symbol and a localised unit, so the trailing cell carries
+            // the unit word (中文「积分」) instead of a currency code.
+            let trailingText = isCredits
+                ? strings.creditUnitLabel
+                : currencyCode
             let detail = ProviderValueFormatter.formatAmount(
                 balance.totalBalance,
                 currency: balance.currency,
                 fractionDigits: 2,
-                includeCurrencyCode: true
+                includeCurrencyCode: true,
+                strings: strings
             )
             return ProviderSnapshotPresentation(
                 menuValueText: ProviderValueFormatter.formatAmount(
                     balance.totalBalance,
                     currency: balance.currency,
                     fractionDigits: 1,
-                    includeCurrencyCode: false
+                    includeCurrencyCode: false,
+                    strings: strings
                 ),
                 detailText: detail,
                 consoleDetailText: detail,
@@ -63,7 +71,7 @@ public extension ProviderSnapshotPresentation {
                 amountTone: ProviderToneResolver.balanceAmountTone(for: balance.totalBalance),
                 healthTone: ProviderToneResolver.balanceAmountTone(for: balance.totalBalance),
                 leadingText: currencyCode == "CNY" ? "¥" : "",
-                trailingText: currencyCode,
+                trailingText: trailingText,
                 captionText: "",
                 isAvailable: balance.isAvailable,
                 planName: nil,
@@ -72,7 +80,8 @@ public extension ProviderSnapshotPresentation {
                         $0,
                         currency: balance.currency,
                         fractionDigits: 2,
-                        includeCurrencyCode: true
+                        includeCurrencyCode: true,
+                        strings: strings
                     )
                 },
                 compactAmountText: ProviderValueFormatter.formatAmount(
@@ -80,7 +89,8 @@ public extension ProviderSnapshotPresentation {
                     currency: balance.currency,
                     fractionDigits: 1,
                     includeCurrencyCode: false,
-                    includeSymbol: false
+                    includeSymbol: false,
+                    strings: strings
                 )
             )
 

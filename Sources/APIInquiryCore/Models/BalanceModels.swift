@@ -5,6 +5,7 @@ public enum ProviderID: String, Equatable, Hashable, CaseIterable {
     case zhipuCodingPlan
     case codex
     case opencode
+    case workbuddy
 }
 
 public enum ProviderDetailKind: Equatable {
@@ -167,6 +168,12 @@ public struct BalanceSnapshot: Equatable {
     public let isAvailable: Bool
     public let grantedBalance: Decimal?
     public let toppedUpBalance: Decimal?
+    /// When the soonest-expiring portion of this balance is lost.
+    ///
+    /// Only credit-style balances carry it: prepaid money does not expire, while a
+    /// promotional grant does, and "you have 2,899 credits" is misleading three days
+    /// before 2,399 of them lapse. Nil for providers without expiring credit.
+    public let expiringAt: Date?
     public let fetchedAt: Date
 
     public init(
@@ -176,6 +183,7 @@ public struct BalanceSnapshot: Equatable {
         isAvailable: Bool,
         grantedBalance: Decimal?,
         toppedUpBalance: Decimal?,
+        expiringAt: Date? = nil,
         fetchedAt: Date
     ) {
         self.providerID = providerID
@@ -184,6 +192,7 @@ public struct BalanceSnapshot: Equatable {
         self.isAvailable = isAvailable
         self.grantedBalance = grantedBalance
         self.toppedUpBalance = toppedUpBalance
+        self.expiringAt = expiringAt
         self.fetchedAt = fetchedAt
     }
 }

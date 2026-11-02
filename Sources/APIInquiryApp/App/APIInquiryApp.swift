@@ -41,8 +41,13 @@ struct APIInquiryApp: App {
                 localizedStrings: { LocalizedStrings(language: languageStore.resolvedLanguage) }
             )
         } else {
-            let store = OpenCodeCredentialStore(
-                delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
+            // Every decorator must forward what it does not own (#83). Order is
+            // irrelevant to correctness because each one forwards; it is kept in
+            // onboarding order so the chain reads the same way the guide does.
+            let store = WorkBuddyCredentialStore(
+                delegate: OpenCodeCredentialStore(
+                    delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
+                )
             )
             credentialStore = store
             coordinator = MultiProviderBalanceCoordinator(
