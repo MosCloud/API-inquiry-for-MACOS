@@ -34,6 +34,18 @@ enum ProviderVisualCatalog {
         return image
     }()
 
+    /// WorkBuddy brand lockup: the official mark plus the two-line wordmark, both from
+    /// the app's own bundled asset. Extracted from `WorkBuddy.app` 5.9.3
+    /// (`Contents/Resources/app.asar`, `renderer/assets/workbuddy-logo-*.png`);
+    /// © workbuddy.cn, used here to identify the service the app reads. The asset is a
+    /// raster lockup, not a vector, so it takes the PNG path.
+    static let workBuddyHeaderLogoTemplate: NSImage = {
+        let image = loadPNG(named: "workbuddy-logo-header")
+            ?? textTemplateImage("WorkBuddy", fontSize: 22, height: 30)
+        image.isTemplate = true
+        return image
+    }()
+
     static func headerLogoTemplate(for providerID: ProviderID) -> NSImage? {
         switch providerID {
         case .deepseek:
@@ -44,6 +56,8 @@ enum ProviderVisualCatalog {
             return chatGPTHeaderLogoTemplate
         case .opencode:
             return openCodeHeaderLogoTemplate
+        case .workbuddy:
+            return workBuddyHeaderLogoTemplate
         }
     }
 
@@ -77,6 +91,10 @@ enum ProviderVisualCatalog {
             return NSSize(width: 16, height: 16)
         case .opencode:
             return NSSize(width: 16, height: 16)
+        case .workbuddy:
+            // A filled rounded badge reads heavier than a bare glyph at the same box,
+            // so it is sized against Zhipu's badge rather than Codex's mark.
+            return NSSize(width: 20, height: 20)
         }
     }
 
@@ -176,6 +194,8 @@ enum ProviderVisualCatalog {
             return loadPNG(named: "chatgpt-menu-icon-template")
         case .opencode:
             return loadPNG(named: "opencode-menu-icon-template")
+        case .workbuddy:
+            return loadPNG(named: "workbuddy-menu-icon-template")
         }
     }
 

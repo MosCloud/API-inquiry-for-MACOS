@@ -83,6 +83,14 @@ public enum ProviderLogoMetrics {
                 canvasWidth: 539, canvasHeight: 154, wordmarkHeight: 70, xHeight: 50,
                 visualScale: 1.15
             )
+        case .workbuddy:
+            // Measured from `workbuddy-logo-header.png` (1620x560): the wordmark ink
+            // spans rows 76..482 and is set on two lines, so the x-height anchor is one
+            // line's cap height (189px), not the two-line total. The face is a heavy
+            // geometric sans, close in weight to DeepSeek's, so no optical correction.
+            return ProviderLogoTemplate(
+                canvasWidth: 1620, canvasHeight: 560, wordmarkHeight: 407, xHeight: 189
+            )
         }
     }
 

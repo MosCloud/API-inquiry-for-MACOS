@@ -70,6 +70,21 @@ public extension BuiltInProviderRegistry {
                     secondaryDisplayName: "OpenCode"
                 ),
                 makeProvider: { OpenCodeGoUsageProvider() }
+            ),
+            ProviderRegistration(
+                descriptor: ProviderDescriptor(
+                    id: .workbuddy,
+                    displayName: "WorkBuddy",
+                    menuPrefix: "WB",
+                    credentialAccount: WorkBuddyCredentialStore.defaultWorkBuddyAccount,
+                    homepageURL: URL(string: "https://www.workbuddy.cn/")!,
+                    detailKind: .balance,
+                    credentialManagement: .localExternalConfiguration,
+                    accessPurpose: .prepaidBalance,
+                    menuTitlePrefix: "WB",
+                    secondaryDisplayName: "WorkBuddy"
+                ),
+                makeProvider: { WorkBuddyBalanceProvider() }
             )
         ],
         defaultProviderID: .deepseek

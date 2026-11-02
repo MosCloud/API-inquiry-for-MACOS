@@ -322,6 +322,27 @@ public struct LocalizedStrings: Equatable {
         return label
     }
 
+    /// The unit a credit balance is denominated in.
+    ///
+    /// WorkBuddy sells credits rather than money, and the snapshot reports the currency
+    /// code `CREDITS` so the formatter can tell the two apart. Rendering that code raw
+    /// would put "2,899.64 CREDITS" on screen; the unit is localised instead.
+    public var creditUnitLabel: String {
+        text(en: "credits", zh: "积分")
+    }
+
+    /// The hint shown when WorkBuddy's sign-in exists but its credential cannot be read.
+    ///
+    /// Deliberately not the generic "not configured" copy: the user IS signed in, and
+    /// telling them to sign in again points at the one action that cannot help. The fix
+    /// is the desktop app, which is what this says.
+    public var workBuddyCredentialEncryptedHint: String {
+        text(
+            en: "Signed in to WorkBuddy, but its credential is encrypted and could not be read. The WorkBuddy desktop app must be installed to unlock it.",
+            zh: "已登录 WorkBuddy，但其凭据已加密且无法读取。需要安装 WorkBuddy 桌面端才能解锁。"
+        )
+    }
+
     /// Width of the hero label column. English needs more room than Chinese because
     /// "Month" is wider than 每月 at the same point size.
     public var quotaHeroLabelColumnWidth: Double {

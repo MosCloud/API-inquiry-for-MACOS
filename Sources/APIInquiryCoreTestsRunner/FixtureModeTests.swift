@@ -106,7 +106,7 @@ enum FixtureModeTests {
         )
 
         let multi = FixtureScenarioData.make(for: .multi)
-        harness.expectEqual(multi.registrations.map(\.descriptor.id), [.deepseek, .zhipuCodingPlan, .codex, .opencode], "multi provider order")
+        harness.expectEqual(multi.registrations.map(\.descriptor.id), [.deepseek, .zhipuCodingPlan, .codex, .opencode, .workbuddy], "multi provider order")
         harness.expectEqual(multi.defaultProviderID, .opencode, "multi defaults to opencode")
         harness.expectTrue(
             multi.preferences.addedProviderIDs.contains(.opencode),
@@ -117,7 +117,7 @@ enum FixtureModeTests {
         harness.expectEqual(FixtureScenarioData.make(for: .loading).registrations.count, 1, "loading has one provider")
 
         let warning = FixtureScenarioData.make(for: .warning)
-        harness.expectEqual(warning.registrations.count, 4, "warning has four providers")
+        harness.expectEqual(warning.registrations.count, ProviderID.allCases.count, "warning covers every provider")
         harness.expectEqual(warning.defaultProviderID, .deepseek, "warning defaults to deepseek")
 
         let unconfigured = FixtureScenarioData.make(for: .unconfigured)

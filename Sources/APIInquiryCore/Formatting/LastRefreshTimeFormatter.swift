@@ -72,6 +72,18 @@ public struct LastRefreshTimeFormatter {
         return timeText(for: date)
     }
 
+    /// Date-only text for a credit balance's expiry, in the compact `MM/dd` form the
+    /// trailing column already uses for weekly and monthly resets.
+    ///
+    /// A same-day expiry would read just as well as a time, but a grant that lapses days
+    /// or weeks out is the case worth showing, and a bare `11/05` fits the column budget.
+    public func expiryShortText(for date: Date?) -> String? {
+        guard let date else {
+            return nil
+        }
+        return dateText(for: date)
+    }
+
     public func resetShortDateText(for date: Date?) -> String? {
         guard let date else {
             return nil

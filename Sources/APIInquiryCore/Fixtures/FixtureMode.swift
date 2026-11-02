@@ -144,6 +144,8 @@ public struct FixtureScenarioData {
             return stressed ? codexQuota(now: now, remaining: [30, 25]) : codexQuota(now: now)
         case .opencode:
             return stressed ? openCodeQuota(now: now, remaining: [15, 25, 35]) : openCodeQuota(now: now)
+        case .workbuddy:
+            return stressed ? workbuddyBalance(now: now, total: Decimal(string: "240")!) : workbuddyBalance(now: now)
         }
     }
 
@@ -190,6 +192,26 @@ public struct FixtureScenarioData {
             isAvailable: true,
             grantedBalance: granted,
             toppedUpBalance: total - granted,
+            fetchedAt: now
+        ))
+    }
+
+    /// Mirrors a real WorkBuddy response: one monthly package that refreshes, plus a
+    /// handful of one-off grants that expire, with the soonest expiry carrying the
+    /// warning the panel shows.
+    private static func workbuddyBalance(
+        now: Date,
+        total: Decimal = Decimal(string: "2899.64")!
+    ) -> ProviderSnapshot {
+        let monthly = min(total, Decimal(string: "500")!)
+        return .balance(BalanceSnapshot(
+            providerID: .workbuddy,
+            totalBalance: total,
+            currency: "CREDITS",
+            isAvailable: true,
+            grantedBalance: total - monthly,
+            toppedUpBalance: monthly,
+            expiringAt: now.addingTimeInterval(3 * 86_400),
             fetchedAt: now
         ))
     }
