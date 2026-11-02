@@ -39,9 +39,17 @@ struct UsageConsoleView: View {
                 )
 
                 ScrollView(.vertical) {
+                    // The content reserves the scroller's width, and the scroll view
+                    // bleeds exactly that much into the window margin. The cards keep
+                    // their 20 pt margin on both sides, and the scroller lives in the
+                    // right margin instead of on top of a card (#114). Padding has to
+                    // come before the flexible frame: applied afterwards it pads
+                    // outside the full-width frame and changes nothing.
                     selectedSectionContent
+                        .padding(.trailing, ConsoleMetrics.scrollerGutter)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
+                .padding(.trailing, -ConsoleMetrics.scrollerGutter)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
