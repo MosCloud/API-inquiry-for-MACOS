@@ -346,6 +346,17 @@ enum WorkBuddyProviderTests {
         )
         harness.expectEqual(presentation.trailingText, "积分", "the trailing cell is the unit")
         harness.expectEqual(presentation.leadingText, "", "credits carry no symbol")
+
+        // The Console names the credit metric 「总积分」 rather than 「总余额」: credits are a
+        // unit of account, and 余额 reads as cash. A prepaid balance keeps the old copy.
+        harness.expectEqual(chinese.totalCreditsMetricTitle, "总积分", "chinese credit title")
+        harness.expectEqual(chinese.grantedCreditsMetricTitle, "赠送积分", "chinese granted credit title")
+        harness.expectEqual(english.totalCreditsMetricTitle, "Total credits", "english credit title")
+        harness.expectEqual(english.grantedCreditsMetricTitle, "Granted credits", "english granted credit title")
+        harness.expectTrue(
+            chinese.totalBalanceMetricTitle != chinese.totalCreditsMetricTitle,
+            "a credit balance and a money balance are named differently"
+        )
     }
 
     // MARK: - Provider
