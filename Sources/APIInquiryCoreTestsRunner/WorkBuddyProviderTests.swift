@@ -70,6 +70,44 @@ enum WorkBuddyProviderTests {
         harness.expectEqual(empty.totalBalance, 0, "no packages means a zero balance")
         harness.expectTrue(!empty.isAvailable, "a zero balance is not available")
 
+        // Only credits that can still be lost have a "next expiry". A package that has
+        // already lapsed keeps its old ExpiredTime while its cycle end is still in the
+        // future, so it survives the request window holding nothing — and ranking it
+        // reported a date in the past (real account, #102: 11/02 instead of 11/08).
+        let lapsed = now.addingTimeInterval(-1_800)
+        let withLapsed = WorkBuddyBalanceProvider.makeSnapshot(
+            from: [
+                WorkBuddyPackage(name: "失效包", capacityType: 1, remaining: 0, expiresAt: lapsed),
+                WorkBuddyPackage(
+                    name: "裂变包", capacityType: 1,
+                    remaining: Decimal(string: "78.35")!, expiresAt: soon
+                )
+            ],
+            providerID: .workbuddy,
+            fetchedAt: now
+        )
+        harness.expectEqual(withLapsed.expiringAt, soon, "a lapsed package cannot set the next expiry")
+        harness.expectEqual(
+            withLapsed.grantedBalance, Decimal(string: "78.35")!,
+            "a lapsed package still adds nothing to the balance"
+        )
+
+        // Same rule from two other sides: a drained package has no expiry to warn about,
+        // and an un-swept remainder must never surface a date that has already passed.
+        let drained = WorkBuddyBalanceProvider.makeSnapshot(
+            from: [WorkBuddyPackage(name: "已用完", capacityType: 1, remaining: 0, expiresAt: soon)],
+            providerID: .workbuddy,
+            fetchedAt: now
+        )
+        harness.expectEqual(drained.expiringAt, nil, "a drained package has no expiry")
+
+        let unswept = WorkBuddyBalanceProvider.makeSnapshot(
+            from: [WorkBuddyPackage(name: "过期未冲销", capacityType: 1, remaining: 12, expiresAt: lapsed)],
+            providerID: .workbuddy,
+            fetchedAt: now
+        )
+        harness.expectEqual(unswept.expiringAt, nil, "an expiry in the past is never reported")
+
         // Negative remainders are clamped: the upstream can report a small negative once a
         // package is overdrawn, and summing it would understate the total.
         let overdrawn = WorkBuddyBalanceProvider.makeSnapshot(
