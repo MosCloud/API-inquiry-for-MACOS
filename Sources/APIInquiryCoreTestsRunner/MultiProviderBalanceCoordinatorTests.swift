@@ -8,6 +8,8 @@ enum MultiProviderBalanceCoordinatorTests {
         testCoordinatorExposesProviderDescriptors(using: harness)
         testCoordinatorUsesRegistrationDescriptorInsteadOfGlobalCatalog(using: harness)
         testAddSetPrimaryAndRemoveProvider(using: harness)
+        testMovingProviderReordersPersistedListAndKeepsPrimary(using: harness)
+        testMovingProviderIgnoresNoOpsAndBadIndexes(using: harness)
         testRemovingProviderCanDeleteCredential(using: harness)
         testRemovingProviderDoesNotRemoveWhenCredentialDeletionFails(using: harness)
         testRemovingDefaultProviderFallsBackToRemainingProvider(using: harness)
@@ -128,6 +130,69 @@ enum MultiProviderBalanceCoordinatorTests {
 
         harness.expectEqual(coordinator.addedProviderIDs, [.deepseek], "coordinator removes zhipu")
         harness.expectEqual(coordinator.primaryProviderID, .deepseek, "coordinator primary falls back to deepseek")
+    }
+
+    @MainActor
+    private static func testMovingProviderReordersPersistedListAndKeepsPrimary(using harness: TestHarness) {
+        let preferences = InMemoryProviderPreferencesStore(
+            addedProviderIDs: [.deepseek, .zhipuCodingPlan, .codex],
+            primaryProviderID: .deepseek
+        )
+        let coordinator = MultiProviderBalanceCoordinator(
+            registrations: testRegistrations(for: [
+                MockBalanceProvider(id: .deepseek, results: []),
+                MockBalanceProvider(id: .zhipuCodingPlan, results: []),
+                MockBalanceProvider(id: .codex, results: [])
+            ]),
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [:]),
+            preferences: preferences,
+            defaultProviderID: .deepseek
+        )
+
+        coordinator.moveProvider(.codex, to: 0)
+
+        harness.expectEqual(
+            coordinator.addedProviderIDs,
+            [.codex, .deepseek, .zhipuCodingPlan],
+            "moving a provider rewrites the display order"
+        )
+        harness.expectEqual(
+            preferences.addedProviderIDs,
+            [.codex, .deepseek, .zhipuCodingPlan],
+            "the new order is persisted, not just held in memory"
+        )
+        harness.expectEqual(
+            coordinator.primaryProviderID,
+            .deepseek,
+            "reordering never changes the provider shown in the menu bar"
+        )
+    }
+
+    @MainActor
+    private static func testMovingProviderIgnoresNoOpsAndBadIndexes(using harness: TestHarness) {
+        let preferences = InMemoryProviderPreferencesStore(
+            addedProviderIDs: [.deepseek, .zhipuCodingPlan],
+            primaryProviderID: .deepseek
+        )
+        let coordinator = MultiProviderBalanceCoordinator(
+            registrations: testRegistrations(for: [
+                MockBalanceProvider(id: .deepseek, results: []),
+                MockBalanceProvider(id: .zhipuCodingPlan, results: [])
+            ]),
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [:]),
+            preferences: preferences,
+            defaultProviderID: .deepseek
+        )
+
+        coordinator.moveProvider(.deepseek, to: 0)
+        coordinator.moveProvider(.deepseek, to: 9)
+        coordinator.moveProvider(.deepseek, to: -1)
+
+        harness.expectEqual(
+            coordinator.addedProviderIDs,
+            [.deepseek, .zhipuCodingPlan],
+            "a no-op move and out-of-range indexes leave the order alone"
+        )
     }
 
     @MainActor

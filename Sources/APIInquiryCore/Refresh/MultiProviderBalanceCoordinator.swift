@@ -145,6 +145,24 @@ public final class MultiProviderBalanceCoordinator: ObservableObject {
         objectWillChange.send()
     }
 
+    /// Moves an added provider to `index` in the display order (#110). The order
+    /// is the persisted array, so a reorder survives a relaunch for free. The menu
+    /// bar's primary provider is a separate choice and deliberately does not move.
+    public func moveProvider(_ id: ProviderID, to index: Int) {
+        var identifiers = preferences.addedProviderIDs
+        guard let source = identifiers.firstIndex(of: id),
+              index >= 0,
+              index < identifiers.count,
+              source != index else {
+            return
+        }
+
+        identifiers.remove(at: source)
+        identifiers.insert(id, at: index)
+        preferences.addedProviderIDs = identifiers
+        objectWillChange.send()
+    }
+
     public func removeProvider(_ id: ProviderID, deletingCredential: Bool) throws {
         guard addedProviderIDs.contains(id),
               addedProviderIDs.count > 1 else {
