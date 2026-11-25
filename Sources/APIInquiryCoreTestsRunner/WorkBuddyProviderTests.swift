@@ -28,7 +28,7 @@ enum WorkBuddyProviderTests {
         let later = now.addingTimeInterval(20 * 86_400)
 
         let packages = [
-            WorkBuddyPackage(name: "月包", capacityType: 4, remaining: 500, cycleSize: 500, cycleEnd: later),
+            WorkBuddyPackage(name: "月包", capacityType: 2, remaining: 500, cycleSize: 500, cycleEnd: later),
             WorkBuddyPackage(name: "裂变包", capacityType: 1, remaining: Decimal(string: "93.64")!, expiresAt: later),
             WorkBuddyPackage(name: "裂变包", capacityType: 1, remaining: 100, expiresAt: soon)
         ]
@@ -48,7 +48,7 @@ enum WorkBuddyProviderTests {
 
         // A monthly package refreshes rather than lapsing, so it must not set the expiry.
         let monthlyOnly = WorkBuddyBalanceProvider.makeSnapshot(
-            from: [WorkBuddyPackage(name: "月包", capacityType: 4, remaining: 500, cycleSize: 500, cycleEnd: soon)],
+            from: [WorkBuddyPackage(name: "月包", capacityType: 2, remaining: 500, cycleSize: 500, cycleEnd: soon)],
             providerID: .workbuddy,
             fetchedAt: now
         )
@@ -65,6 +65,19 @@ enum WorkBuddyProviderTests {
             WorkBuddyPackage(name: "o", capacityType: 1, remaining: 1).refreshAt, nil,
             "a one-off grant never refreshes"
         )
+
+        // Slice rows describe a sub-slice of an allowance already reported by its parent, so
+        // counting them double-counts. The vendor's client drops them; so does this one.
+        let withSlice = WorkBuddyBalanceProvider.makeSnapshot(
+            from: [
+                WorkBuddyPackage(name: "套餐", capacityType: 2, remaining: 500, cycleSize: 500, cycleEnd: later),
+                WorkBuddyPackage(name: "切片", capacityType: 4, remaining: 300, cycleSize: 300, cycleEnd: later)
+            ],
+            providerID: .workbuddy,
+            fetchedAt: now
+        )
+        harness.expectEqual(withSlice.totalBalance, 500, "a slice row never adds to the total")
+        harness.expectEqual(withSlice.toppedUpBalance, 500, "a slice row is not counted as paid credit")
 
         let empty = WorkBuddyBalanceProvider.makeSnapshot(from: [], providerID: .workbuddy, fetchedAt: now)
         harness.expectEqual(empty.totalBalance, 0, "no packages means a zero balance")
@@ -119,8 +132,15 @@ enum WorkBuddyProviderTests {
     }
 
     private static func packageClassificationTests(using harness: TestHarness) {
-        harness.expectTrue(WorkBuddyPackage(name: "m", capacityType: 4, remaining: 1).isMonthly, "capacity type 4 is monthly")
-        harness.expectTrue(!WorkBuddyPackage(name: "o", capacityType: 1, remaining: 1).isMonthly, "capacity type 1 is a grant")
+        // The vendor's own client: `isSliceCapacityResource(e){return Number(e?.CapacityType)===4}`
+        // — 4 is a sliced resource it drops, not a monthly package. A real CN account answers
+        // `CapacityType: 2` for its plan packages ("Buddy AI个人标准版", "Codebuddy版本赠送包")
+        // and `1` for the platform reward packages. Reading 4 as "monthly" therefore filed
+        // every real package as a one-off grant: refreshingAt was always nil and the plan's
+        // credits landed in the granted column.
+        harness.expectTrue(WorkBuddyPackage(name: "套餐", capacityType: 2, remaining: 1).isMonthly, "capacity type 2 is the monthly plan package")
+        harness.expectTrue(!WorkBuddyPackage(name: "奖励", capacityType: 1, remaining: 1).isMonthly, "capacity type 1 is a reward grant")
+        harness.expectTrue(!WorkBuddyPackage(name: "切片", capacityType: 4, remaining: 1).isMonthly, "capacity type 4 is a sliced resource, never a package")
 
         // Expiry falls back to the cycle end when a one-off package leaves ExpiredTime blank,
         // which is the common case on the real endpoint.
@@ -447,7 +467,7 @@ enum WorkBuddyProviderTests {
         let client = WorkBuddyMockHTTPClient(
             statusCode: 200,
             body: meterBody(accounts: [
-                ["PackageName": "月包", "CapacityType": 4, "CycleCapacityRemainPrecise": "500",
+                ["PackageName": "月包", "CapacityType": 2, "CycleCapacityRemainPrecise": "500",
                  "CycleCapacitySizePrecise": "500", "CycleEndTime": "2026-11-30 23:59:59"],
                 ["PackageName": "裂变包", "CapacityType": 1, "CycleCapacityRemainPrecise": "93.64",
                  "CycleEndTime": "2026-11-05 21:57:05", "ExpiredTime": ""]

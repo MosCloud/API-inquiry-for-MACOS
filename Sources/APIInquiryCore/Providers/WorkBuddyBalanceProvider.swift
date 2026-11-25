@@ -4,11 +4,12 @@ import Foundation
 ///
 /// WorkBuddy sells *credits*, not currency and not a percentage: the billing endpoint
 /// answers with a list of packages, each carrying how much of its own allowance is
-/// left. `CapacityType` separates the two kinds that matter — 4 is a monthly package
-/// (refreshes at the cycle end) and anything else is a one-off grant (expires for
-/// good). The snapshot therefore reports the sum, with the one-off grants as the
-/// "granted" portion, and the soonest expiry so the panel can warn before credits
-/// lapse.
+/// left. `CapacityType` separates the kinds that matter: **2 is a plan package** (its
+/// allowance refreshes at the cycle end), **1 is a reward grant** (expires for good), and
+/// **4 is a sliced resource** the vendor's own client drops — it is not a package at all.
+/// The snapshot therefore reports the sum, with the reward grants as the "granted"
+/// portion, and both dates so the panel can say when the allowance returns and when the
+/// grants lapse.
 ///
 /// The endpoint is read-only. This provider never claims, signs in, or writes
 /// anything back.
@@ -142,7 +143,10 @@ public final class WorkBuddyBalanceProvider: BalanceProvider {
         var paid: Decimal = 0
         var monthlySize: Decimal = 0
 
-        for package in packages {
+        // Sliced resources are dropped rather than counted, matching the vendor's own
+        // client: they answer the same endpoint but describe a sub-slice of an allowance
+        // already reported by its parent row, so counting them double-counts.
+        for package in packages where !package.isSliceResource {
             let remain = max(0, package.remaining)
             total += remain
             if package.isMonthly {
@@ -186,7 +190,7 @@ public final class WorkBuddyBalanceProvider: BalanceProvider {
     /// said 11/08.
     static func nextExpiry(in packages: [WorkBuddyPackage], after fetchedAt: Date) -> Date? {
         packages
-            .filter { !$0.isMonthly && $0.remaining > 0 }
+            .filter { !$0.isMonthly && !$0.isSliceResource && $0.remaining > 0 }
             .compactMap(\.expiry)
             .filter { $0 > fetchedAt }
             .min()
@@ -202,8 +206,28 @@ public struct WorkBuddyPackage: Equatable, Decodable {
     public let cycleEnd: Date?
     public let expiresAt: Date?
 
-    /// Capacity type 4 is the monthly cycle; every other value is a one-off grant.
-    public var isMonthly: Bool { capacityType == 4 }
+    /// The wire's capacity types, as the vendor's client reads them.
+    ///
+    /// The value that means "monthly" is **2**, not 4: `isSliceCapacityResource(e)` in
+    /// WorkBuddy's own bundle is `Number(e?.CapacityType) === 4`, and the client filters
+    /// those rows out before it counts anything ("dropped slice resources"). A real CN
+    /// account answers 2 for its plan packages and 1 for the platform reward packages.
+    /// Reading 4 as the monthly type filed every real package as a one-off grant, so the
+    /// panel never had a refresh date and the plan's credits showed up as granted.
+    public enum CapacityType {
+        /// A plan allowance that refreshes at the cycle end.
+        public static let plan = 2
+        /// A platform reward grant that lapses at its expiry.
+        public static let reward = 1
+        /// A sliced resource, dropped by the vendor's client; never counted.
+        public static let slice = 4
+    }
+
+    /// Whether this row is a plan allowance rather than a reward grant.
+    public var isMonthly: Bool { capacityType == CapacityType.plan }
+
+    /// Whether this row is a sliced resource the vendor's client discards.
+    public var isSliceResource: Bool { capacityType == CapacityType.slice }
 
     /// When this package's credits are lost. Monthly packages refresh instead.
     public var expiry: Date? { isMonthly ? nil : (expiresAt ?? cycleEnd) }
