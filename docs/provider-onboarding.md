@@ -271,6 +271,29 @@ These are hard constraints in the current code, not style preferences:
   because the label and the spoken sentence remove that reading. Any provider that copies
   the date without the label breaking first will reintroduce the ambiguity.
 
+- **Number precision is a property of the kind of number, not of the provider.** Three kinds
+  exist, each with one rule applied on **every** surface (menu bar, hero, secondary row), so
+  one balance can never show two values:
+
+  | Kind of number | How to tell | Precision | Trailing cell |
+  | --- | --- | --- | --- |
+  | Credits | `ProviderValueFormatter.isCreditCurrency(currency)` | whole units, truncated | the refresh date, if any |
+  | Money | any other currency | one decimal in the menu bar, two in the hero | the currency code |
+  | Percentage | a `QuotaWindowSnapshot` | whole percent | the reset instant |
+
+  Truncate, never round: the shown figure must not overstate what is left. This is why a
+  credit row puts its unit in the **label** column and spends the trailing cell on the
+  refresh date, while a money row does the opposite. Both name the same concept, which is
+  why `LocalizedStrings.creditUnitLabel` is one field and not two.
+
+- **A credit row is a window row, not a balance row**, and sits below the quota rows it
+  belongs to: `5h 100%` / `Weekly 0%` / `Credits 53064` says what ran out *and* what can still
+  pay. It carries no percent sign — its `suffixText` is empty, which is why the view must draw
+  the suffix rather than hard-code `%` — and no reset date, because a reset describes the
+  quota and beside a balance reads as if the credits expired then. Keep the quota rows on
+  screen beside it: without them a credit row is indistinguishable from a plain balance row
+  (see #116, which must not collapse them away).
+
 ### 5.3 Two dates with two meanings must stay two fields
 
 If the provider reports both a refresh and an expiry, keep them apart end to end:
