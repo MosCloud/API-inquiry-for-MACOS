@@ -1,14 +1,14 @@
 # API Inquiry Roadmap
 
-Last updated: 2026-11-02
+Last updated: 2026-11-25
 
 ## 中文
 
 ### 当前状态
 
-- 最新已发布版本：`v0.4.3`
-- 当前主线能力：DeepSeek 余额查询（含赠送余额）、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询、OpenCode 用量查询与本地配置入口、WorkBuddy 积分查询（国内版，分「总积分」「赠送积分」并各自带刷新/到期时间）、Console Home 原始 Credits 余额展示（显示截断到两位小数）、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、余额与配额供应商统一三列对齐、系统时区自适应时间展示、克制的 UI 微交互与可访问性补充、Console 首页一键刷新（含 Codex 手动重置额度）、供应商卡片拖拽排序（顺序持久化、贴边自动滚动）、质量修复与 CI 基线、双语安装窗口与 DMG 打包发布。
-- 下一计划版本：`v0.4.4`，聚焦 Console 收尾（刷新间隔可配置）与菜单栏面板密度；再往后 `v0.5.0` 聚焦分发体验（自动更新、安装与卸载流程）。
+- 最新已发布版本：`v0.4.4`
+- 当前主线能力：DeepSeek 余额查询（含赠送余额）、智谱 GLM Coding Plan 用量查询、Codex/ChatGPT 会话额度查询（任一窗口归零时回落显示积分）、OpenCode 用量查询与本地配置入口、WorkBuddy 积分查询（国内版，套餐与赠送分列并各自带刷新/到期时间）、菜单栏面板每种数字各有精度规则（积分取整、金额一位小数、百分比整数）、Console Home 原始 Credits 余额展示、Codex 手动重置额度展示与明细页、多供应商菜单栏展示、余额与配额供应商统一三列对齐、系统时区自适应时间展示、克制的 UI 微交互与可访问性补充、Console 首页一键刷新（含 Codex 手动重置额度）、供应商卡片拖拽排序（顺序持久化、贴边自动滚动）、质量修复与 CI 基线、双语安装窗口与 DMG 打包发布。
+- 下一计划版本：`v0.4.5`，聚焦 Console 收尾（刷新间隔可配置）与菜单栏面板密度；再往后 `v0.5.0` 聚焦分发体验（自动更新、安装与卸载流程）。
 
 ### v0.3.2：中文本地化与语言切换
 
@@ -155,15 +155,23 @@ Last updated: 2026-11-02
 
 排序是 v0.4.0 明确留到后续的项（当时记的是「供应商排序/隐藏/启停」）；本版本只做排序，隐藏与启停仍不做。
 
-### v0.4.4：Console 收尾与面板密度（计划中）
+### v0.4.4：面板展示语义（已发布）
+
+目标：让面板上的每种数字都说得清自己是什么——积分的精度、单位与它所在的行，由「这是积分」这个事实决定，而不是由它碰巧属于哪个供应商。
+
+- **面板展示语义**：WorkBuddy 的非英雄区尾列从单位改成下次刷新日期；Codex 任一额度窗口归零后，菜单栏、英雄区、非英雄区一起回落到积分，额度与积分同时归零时保留 `0%`。(#124、#123)
+- **积分精度与行结构**：积分在三个表面统一按整数读取（截断），金额保留一位小数，百分比仍是整数；额度归零时保留额度行、在其下方追加一行积分，不再用积分行替换额度行；积分单位统一为 `Credits` / 「积分」。(#126)
+- **WorkBuddy 套餐识别修复**：套餐包按 `CapacityType 2` 读取、切片资源（4）丢弃。此前把 4 当成月包，于是每个真实套餐都被当成一次性赠送包——面板永远拿不到刷新日期，套餐积分也被算进赠送列。这个缺陷从 v0.4.1 起影响所有用户，是数据正确性问题，不是显示问题。
+
+本版本原计划还包含刷新间隔与面板密度；两者都是独立的大功能，已移到 v0.4.5，让这个版本的内容与编号相符。
+
+### v0.4.5：Console 收尾与面板密度（计划中）
 
 - **自动刷新间隔可配置**：设置页提供固定档位与「关闭」，改动立即生效、重启后保留；需要先定下限与限流影响。(#111)
 - **菜单栏面板密度策略**：面板最多显示 5 个供应商（含英雄区），Home 用眼睛开关选择谁进面板；可见的排在 Console 上方、隐藏的自动下沉。(#116)
-- **面板展示语义**：WorkBuddy 的非英雄区尾列从「积分」改成下次刷新日期；Codex 任一额度窗口归零后，菜单栏、英雄区、非英雄区一起回落到积分，额度与积分同时归零时保留 `0%`。(#124、#123)
-- **积分精度与行结构**：积分在三个表面统一按整数读取（截断），金额保留一位小数，百分比仍是整数；额度归零时保留额度行、在其下方追加一行积分，不再用积分行替换额度行；积分单位统一为 `Credits` / 「积分」。(#126)
 - **文案命名约定（chore）**：`LocalizedStrings` 的后缀语义目前不统一（`Label` 用了 3 次、含义各不相同），定一条可执行的约定；不改变任何显示字符串。(#127)
 
-面板密度这条还留了两个待确认：英雄区能否被隐藏、跨分区能否拖拽——开工前先拍。
+面板密度这条还留了两个待确认：英雄区能否被隐藏、跨分区能否拖拽——开工前先拍。另外，折叠不得让积分行脱离额度行，否则它与纯余额行同形（见 #116 边界条件第 10 条）。
 
 ### v0.5.0：分发体验优化
 
@@ -180,9 +188,9 @@ Last updated: 2026-11-02
 
 ### Current Status
 
-- Latest released version: `v0.4.3`
-- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks, OpenCode usage checks with a local config entry, WorkBuddy credit checks (CN region, splitting total from granted credits and dating each), raw Credits balance display on Console Home (truncated to two decimals for display), Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, one-tap refresh from Console Home (including the Codex manual-reset credits), drag-to-reorder provider cards with a persisted order and edge auto-scroll, quality fixes with a CI baseline, and a two-language install window with DMG release packaging.
-- Next planned version: `v0.4.4`, focused on Console polish (a configurable refresh interval) and menu bar panel density; `v0.5.0` follows with distribution experience (automatic updates, install and uninstall flows).
+- Latest released version: `v0.4.4`
+- Current mainline capabilities: DeepSeek balance checks, Zhipu GLM Coding Plan usage checks, Codex/ChatGPT session quota checks (falling back to credits when either window is drained), OpenCode usage checks with a local config entry, WorkBuddy credit checks (CN region, with plan and granted credits separated and dated), one precision rule per kind of number in the menu bar panel (whole credits, one decimal for money, whole percentages), raw Credits balance display on Console Home, Codex manual reset credit display and details, multi-provider menu bar display, Console management, system-time-zone-aware time display, detail-panel quota health colors, restrained UI microinteractions and accessibility polish, one-tap refresh from Console Home (including the Codex manual-reset credits), drag-to-reorder provider cards with a persisted order and edge auto-scroll, quality fixes with a CI baseline, and a two-language install window with DMG release packaging.
+- Next planned version: `v0.4.5`, focused on Console polish (a configurable refresh interval) and menu bar panel density; `v0.5.0` follows with distribution experience (automatic updates, install and uninstall flows).
 
 ### v0.3.2: Chinese Localization and Language Switching
 
@@ -329,15 +337,23 @@ Goal: let the Console act, not only observe. Updating data immediately used to m
 
 Ordering is the item v0.4.0 explicitly deferred ("provider ordering/hiding/enabling"); this release does ordering only — hiding and enabling stay out.
 
-### v0.4.4: Console Polish and Panel Density (Planned)
+### v0.4.4: Panel Display Semantics (Released)
+
+Goal: every number in the panel should say what it is. A credit's precision, its unit and the row it lives in follow from "this is a credit", not from which provider it happens to belong to.
+
+- **Panel display semantics**: WorkBuddy's secondary row moves from a unit to its next refresh date in the trailing cell; when either Codex window is drained the menu bar, the hero and the secondary row all fall back to credits, and a drained window with no credits left keeps `0%`. (#124, #123)
+- **Credit precision and row structure**: credits read as whole units on all three surfaces at once, money keeps one decimal and percentages stay whole; a drained provider keeps its quota rows and gains a credit row below them instead of trading the windows for it; the unit is `Credits` / 「积分」 everywhere. (#126)
+- **WorkBuddy plan-package fix**: plan packages are read as `CapacityType 2` and slice rows (4) are dropped. The old code treated 4 as the monthly type, so every real package was filed as a one-off grant — the panel never got a refresh date and the plan's credits counted as granted. That defect affected everyone since v0.4.1 and is a data-correctness bug, not a display one.
+
+The refresh interval and panel density this version originally planned are both sizeable features of their own; they moved to v0.4.5 so the version's contents match its number.
+
+### v0.4.5: Console Polish and Panel Density (Planned)
 
 - **Configurable refresh interval**: Settings offers fixed steps plus Off; changes take effect immediately and survive a relaunch. The lower bound and rate-limit impact have to be settled first. (#111)
 - **Menu bar panel density**: the panel shows at most five providers including the hero; Home gains an eye toggle for who appears there, visible providers sort to the top and hidden ones sink. (#116)
-- **Panel display semantics**: WorkBuddy's secondary row moves from a unit to its next refresh date in the trailing cell; when either Codex window is drained the menu bar, the hero and the secondary row all fall back to credits, and a drained window with no credits left keeps `0%`. (#124, #123)
-- **Credit precision and row structure**: credits read as whole units on all three surfaces at once, money keeps one decimal and percentages stay whole; a drained provider keeps its quota rows and gains a credit row below them instead of trading the windows for it; the unit is `Credits` / 「积分」 everywhere. (#126)
 - **Copy naming convention (chore)**: `LocalizedStrings` suffixes are inconsistent (three different meanings behind `Label`), so the guide needs one rule; no displayed string changes. (#127)
 
-The density work still has two open decisions: whether the hero can be hidden, and whether cards can be dragged across the two groups.
+The density work still has two open decisions: whether the hero can be hidden, and whether cards can be dragged across the two groups. Collapsing must also keep a credit row with its quota rows — on its own it is indistinguishable from a plain balance row (see #116 boundary item 10).
 
 ### v0.5.0: Distribution Experience Polish
 
