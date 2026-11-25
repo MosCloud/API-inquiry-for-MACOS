@@ -285,6 +285,13 @@ Put each under the figure it actually describes — WorkBuddy's Console shows「
 under the total and「最近到期」under the granted figure — and prefix them rather than
 joining with `/`, for the same fraction reason.
 
+**A status line answers one question, and it is not the number's.** `ProviderStatusFormatter`
+reads `usage.isAvailable`, which is "does any window still have room" — so a drained weekly
+window beside a healthy five-hour one still says "Plan available". When the panel switches to
+credits the number and the status therefore describe different things on purpose: the plan is
+valid, the credits are what is being drawn. Do not "fix" the status to follow the scarcest
+window; that would make a two-part panel read as one quota (#123).
+
 ### 5.4 Never use `minimumScaleFactor` as a truncation guard
 
 It silently renders text smaller instead of exposing the squeeze. It made the balance row's
