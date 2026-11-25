@@ -41,8 +41,19 @@ public struct SecondaryRowColumnWidths: Equatable {
         SecondaryRowColumnWidths(
             label: clamp(label.max(), to: labelRange),
             value: clamp(value.max(), to: valueRange),
-            trailing: clamp(trailing.max(), to: trailingRange)
+            // An all-empty trailing column collapses instead of holding its 24 pt floor: on
+            // a real WorkBuddy account with no monthly package there is no refresh date, and
+            // the reserved empty cell pushed the credits value visibly off the right edge
+            // (#124). One dated row keeps the column for every row, so alignment survives.
+            trailing: clampAllowingCollapse(trailing.max(), to: trailingRange)
         )
+    }
+
+    private static func clampAllowingCollapse(_ width: Double?, to range: ClosedRange<Double>) -> Double {
+        guard let width, width > 0 else {
+            return 0
+        }
+        return clamp(width, to: range)
     }
 
     private static func clamp(_ width: Double?, to range: ClosedRange<Double>) -> Double {
