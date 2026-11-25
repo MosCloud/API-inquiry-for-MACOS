@@ -51,8 +51,14 @@ public struct LocalizedStrings: Equatable {
     public var resetsPrefix: String { text(en: "Resets", zh: "重置于") }
 
     /// Development builds identify themselves by commit, never by version number.
+    /// Prefixes the version a development build was cut from, e.g. 「开发版本 0.4.4-dev」.
     public var developmentVersionPrefix: String {
-        text(en: "Development version at commit", zh: "开发版本 · 提交")
+        text(en: "Development version", zh: "开发版本")
+    }
+
+    /// Separates the version from the commit in a development build's identity line.
+    public var developmentCommitSeparator: String {
+        text(en: "· commit", zh: "· 提交")
     }
 
     public var developmentVersionDirtySuffix: String { text(en: "+ dirty", zh: "+ 改动") }

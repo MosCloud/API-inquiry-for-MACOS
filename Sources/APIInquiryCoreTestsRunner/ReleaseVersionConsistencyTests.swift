@@ -51,10 +51,16 @@ enum ReleaseVersionConsistencyTests {
         )
 
         // Development builds must not advertise the release version, and must record
-        // the commit that produced them.
+        // the commit that produced them. They do carry the version they were built from,
+        // with a `-dev` suffix: a copy in someone's hands should say which release it came
+        // from, and the suffix is what keeps it from passing for that release.
         harness.expectTrue(
-            localBuild.contains("<string>0.0.0-dev</string>"),
-            "local builds mark themselves as development"
+            localBuild.contains("<string>${APP_VERSION}-dev</string>"),
+            "local builds carry the version from version.env with a -dev suffix"
+        )
+        harness.expectTrue(
+            !localBuild.contains("<string>0.0.0-dev</string>"),
+            "local builds no longer write a placeholder version"
         )
         harness.expectTrue(
             localBuild.contains("APIInquiryGitCommit"),
@@ -74,6 +80,10 @@ enum ReleaseVersionConsistencyTests {
         harness.expectTrue(
             package.contains("refusing to package a development build as a release"),
             "release packaging refuses development builds"
+        )
+        harness.expectTrue(
+            package.contains("*-dev"),
+            "release packaging refuses any -dev version, not just the old placeholder"
         )
     }
 

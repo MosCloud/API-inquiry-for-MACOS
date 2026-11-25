@@ -109,10 +109,15 @@ if [ "$packaged_version" != "$APP_VERSION" ]; then
     echo "refusing to package: bundle version '$packaged_version' != version.env '$APP_VERSION'" >&2
     exit 1
 fi
-if [ "$packaged_version" = "0.0.0-dev" ]; then
-    echo "refusing to package a development build as a release" >&2
-    exit 1
-fi
+# A local build carries "<version>-dev" (see build-local-app.sh). Refuse any such
+# version, not one hard-coded spelling: the suffix is the contract, so bumping the
+# version can never quietly make a development build shippable.
+case "$packaged_version" in
+    *-dev)
+        echo "refusing to package a development build as a release: $packaged_version" >&2
+        exit 1
+        ;;
+esac
 
 plutil -lint "$CONTENTS_DIR/Info.plist"
 chflags -R nohidden "$STAGED_APP_DIR"

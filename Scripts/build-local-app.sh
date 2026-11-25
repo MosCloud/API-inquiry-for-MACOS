@@ -213,7 +213,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.0.0-dev</string>
+    <string>${APP_VERSION}-dev</string>
     <key>CFBundleVersion</key>
     <string>0</string>
     <key>LSApplicationCategoryType</key>
@@ -226,9 +226,11 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 </plist>
 PLIST
 
-# Development builds carry no version number: the number lives only in release
-# artifacts. Write the git commit instead so a local build can never pretend to be
-# the released one, and so Finder/crash reports say "0.0.0-dev" rather than 0.3.16.
+# A development build advertises which release it was cut from, with a `-dev` suffix
+# ("0.4.4-dev"), plus the git commit it was built at. The suffix is what keeps it from
+# passing for that release: `package-mac-app.sh` refuses any `-dev` version, and it
+# strips the commit marker, so a copy in someone's hands can always be traced back and
+# never claims to be the shipped artifact.
 GIT_COMMIT="$(git -C "$ROOT_DIR" rev-parse --short HEAD 2>/dev/null || true)"
 GIT_DIRTY="false"
 if [ -n "$GIT_COMMIT" ] && [ -n "$(git -C "$ROOT_DIR" status --porcelain 2>/dev/null || true)" ]; then

@@ -9,7 +9,7 @@ repository root; each script resolves `ROOT_DIR` itself.
 | `build-local-app.sh` | Builds the dev bundle at `.build/APIInquiry.app` (no launch); `--dev` builds the side-by-side copy instead | `generate-app-icon.swift` |
 | `run-local-app.sh` | Builds via the script above, then `pkill -x APIInquiry` and opens the bundle | `build-local-app.sh` |
 | `run-dev-app.sh` | Builds `Development under <checkout>` (`APIInquiryDevelopment`) and launches it without touching the running app; refuses a dirty tree so the copy matches a commit. `--fixtures <scenario>` injects in-memory credentials and scripted provider data, so state checks need no keychain prompt | `build-local-app.sh --dev` |
-| `package-mac-app.sh` | Builds the release bundle, writes `Info.plist`, ad-hoc signs → `dist/API Inquiry.app`; refuses a `0.0.0-dev` version | `generate-app-icon.swift` |
+| `package-mac-app.sh` | Builds the release bundle, writes `Info.plist`, ad-hoc signs → `dist/API Inquiry.app`; refuses any `-dev` version | `generate-app-icon.swift` |
 | `package-dmg.sh` | Packages the app, lays out the DMG window through Finder. `--lang zh` (default) → `dist/API-Inquiry-vX.Y.Z.dmg`, `--lang en` → `dist/API-Inquiry-vX.Y.Z-en.dmg`, `--all` builds both and asserts they carry the same binary. Each artifact gets a `.sha256` | `package-mac-app.sh`, `generate-dmg-background.swift` |
 | `install-mac-app.sh` | Packages, then copies into `~/Applications` | `package-mac-app.sh` |
 | `restart-installed-app.sh` | Relaunches the copy installed under `~/Applications` | — |
