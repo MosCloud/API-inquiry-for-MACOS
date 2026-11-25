@@ -389,7 +389,7 @@ struct MenuBarContentView: View {
             }
             for quotaRow in row.quotaWindowRows {
                 labels.append(measuredWidth(quotaRow.label, font: secondaryLabelFont))
-                values.append(measuredWidth("\(quotaRow.amountText)%", font: secondaryValueFont))
+                values.append(measuredWidth("\(quotaRow.amountText)\(quotaRow.suffixText)", font: secondaryValueFont))
                 trailing.append(measuredWidth(quotaRow.resetShortText ?? "", font: secondaryLabelFont))
             }
         }
@@ -453,7 +453,7 @@ struct MenuBarContentView: View {
                             .lineLimit(1)
                             .frame(width: secondaryColumnWidths.label, alignment: .trailing)
 
-                        Text("\(quotaRow.amountText)%")
+                        Text("\(quotaRow.amountText)\(quotaRow.suffixText)")
                             .font(.caption.weight(.semibold))
                             .monospacedDigit()
                             .lineLimit(1)

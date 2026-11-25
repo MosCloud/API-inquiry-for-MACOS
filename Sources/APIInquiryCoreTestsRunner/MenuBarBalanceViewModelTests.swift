@@ -44,6 +44,9 @@ enum MenuBarBalanceViewModelTests {
         await testSecondaryProviderRowsExposeOtherProviders(using: harness)
         await testZhipuSecondaryProviderRowsOmitUsedSuffix(using: harness)
         await testWorkBuddySecondaryRowCarriesTheRefreshDate(using: harness)
+        await testWorkBuddyCreditsAreWholeNumbersEverywhere(using: harness)
+        await testWorkBuddyHeroReadsWholeCredits(using: harness)
+        await testOpenAIKeepsItsWindowsBesideTheCreditRow(using: harness)
         await testWorkBuddySecondaryRowFallsBackToTheUnit(using: harness)
         await testWorkBuddySecondaryRowIgnoresAPastRefreshDate(using: harness)
         await testWorkBuddySecondaryRowDropsTheYearAcrossNewYear(using: harness)
@@ -556,7 +559,7 @@ enum MenuBarBalanceViewModelTests {
 
         let row = viewModel.secondaryProviderRows.first { $0.providerID == .workbuddy }
         harness.expectEqual(row?.balanceColumns?.label, "Credits", "the credit label moves into the label column")
-        harness.expectEqual(row?.balanceColumns?.amount, "2899.64", "credits keep two decimals in the panel")
+        harness.expectEqual(row?.balanceColumns?.amount, "2899", "credits read as whole units in the panel")
         harness.expectEqual(row?.balanceColumns?.currency, "06/30", "the trailing cell carries the refresh date")
     }
 
@@ -631,10 +634,13 @@ enum MenuBarBalanceViewModelTests {
         )
 
         let row = viewModel.secondaryProviderRows.first { $0.providerID == .codex }
-        harness.expectEqual(row?.quotaWindowRows.count, 0, "the drained windows give way to one credit row")
-        harness.expectEqual(row?.balanceColumns?.label, "Credits", "the credit row names the unit")
-        harness.expectEqual(row?.balanceColumns?.amount, "53064.42", "the credit amount keeps two decimals")
-        harness.expectEqual(row?.balanceColumns?.currency, "05/18", "the drained window's reset stays in the trailing cell")
+        // #126: the windows stay and the credit row follows them, so the number keeps the
+        // reason it is on screen. The credit row's own reset date is dropped: it describes
+        // the quota, not the credits.
+        harness.expectEqual(row?.quotaWindowRows.count, 3, "two windows plus one credit row")
+        harness.expectEqual(row?.quotaWindowRows.last?.label, "Credits", "the credit row names the unit")
+        harness.expectEqual(row?.quotaWindowRows.last?.amountText, "53064", "the credit amount reads whole credits")
+        harness.expectEqual(row?.quotaWindowRows.last?.resetLabel, nil, "the credit row drops the drained window's reset")
     }
 
     /// Q7: drained with nothing to spend stays a percentage row, so the panel reads 0%.
@@ -679,8 +685,8 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(viewModel.primaryDisplayParts.displayMode, .credits, "the hero knows it is showing credits")
         harness.expectEqual(viewModel.menuBarValueText, "53064", "the bar carries whole credits and no unit")
         harness.expectEqual(viewModel.menuBarTitle, "53064", "codex has no menu title prefix")
-        harness.expectEqual(viewModel.primaryDisplayParts.amountText, "53064.42", "the hero keeps two decimals")
-        harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "credits", "the hero names the unit once")
+        harness.expectEqual(viewModel.primaryDisplayParts.amountText, "53064", "the hero reads whole credits")
+        harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "Credits", "the hero names the unit once")
         harness.expectEqual(viewModel.primaryDisplayParts.captionText, "Weekly 0%", "the drained window stays on screen")
         harness.expectTrue(!viewModel.primaryDisplayParts.usesCompactAmountLayout, "six digits still fit at full size")
     }
@@ -697,7 +703,7 @@ enum MenuBarBalanceViewModelTests {
 
         harness.expectEqual(
             viewModel.menuBarAccessibilityText,
-            "Codex 53064.42 credits",
+            "Codex 53064 Credits",
             "the spoken value names the unit the bar drops"
         )
     }
@@ -1323,6 +1329,109 @@ enum MenuBarBalanceViewModelTests {
             fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
         )
     }
+
+    /// Q1 (#126): the panel and the bar must agree on a credit figure. Before this, the
+    /// bar said 4583.5 while the panel said 4583.58 — two different numbers for one balance.
+    @MainActor
+    private static func testWorkBuddyCreditsAreWholeNumbersEverywhere(using harness: TestHarness) async {
+        let coordinator = makeWorkBuddyCoordinator(refreshingAt: sampleMonthlyResetDate)
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        let row = viewModel.secondaryProviderRows.first { $0.providerID == .workbuddy }
+        harness.expectEqual(row?.balanceColumns?.label, "Credits", "the row still names the unit")
+        harness.expectEqual(row?.balanceColumns?.amount, "2899", "the panel reads whole credits")
+        // The trailing cell keeps the refresh date: that is the one thing the row adds
+        // beyond the balance (#124), and it is not a unit.
+        harness.expectEqual(row?.balanceColumns?.currency, "06/30", "the refresh date survives the precision change")
+    }
+
+    /// Q4/Q6 (#126): a drained provider keeps its quota rows *and* gains a credit row
+    /// underneath them, instead of trading one for the other. Without the windows on
+    /// screen the credit number loses the reason it is there.
+    @MainActor
+    private static func testOpenAIKeepsItsWindowsBesideTheCreditRow(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(
+            primaryProviderID: .deepseek,
+            codexSnapshot: makeDrainedCodexSnapshot(credits: .balance(Decimal(string: "53064.4233895001")!))
+        )
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        let row = viewModel.secondaryProviderRows.first { $0.providerID == .codex }
+        // Two windows plus the credit row, in that order (Q6: credits last).
+        harness.expectEqual(
+            row?.quotaWindowRows.map(\.label),
+            ["5h", "Weekly", "Credits"],
+            "the windows stay on screen and the credit row follows them"
+        )
+        harness.expectEqual(
+            row?.quotaWindowRows.first?.amountText,
+            "100",
+            "the five-hour window keeps its percentage"
+        )
+        harness.expectEqual(
+            row?.quotaWindowRows.last?.amountText,
+            "53064",
+            "the credit row reads whole credits"
+        )
+        // A credit row is not a percentage: the view draws the suffix, so an empty one
+        // must stay empty instead of becoming a stray `%`.
+        harness.expectEqual(
+            row?.quotaWindowRows.last?.suffixText,
+            "",
+            "the credit row carries no percent sign"
+        )
+        harness.expectEqual(
+            row?.quotaWindowRows.first?.suffixText,
+            "%",
+            "the windows still carry theirs"
+        )
+        // The drained window's reset date said nothing about the credits themselves.
+        harness.expectEqual(
+            row?.quotaWindowRows.last?.resetLabel,
+            nil,
+            "the credit row drops the meaningless reset date"
+        )
+        harness.expectEqual(
+            row?.balanceColumns,
+            nil,
+            "a provider with windows does not fall back to the balance layout"
+        )
+    }
+
+    /// The hero is the largest surface on the panel, and it was still reading
+    /// `4484.76` beside a bar that said `4484` (found by looking at the real app, not
+    /// by a test). One balance, one value (#126).
+    @MainActor
+    private static func testWorkBuddyHeroReadsWholeCredits(using harness: TestHarness) async {
+        let coordinator = makeWorkBuddyCoordinator(refreshingAt: sampleMonthlyResetDate)
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        guard let workBuddy = viewModel.secondaryProviderRows.first(where: { $0.providerID == .workbuddy }) else {
+            harness.expectTrue(false, "WorkBuddy row is missing")
+            return
+        }
+        harness.expectEqual(workBuddy.balanceColumns?.amount, "2899", "the row reads whole credits")
+
+        // Money is unaffected: it keeps its two decimals in the hero.
+        let moneyViewModel = makeViewModel(state: .loaded(.balance(makeSnapshot(total: "68.65"))))
+        harness.expectEqual(
+            moneyViewModel.primaryDisplayParts.amountText,
+            "68.65",
+            "money keeps two decimals in the hero"
+        )
+    }
 }
 
 private final class WeeklyOnlyCodexMockHTTPClient: HTTPClient {
@@ -1343,4 +1452,5 @@ private final class WeeklyOnlyCodexMockHTTPClient: HTTPClient {
             statusCode: 200
         )
     }
+
 }

@@ -348,18 +348,20 @@ public struct LocalizedStrings: Equatable {
 
     /// The unit a credit balance is denominated in.
     ///
+    /// The name of the credit unit. One string, two grid positions (#126).
+    ///
     /// WorkBuddy sells credits rather than money, and the snapshot reports the currency
     /// code `CREDITS` so the formatter can tell the two apart. Rendering that code raw
     /// would put "2,899.64 CREDITS" on screen; the unit is localised instead.
-    public var creditUnitLabel: String {
-        text(en: "credits", zh: "积分")
-    }
-
-    /// The label column of a credit row in the panel's grid.
     ///
-    /// Capitalised because it sits where 「余额 / Balance」 sits, as a column heading rather
-    /// than as a unit trailing a number (#124).
-    public var creditsRowLabel: String {
+    /// It is the unit when a row has nowhere else to put it (`4584 Credits`), and the
+    /// label column's heading when the trailing cell is needed for something else
+    /// (`积分 | 4584 | 12/07`). The credit row puts the unit in the label column because
+    /// its trailing cell carries the refresh date: repeating the unit there would say
+    /// the same word twice on one row (#124). Both positions name the same unit, which
+    /// is why there is one field and not two. Capitalised because the label column sits
+    /// where 「余额 / Balance」 sits, as a heading rather than a number's tail.
+    public var creditUnitLabel: String {
         text(en: "Credits", zh: "积分")
     }
 

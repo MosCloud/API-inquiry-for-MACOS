@@ -11,6 +11,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Changed
 
+- Credits read as whole units on every surface, and money keeps one decimal. The bar said `4583.5` while the panel said `4583.58` — two values for one balance — so both now truncate to the integer part, matching the existing "never overstate what is left" rule. Money (`29.5 CNY`) is a different kind of number and keeps its decimal. (#126)
+- A drained provider keeps its quota windows and gains a credit row below them, instead of trading the windows for it: `5h 100%` / `Weekly 0%` / `Credits 53064`. The credit row carries no percent sign and no reset date, because neither describes a credit balance. (#126)
+- The credit unit reads `Credits` / 「积分」 everywhere, including the Console cell that had bypassed localization with a hard-coded `Credits`. `creditsRowLabel` folds into `creditUnitLabel`: one word, one field. (#126)
 - WorkBuddy's plan packages are read as capacity type **2**, and slice rows (4) are dropped. The provider had treated 4 as the monthly type, which is what the vendor's client uses for sliced resources it discards: every real package was filed as a one-off grant, so the panel never had a refresh date and the plan's credits counted as granted. Re-derived from a real CN account: plan allowance 1,165.99 and rewards 3,491, refreshing 2026-12-07 09:22:39, rewards expiring 2026-12-08 07:58:26 — matching the vendor's own screen. (#124)
 - WorkBuddy's secondary row moved its unit into the label column and now carries the next refresh date (`MM/dd`) in the trailing cell, which is the only information that row had left to give. `docs/provider-onboarding.md` §5.2 records a narrow exception to the "a date in the trailing cell needs a spelled-out neighbour" rule, and the condition that keeps it narrow. (#124)
 

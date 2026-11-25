@@ -51,7 +51,7 @@ public enum ProviderValueFormatter {
             guard balance >= 0 else {
                 return "--"
             }
-            return "\(formatCredits(balance)) Credits"
+            return "\(formatCredits(balance)) \(strings.creditUnitLabel)"
         case .unlimited:
             return strings.creditsUnlimited
         }
@@ -77,7 +77,12 @@ public enum ProviderValueFormatter {
         }
     }
 
-    /// The hero's credit value: two decimals, still no unit (the suffix carries it).
+    /// The panel's credit value: whole credits, still no unit (the suffix carries it).
+    ///
+    /// The same rule as `creditsMenuText`: credits are a unit of account, and a hundredth
+    /// of one is not a quantity anyone can spend. Showing `4583.58` in the panel while the
+    /// bar said `4583.5` gave one balance two values, so both surfaces truncate to the
+    /// integer part (#126). Truncated, not rounded, to match the rest of the app.
     public static func creditsAmountText(
         for credits: CodexCredits,
         strings: LocalizedStrings = LocalizedStrings(language: .en)
@@ -89,7 +94,7 @@ public enum ProviderValueFormatter {
             guard balance >= 0 else {
                 return "--"
             }
-            return formatNumber(truncate(balance, scale: 2), fractionDigits: 2)
+            return formatNumber(truncate(balance, scale: 0), fractionDigits: 0)
         }
     }
 
@@ -182,8 +187,10 @@ public enum ProviderValueFormatter {
         amountValue(window.remainingPercentage, scale: 0)
     }
 
-    static func primaryAmountText(forBalance total: Decimal) -> String {
-        formatNumber(truncate(total, scale: 2), fractionDigits: 2)
+    /// The hero's balance value. The caller picks the precision: credits read as whole
+    /// units, money keeps two decimals so the shape itself says which one it is (#126).
+    static func primaryAmountText(forBalance total: Decimal, fractionDigits: Int = 2) -> String {
+        formatNumber(truncate(total, scale: fractionDigits), fractionDigits: fractionDigits)
     }
 
     static func primaryQuotaWindow(in usage: QuotaUsageSnapshot) -> QuotaWindowSnapshot? {

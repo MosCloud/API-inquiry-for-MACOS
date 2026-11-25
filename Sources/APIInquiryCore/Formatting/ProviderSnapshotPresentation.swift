@@ -77,17 +77,26 @@ public extension ProviderSnapshotPresentation {
                 strings: strings
             )
             return ProviderSnapshotPresentation(
+                // Credits and money are different kinds of number (#126): a credit balance
+                // is a whole-unit quantity, so a hundredth of one is not a figure anyone can
+                // spend. Money keeps its decimals — `29.5` is what tells the two apart.
                 menuValueText: ProviderValueFormatter.formatAmount(
                     balance.totalBalance,
                     currency: balance.currency,
-                    fractionDigits: 1,
+                    fractionDigits: isCredits ? 0 : 1,
                     includeCurrencyCode: false,
                     strings: strings
                 ),
                 detailText: detail,
                 consoleDetailText: detail,
-                amountText: ProviderValueFormatter.primaryAmountText(forBalance: balance.totalBalance),
-                amountValue: ProviderValueFormatter.amountValue(balance.totalBalance, scale: 2),
+                amountText: ProviderValueFormatter.primaryAmountText(
+                    forBalance: balance.totalBalance,
+                    fractionDigits: isCredits ? 0 : 2
+                ),
+                amountValue: ProviderValueFormatter.amountValue(
+                    balance.totalBalance,
+                    scale: isCredits ? 0 : 2
+                ),
                 amountTone: ProviderToneResolver.balanceAmountTone(for: balance.totalBalance),
                 healthTone: ProviderToneResolver.balanceAmountTone(for: balance.totalBalance),
                 leadingText: currencyCode == "CNY" ? "¥" : "",
@@ -104,10 +113,13 @@ public extension ProviderSnapshotPresentation {
                         strings: strings
                     )
                 },
+                // One rule per kind of number (#126): credits are a unit of account and
+                // read as whole units, money keeps one decimal so `29.5 CNY` still shows
+                // it is money. Both truncate, so neither ever overstates what is left.
                 compactAmountText: ProviderValueFormatter.formatAmount(
                     balance.totalBalance,
                     currency: balance.currency,
-                    fractionDigits: isCredits ? 2 : 1,
+                    fractionDigits: isCredits ? 0 : 1,
                     includeCurrencyCode: false,
                     includeSymbol: false,
                     strings: strings

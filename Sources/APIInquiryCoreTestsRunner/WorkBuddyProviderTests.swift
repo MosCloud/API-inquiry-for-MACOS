@@ -408,7 +408,7 @@ enum WorkBuddyProviderTests {
 
         harness.expectEqual(
             ProviderValueFormatter.formatAmount(Decimal(string: "2899.64")!, currency: "CREDITS", fractionDigits: 2, includeCurrencyCode: true, strings: english),
-            "2899.64 credits",
+            "2899.64 Credits",
             "english renders the credit unit"
         )
         harness.expectEqual(
