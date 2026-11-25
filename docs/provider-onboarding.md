@@ -247,7 +247,9 @@ These are hard constraints in the current code, not style preferences:
 
 - **The hero area is for quota windows only.** `MenuBarBalanceViewModel.primaryQuotaWindowRow`
   picks the 5-hour window (else the first). A balance provider never reaches the hero — it
-  is always a secondary row.
+  is always a secondary row. The one exception is a drained window with spendable credits:
+  `ProviderSnapshotPresentation.displayMode` becomes `.credits` and the hero draws the credit
+  balance in the balance row's layout, with the drained window kept as its caption (#123).
 - **A balance row is three fixed columns**, fitted per render to the content on screen.
   Widths are clamped: label `24…46`, value `26…72`, trailing `24…44` (`SecondaryRowColumns`).
   A long value ellipsizes rather than shrinking the font.
@@ -256,6 +258,18 @@ These are hard constraints in the current code, not style preferences:
 - **A date in the trailing cell needs a spelled-out neighbour.** A bare `11/05` beside a
   number reads as a fraction. Either the row's label says what the date means, or the date
   belongs in the Console with a prefix.
+
+  **One narrow exception (v0.4.4).** A single-row credit balance may put a bare `MM/dd` in
+  the trailing cell when all three of these hold: the label column already names the unit
+  (`积分` / `Credits`), the row holds exactly one number, and the value is plain — no ratio,
+  no slash, no second date. The cell then means "next refresh", and the row has to say so
+  out loud: `SecondaryRowColumns.trailingAccessibilityText` carries the spelled-out sentence
+  for VoiceOver and the cell tooltip. Why the exception exists rather than the old rule
+  holding: the unit in the trailing cell said nothing the label had not already said, while
+  the date is the only information that row had left to give. Why it stays narrow: a date
+  beside a number is exactly what reads as a fraction, and the exception survives only
+  because the label and the spoken sentence remove that reading. Any provider that copies
+  the date without the label breaking first will reintroduce the ambiguity.
 
 ### 5.3 Two dates with two meanings must stay two fields
 

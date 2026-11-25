@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+### 新增功能
+
+- Codex 任一额度窗口归零时，面板回落显示积分：菜单栏、英雄区、非英雄区共用 `ProviderSnapshotPresentation` 一次算出的 `QuotaDisplayMode`，不会再对同一份快照给出互相矛盾的说法。额度归零且积分也归零时保持 `0%`，不会声称一个零积分余额。`QuotaUsageSnapshot.creditsSupported` 把「这个供应商没有积分」和「积分没读到」分开。(#123)
+
+### 变更
+
+- WorkBuddy 的副行把单位挪进标签列，尾列改为下次刷新日期（`MM/dd`）——那是这一行唯一还有的信息。`docs/provider-onboarding.md` §5.2 记录了一条窄例外，并写明维持它成立的条件。(#124)
+
 ## [0.4.3] - 2026-11-02
 
 ### 新增功能

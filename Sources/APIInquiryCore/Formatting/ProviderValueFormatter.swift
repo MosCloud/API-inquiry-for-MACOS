@@ -57,6 +57,84 @@ public enum ProviderValueFormatter {
         }
     }
 
+    /// The menu bar's credit value: whole credits, no unit.
+    ///
+    /// The bar shares its row with the system's own status items, so the unit costs width
+    /// it cannot spare (`积分 53,064.4` measures 84 pt against 44 pt for `53,064`). Truncated
+    /// rather than rounded, so the shown number never overstates what is left (#123).
+    public static func creditsMenuText(
+        for credits: CodexCredits,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
+        switch credits {
+        case .unlimited:
+            return "∞"
+        case .balance(let balance):
+            guard balance >= 0 else {
+                return "--"
+            }
+            return formatNumber(truncate(balance, scale: 0), fractionDigits: 0)
+        }
+    }
+
+    /// The hero's credit value: two decimals, still no unit (the suffix carries it).
+    public static func creditsAmountText(
+        for credits: CodexCredits,
+        strings: LocalizedStrings = LocalizedStrings(language: .en)
+    ) -> String {
+        switch credits {
+        case .unlimited:
+            return strings.creditsUnlimited
+        case .balance(let balance):
+            guard balance >= 0 else {
+                return "--"
+            }
+            return formatNumber(truncate(balance, scale: 2), fractionDigits: 2)
+        }
+    }
+
+    /// The transition value for a credit amount, matching `amountValue`'s contract: nil
+    /// when there is no number to animate to.
+    public static func creditsAmountValue(for credits: CodexCredits) -> Double? {
+        switch credits {
+        case .unlimited:
+            return nil
+        case .balance(let balance):
+            guard balance >= 0 else {
+                return nil
+            }
+            return amountValue(balance, scale: 2)
+        }
+    }
+
+    /// Whether the snapshot can actually pay for more work with credits.
+    ///
+    /// A zero balance and an unreadable one both mean "no"; `.unlimited` always means yes.
+    /// This is the only place that decides, so the three surfaces cannot disagree (#123).
+    public static func hasSpendableCredits(_ credits: CodexCredits?) -> Bool {
+        switch credits {
+        case .unlimited:
+            return true
+        case .balance(let balance):
+            return balance > 0
+        case nil:
+            return false
+        }
+    }
+
+    /// The window a drained panel should focus: the one with the least left, and the
+    /// five-hour window when two are tied, so a 100% window never headlines beside a `0%`.
+    public static func drainedQuotaWindow(in usage: QuotaUsageSnapshot) -> QuotaWindowSnapshot? {
+        usage.windows
+            .filter(\.isExhausted)
+            .min { left, right in
+                if left.remainingPercentage != right.remainingPercentage {
+                    return left.remainingPercentage < right.remainingPercentage
+                }
+                return left.resolvedKind != .fiveHour && right.resolvedKind == .fiveHour
+            }
+    }
+
     public static func primaryDisplayParts(
         descriptor: ProviderDescriptor,
         state: BalanceState,
@@ -72,7 +150,8 @@ public enum ProviderValueFormatter {
                 amountValue: nil,
                 amountTone: .neutral,
                 trailingText: "",
-                captionText: ""
+                captionText: "",
+                displayMode: descriptor.detailKind == .quotaUsage ? .percentage : .amount
             )
         }
 
@@ -86,7 +165,8 @@ public enum ProviderValueFormatter {
             amountValue: presentation.amountValue,
             amountTone: presentation.amountTone,
             trailingText: presentation.trailingText,
-            captionText: presentation.captionText
+            captionText: presentation.captionText,
+            displayMode: presentation.displayMode
         )
     }
 

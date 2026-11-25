@@ -349,6 +349,14 @@ public struct LocalizedStrings: Equatable {
         text(en: "credits", zh: "积分")
     }
 
+    /// The label column of a credit row in the panel's grid.
+    ///
+    /// Capitalised because it sits where 「余额 / Balance」 sits, as a column heading rather
+    /// than as a unit trailing a number (#124).
+    public var creditsRowLabel: String {
+        text(en: "Credits", zh: "积分")
+    }
+
     /// The hint shown when WorkBuddy's sign-in exists but its credential cannot be read.
     ///
     /// Deliberately not the generic "not configured" copy: the user IS signed in, and

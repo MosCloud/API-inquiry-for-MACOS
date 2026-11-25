@@ -90,8 +90,27 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     }
 
     public var menuBarAccessibilityText: String {
-        let text = "\(providerDisplayName) \(menuBarValueText)"
+        var text = "\(providerDisplayName) \(menuBarValueText)"
+        // A credit value is a bare number on purpose (the bar has no room for a unit), so
+        // the spoken form has to supply what the glyphs drop — otherwise VoiceOver reads
+        // "53064" with no idea what it counts (#123).
+        if primaryDisplayParts.displayMode == .credits {
+            text = "\(providerDisplayName) \(creditAccessibilityValue)"
+        }
         return isShowingStaleValue ? text + strings.staleValueAccessibilitySuffix : text
+    }
+
+    /// The spoken credit value: the number with its unit, spelled out.
+    private var creditAccessibilityValue: String {
+        let credits = activeState.lastQuotaUsageSnapshot?.credits
+        switch credits {
+        case .unlimited:
+            return strings.creditsUnlimited
+        case .balance(let balance):
+            return "\(ProviderValueFormatter.creditsAmountText(for: .balance(balance), strings: strings)) \(strings.creditUnitLabel)"
+        case nil:
+            return menuBarValueText
+        }
     }
 
     public var panelBalanceText: String {
@@ -109,7 +128,8 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                 amountValue: nil,
                 amountTone: .neutral,
                 trailingText: "",
-                captionText: ""
+                captionText: "",
+                displayMode: .percentage
             )
         }
 
@@ -133,12 +153,21 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                     return nil
                 }
                 let state = coordinator.state(for: id)
+                let presentation = state.lastSnapshot.map {
+                    ProviderSnapshotPresentation.make(from: $0, strings: strings)
+                }
+                // A provider whose quota is drained shows one credit row instead of one row
+                // per window (#123): two 0% rows would still say nothing about the credits
+                // that can pay for the next request.
+                let isCredits = presentation?.displayMode == .credits
                 return ProviderDetailRow(
                     providerID: id,
                     displayName: descriptor.secondaryDisplayName,
                     detailText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot, strings: strings),
-                    quotaWindowRows: quotaWindowRows(for: state, suffixText: "%"),
-                    balanceColumns: balanceColumns(for: state),
+                    quotaWindowRows: isCredits ? [] : quotaWindowRows(for: state, suffixText: "%"),
+                    balanceColumns: isCredits
+                        ? creditsColumns(for: state, presentation: presentation)
+                        : balanceColumns(for: state),
                     statusText: ProviderDisplayFormatter.statusText(
                         for: state,
                         accessPurpose: descriptor.accessPurpose,
@@ -188,20 +217,66 @@ public final class MenuBarBalanceViewModel: ObservableObject {
     /// A prepaid balance fills the same label/amount/currency columns the quota rows use,
     /// so the money column lines up with the percentages above and below it (#80).
     private func balanceColumns(for state: BalanceState) -> SecondaryRowColumns? {
-        guard case .balance = state.lastSnapshot,
+        guard let balance = state.lastBalanceSnapshot,
               let snapshot = state.lastSnapshot else {
             return nil
         }
 
         let presentation = ProviderSnapshotPresentation.make(from: snapshot, strings: strings)
+        // Credits name themselves in the label column and spend the trailing cell on the
+        // date instead: 「积分 / 2,899.64 / 11/30」 answers "how much" and "until when" in
+        // the width the grid already has, where 「积分」 in the trailing cell said nothing
+        // the label had not already said (#124). Money keeps the unit there, because a
+        // currency code is what tells ¥ from a bare number.
+        let isCredits = ProviderValueFormatter.isCreditCurrency(balance.currency)
+        let refreshDate = isCredits ? creditRefreshColumn(for: balance) : nil
         return SecondaryRowColumns(
-            label: strings.balanceRowLabel,
+            label: isCredits ? strings.creditsRowLabel : strings.balanceRowLabel,
             amount: presentation.compactAmountText ?? presentation.amountText,
-            // The trailing cell always carries the unit. The date belongs in the
-            // Console, where there is room to say which date means what; in the panel a
-            // bare "11/05" beside a number read as a fraction.
-            currency: presentation.trailingText
+            // No date means no trailing content: repeating the unit the label column
+            // already carries would say the same word twice on one row.
+            currency: isCredits ? (refreshDate ?? "") : presentation.trailingText,
+            trailingAccessibilityText: refreshDate.map {
+                "\(strings.refreshesOnPrefix) \($0)"
+            }
         )
+    }
+
+    /// The one row a drained provider gets in the panel: credits, not exhausted windows.
+    ///
+    /// The trailing cell carries the drained window's reset, the same date the percentage
+    /// rows put there, so the row still answers "when does this come back" and the shared
+    /// column stays populated instead of collapsing to its floor (#123).
+    private func creditsColumns(
+        for state: BalanceState,
+        presentation: ProviderSnapshotPresentation?
+    ) -> SecondaryRowColumns? {
+        guard let presentation else {
+            return nil
+        }
+        let drained = state.lastQuotaUsageSnapshot.flatMap(
+            ProviderValueFormatter.drainedQuotaWindow(in:)
+        )
+        return SecondaryRowColumns(
+            label: strings.creditsRowLabel,
+            amount: presentation.compactAmountText ?? presentation.amountText,
+            currency: drained.flatMap { timeFormatter.resetLabel(for: $0)?.short } ?? ""
+        )
+    }
+
+    /// The trailing cell of a credit row: the next time a monthly allowance is topped back
+    /// up, formatted the way every other row dates a reset (`MM/dd`).
+    ///
+    /// Narrows the "a date in the trailing cell needs a spelled-out neighbour" rule in
+    /// `docs/provider-onboarding.md` §5.2: the label column already says 「积分」, the row
+    /// holds exactly one number, and the accessibility label spells the date out. A date
+    /// that has already passed falls back to the unit instead of showing a stale day
+    /// (#102 / #124).
+    private func creditRefreshColumn(for balance: BalanceSnapshot) -> String? {
+        guard let refresh = balance.refreshingAt, refresh > balance.fetchedAt else {
+            return nil
+        }
+        return timeFormatter.expiryShortText(for: refresh)
     }
 
     private func quotaWindowRows(for state: BalanceState, suffixText: String) -> [QuotaWindowDisplayRow] {

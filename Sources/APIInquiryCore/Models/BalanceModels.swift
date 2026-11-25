@@ -67,6 +67,16 @@ public struct QuotaWindowSnapshot: Equatable {
     public var resolvedKind: QuotaWindowKind? {
         kind ?? QuotaWindowKind(label: label)
     }
+
+    /// Whether this window has nothing left.
+    ///
+    /// One predicate for every surface: the payloads do not agree on how they express
+    /// exhaustion (`isAvailable` is provider-defined, and a percentage can be clamped to
+    /// zero), so the panel must not re-derive it per call or the menu bar and the hero can
+    /// disagree about the same snapshot (#123).
+    public var isExhausted: Bool {
+        !isAvailable || remainingPercentage <= 0
+    }
 }
 
 public enum CodexCredits: Equatable {
@@ -80,19 +90,28 @@ public struct QuotaUsageSnapshot: Equatable {
     public let windows: [QuotaWindowSnapshot]
     public let fetchedAt: Date
     public let credits: CodexCredits?
+    /// Whether this provider can pay for usage past a drained window with credits.
+    ///
+    /// Distinct from `credits != nil`: a payload can omit the block while the account still
+    /// has the concept, and the panel has to tell "no credits to report" (fall back to the
+    /// drained percentage) from "this provider never sells credits" (leave it alone). Only
+    /// the provider knows, so it declares it here (#123).
+    public let creditsSupported: Bool
 
     public init(
         providerID: ProviderID,
         planName: String,
         windows: [QuotaWindowSnapshot],
         fetchedAt: Date,
-        credits: CodexCredits? = nil
+        credits: CodexCredits? = nil,
+        creditsSupported: Bool = false
     ) {
         self.providerID = providerID
         self.planName = planName
         self.windows = windows
         self.fetchedAt = fetchedAt
         self.credits = credits
+        self.creditsSupported = creditsSupported
     }
 
     public var isAvailable: Bool {
