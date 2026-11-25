@@ -27,5 +27,20 @@ enum QuotaWindowKindTests {
         )
         harness.expectEqual(quota.label, "Week", "quota keeps provider label")
         harness.expectEqual(quota.resolvedKind, .week, "quota exposes semantic kind")
+
+        // One exhaustion predicate for every surface (#123): the payloads disagree on how
+        // they express "nothing left", so the panel must not re-derive it.
+        harness.expectTrue(
+            QuotaWindowSnapshot(label: "Week", remainingPercentage: 0, resetAt: nil, isAvailable: true).isExhausted,
+            "a clamped zero percentage counts as exhausted even when the flag still says available"
+        )
+        harness.expectTrue(
+            QuotaWindowSnapshot(label: "Week", remainingPercentage: 12, resetAt: nil, isAvailable: false).isExhausted,
+            "a provider that flags itself unavailable counts as exhausted"
+        )
+        harness.expectTrue(
+            !QuotaWindowSnapshot(label: "5h", remainingPercentage: 1, resetAt: nil, isAvailable: true).isExhausted,
+            "one percent left is not exhausted"
+        )
     }
 }

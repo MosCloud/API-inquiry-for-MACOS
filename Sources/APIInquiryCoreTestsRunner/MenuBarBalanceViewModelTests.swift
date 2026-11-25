@@ -43,6 +43,14 @@ enum MenuBarBalanceViewModelTests {
         await testCodexSecondaryProviderRowsExposeQuotaUsage(using: harness)
         await testSecondaryProviderRowsExposeOtherProviders(using: harness)
         await testZhipuSecondaryProviderRowsOmitUsedSuffix(using: harness)
+        await testWorkBuddySecondaryRowCarriesTheRefreshDate(using: harness)
+        await testWorkBuddySecondaryRowFallsBackToTheUnit(using: harness)
+        await testWorkBuddySecondaryRowIgnoresAPastRefreshDate(using: harness)
+        await testWorkBuddySecondaryRowDropsTheYearAcrossNewYear(using: harness)
+        await testCodexSecondaryRowShowsCreditsWhenAWindowIsDrained(using: harness)
+        await testCodexSecondaryRowKeepsZeroPercentWithoutCredits(using: harness)
+        await testCodexCreditsReachTheMenuBar(using: harness)
+        await testCodexCreditsSpellTheUnitOutForVoiceOver(using: harness)
         await testRefreshUpdatesAllAddedProviders(using: harness)
         await testRefreshReportsOutcome(using: harness)
     }
@@ -519,8 +527,7 @@ enum MenuBarBalanceViewModelTests {
     }
 
     @MainActor
-    private static func testZhipuSecondaryProviderRowsOmitUsedSuffix(using harness: TestHarness) async {
-        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .deepseek, resetAt: sampleResetDate)
+    private static func testZhipuSecondaryProviderRowsOmitUsedSuffix(using harness: TestHarness) async {        let coordinator = makeMultiProviderCoordinator(primaryProviderID: .deepseek, resetAt: sampleResetDate)
         await coordinator.refreshAddedProviders()
         let viewModel = MenuBarBalanceViewModel(
             coordinator: coordinator,
@@ -531,6 +538,216 @@ enum MenuBarBalanceViewModelTests {
         harness.expectEqual(zhipuRow?.detailText, "5h 83%", "zhipu secondary row detail shows remaining")
         harness.expectEqual(zhipuRow?.quotaWindowRows.first?.resetShortText, "23:05", "zhipu secondary row reset rides the quota row")
         harness.expectEqual(zhipuRow?.balanceColumns, nil, "quota rows do not use the balance columns")
+    }
+
+    /// Q1=b / Q2=C (#124): a credit row says how much is left and when it is topped back up,
+    /// instead of spending its trailing cell on a unit the label column already carries.
+    @MainActor
+    private static func testWorkBuddySecondaryRowCarriesTheRefreshDate(using harness: TestHarness) async {
+        let coordinator = makeWorkBuddyCoordinator(refreshingAt: sampleMonthlyResetDate)
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        let row = viewModel.secondaryProviderRows.first { $0.providerID == .workbuddy }
+        harness.expectEqual(row?.balanceColumns?.label, "Credits", "the credit label moves into the label column")
+        harness.expectEqual(row?.balanceColumns?.amount, "2899.64", "credits keep two decimals in the panel")
+        harness.expectEqual(row?.balanceColumns?.currency, "06/30", "the trailing cell carries the refresh date")
+    }
+
+    /// No monthly package means no date: the cell falls back to the unit so the shared
+    /// column never collapses to its floor (#124).
+    @MainActor
+    private static func testWorkBuddySecondaryRowFallsBackToTheUnit(using harness: TestHarness) async {
+        let coordinator = makeWorkBuddyCoordinator(refreshingAt: nil)
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        let row = viewModel.secondaryProviderRows.first { $0.providerID == .workbuddy }
+        harness.expectEqual(row?.balanceColumns?.label, "Credits", "the label still names the unit")
+        harness.expectEqual(row?.balanceColumns?.currency, "", "without a date the trailing cell stays empty")
+    }
+
+    /// A cycle end that has already passed is not a date worth showing (#102's lesson).
+    @MainActor
+    private static func testWorkBuddySecondaryRowIgnoresAPastRefreshDate(using harness: TestHarness) async {
+        let coordinator = makeWorkBuddyCoordinator(refreshingAt: Date(timeIntervalSince1970: 1_000_000))
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        let row = viewModel.secondaryProviderRows.first { $0.providerID == .workbuddy }
+        harness.expectEqual(row?.balanceColumns?.currency, "", "a past date is not shown")
+    }
+
+    /// `MM/dd` has no year, which is the documented limitation: a January date inside a
+    /// December panel reads as the coming January, which is what the accessibility label
+    /// spells out (#124).
+    @MainActor
+    private static func testWorkBuddySecondaryRowDropsTheYearAcrossNewYear(using harness: TestHarness) async {
+        let newYear = Date(timeIntervalSince1970: 1_799_000_000)  // 2027-01-03, UTC
+        let coordinator = makeWorkBuddyCoordinator(refreshingAt: newYear)
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        let row = viewModel.secondaryProviderRows.first { $0.providerID == .workbuddy }
+        harness.expectEqual(row?.balanceColumns?.currency, "01/03", "a cross-year date keeps the compact form")
+    }
+
+    /// #123: one drained window turns the two percentage rows into a single credit row.
+    @MainActor
+    private static func testCodexSecondaryRowShowsCreditsWhenAWindowIsDrained(using harness: TestHarness) async {
+        let drained = QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: Decimal(100),
+                                    resetAt: sampleResetDate, isAvailable: true),
+                QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: Decimal(0),
+                                    resetAt: sampleWeeklyResetDate, isAvailable: false)
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000),
+            credits: .balance(Decimal(string: "53064.4233895001")!),
+            creditsSupported: true
+        )
+        let coordinator = makeCodexCoordinator(primaryProviderID: .deepseek, codexSnapshot: drained)
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        let row = viewModel.secondaryProviderRows.first { $0.providerID == .codex }
+        harness.expectEqual(row?.quotaWindowRows.count, 0, "the drained windows give way to one credit row")
+        harness.expectEqual(row?.balanceColumns?.label, "Credits", "the credit row names the unit")
+        harness.expectEqual(row?.balanceColumns?.amount, "53064.42", "the credit amount keeps two decimals")
+        harness.expectEqual(row?.balanceColumns?.currency, "05/18", "the drained window's reset stays in the trailing cell")
+    }
+
+    /// Q7: drained with nothing to spend stays a percentage row, so the panel reads 0%.
+    @MainActor
+    private static func testCodexSecondaryRowKeepsZeroPercentWithoutCredits(using harness: TestHarness) async {
+        let drained = QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: Decimal(100),
+                                    resetAt: sampleResetDate, isAvailable: true),
+                QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: Decimal(0),
+                                    resetAt: sampleWeeklyResetDate, isAvailable: false)
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000),
+            credits: .balance(0),
+            creditsSupported: true
+        )
+        let coordinator = makeCodexCoordinator(primaryProviderID: .deepseek, codexSnapshot: drained)
+        await coordinator.refreshAddedProviders()
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        let row = viewModel.secondaryProviderRows.first { $0.providerID == .codex }
+        harness.expectEqual(row?.quotaWindowRows.map(\.amountText), ["100", "0"], "the percentage rows stay")
+        harness.expectEqual(row?.balanceColumns, nil, "no credit row without spendable credits")
+    }
+
+    /// #123: the menu bar drops to a bare credit number so the hero, the bar and the row
+    /// all tell the same story.
+    @MainActor
+    private static func testCodexCreditsReachTheMenuBar(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, codexSnapshot: makeDrainedCodexSnapshot(credits: .balance(Decimal(string: "53064.42")!)))
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(viewModel.primaryDisplayParts.displayMode, .credits, "the hero knows it is showing credits")
+        harness.expectEqual(viewModel.menuBarValueText, "53064", "the bar carries whole credits and no unit")
+        harness.expectEqual(viewModel.menuBarTitle, "53064", "codex has no menu title prefix")
+        harness.expectEqual(viewModel.primaryDisplayParts.amountText, "53064.42", "the hero keeps two decimals")
+        harness.expectEqual(viewModel.primaryDisplayParts.trailingText, "credits", "the hero names the unit once")
+        harness.expectEqual(viewModel.primaryDisplayParts.captionText, "Weekly 0%", "the drained window stays on screen")
+        harness.expectTrue(!viewModel.primaryDisplayParts.usesCompactAmountLayout, "six digits still fit at full size")
+    }
+
+    /// The bar shows `53064`; VoiceOver must not read a unitless number (#123).
+    @MainActor
+    private static func testCodexCreditsSpellTheUnitOutForVoiceOver(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(primaryProviderID: .codex, codexSnapshot: makeDrainedCodexSnapshot(credits: .balance(Decimal(string: "53064.42")!)))
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(
+            viewModel.menuBarAccessibilityText,
+            "Codex 53064.42 credits",
+            "the spoken value names the unit the bar drops"
+        )
+    }
+
+    private static func makeDrainedCodexSnapshot(credits: CodexCredits) -> QuotaUsageSnapshot {
+        QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: Decimal(100),
+                                    resetAt: sampleResetDate, isAvailable: true),
+                QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: Decimal(0),
+                                    resetAt: sampleWeeklyResetDate, isAvailable: false)
+            ],
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000),
+            credits: credits,
+            creditsSupported: true
+        )
+    }
+
+    @MainActor
+    private static func makeWorkBuddyCoordinator(refreshingAt: Date?) -> MultiProviderBalanceCoordinator {
+        let credits = BalanceSnapshot(
+            providerID: .workbuddy,
+            totalBalance: Decimal(string: "2899.64")!,
+            currency: "CREDITS",
+            isAvailable: true,
+            grantedBalance: Decimal(string: "2399.64"),
+            toppedUpBalance: Decimal(500),
+            expiringAt: nil,
+            refreshingAt: refreshingAt,
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        return MultiProviderBalanceCoordinator(
+            registrations: testRegistrations(for: [
+                MockBalanceProvider(
+                    id: .deepseek,
+                    results: [.success(.balance(makeSnapshot(providerID: .deepseek, total: "68.65")))]
+                ),
+                MockBalanceProvider(
+                    id: .workbuddy,
+                    results: [.success(.balance(credits))]
+                )
+            ]),
+            credentialStore: InMemoryCredentialStore(credentialsByAccount: [
+                "deepseek-api-key": "deepseek-key",
+                testCredentialAccount(for: .workbuddy): "workbuddy-credential"
+            ]),
+            preferences: InMemoryProviderPreferencesStore(
+                addedProviderIDs: [.deepseek, .workbuddy],
+                primaryProviderID: .deepseek
+            )
+        )
     }
 
     @MainActor

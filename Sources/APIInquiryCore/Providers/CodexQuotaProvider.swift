@@ -67,7 +67,11 @@ public final class CodexQuotaProvider: BalanceProvider {
             planName: normalizedPlanName(payload.planType),
             windows: windows,
             fetchedAt: now(),
-            credits: payload.credits
+            credits: payload.credits,
+            // Codex is the one provider that sells credits to cover a drained window, so it
+            // declares the capability here rather than the panel inferring it from the
+            // presence of a `credits` block, which is absent on some plans (#123).
+            creditsSupported: true
         )
     }
 

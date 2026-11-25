@@ -13,6 +13,10 @@ public enum FixtureScenario: String, CaseIterable, Sendable {
     case multi
     case warning
     case unconfigured
+    /// Codex with the weekly window drained and credits that can pay for more (#123).
+    case codexDrainedCredits
+    /// Codex with the weekly window drained and nothing to spend (#123, Q7).
+    case codexDrainedNoCredits
 }
 
 public enum FixtureMode {
@@ -108,7 +112,33 @@ public struct FixtureScenarioData {
                 preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [.deepseek], primaryProviderID: .deepseek),
                 defaultProviderID: .deepseek
             )
+
+        case .codexDrainedCredits:
+            return codexDrained(now: now, credits: .balance(Decimal(string: "53064.4233895001")!))
+
+        case .codexDrainedNoCredits:
+            return codexDrained(now: now, credits: .balance(0))
         }
+    }
+
+    /// Codex as the primary provider with the weekly window drained. Shows the credit
+    /// fallback (#123) without waiting for a real account to run out, and the `0%` variant
+    /// that Q7 requires when there is nothing left to spend.
+    private static func codexDrained(now: Date, credits: CodexCredits) -> FixtureScenarioData {
+        let snapshot = QuotaUsageSnapshot(
+            providerID: .codex,
+            planName: "Plus",
+            windows: [
+                QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: Decimal(100),
+                                    resetAt: now.addingTimeInterval(3_600), isAvailable: true),
+                QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: Decimal(0),
+                                    resetAt: now.addingTimeInterval(86_400 * 5), isAvailable: false)
+            ],
+            fetchedAt: now,
+            credits: credits,
+            creditsSupported: true
+        )
+        return single(.codex, snapshot: .quotaUsage(snapshot), now: now)
     }
 
     /// Every registered provider, so a new provider shows up in the fixture scenarios
@@ -162,6 +192,14 @@ public struct FixtureScenarioData {
         )
     }
 
+    private static func single(
+        _ id: ProviderID,
+        snapshot: ProviderSnapshot,
+        now: Date
+    ) -> FixtureScenarioData {
+        single(id, behavior: .succeedsThenFails(snapshot), now: now)
+    }
+
     private static func registration(
         _ id: ProviderID,
         _ behavior: FixtureBalanceProvider.Behavior
@@ -212,6 +250,9 @@ public struct FixtureScenarioData {
             grantedBalance: total - monthly,
             toppedUpBalance: monthly,
             expiringAt: now.addingTimeInterval(3 * 86_400),
+            // The monthly package's cycle end, so the panel's trailing cell has a date to
+            // show; the real provider reports it for every monthly package (#124).
+            refreshingAt: now.addingTimeInterval(5 * 86_400),
             fetchedAt: now
         ))
     }

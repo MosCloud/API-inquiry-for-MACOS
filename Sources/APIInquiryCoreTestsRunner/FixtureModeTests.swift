@@ -10,6 +10,18 @@ enum FixtureModeTests {
         testScenarioData(using: harness)
         await testWarningFixtureUsesWarningValues(using: harness)
         testScenariosCoverEveryRegisteredProvider(using: harness)
+        testCodexDrainedScenariosCarryTheCreditState(using: harness)
+    }
+
+    /// The two #123 scenarios exist so the credit fallback can be checked without waiting
+    /// for a real account to drain, and so the Q7 `0%` case has a name.
+    private static func testCodexDrainedScenariosCarryTheCreditState(using harness: TestHarness) {
+        let credits = FixtureScenarioData.make(for: .codexDrainedCredits)
+        let noCredits = FixtureScenarioData.make(for: .codexDrainedNoCredits)
+
+        harness.expectEqual(credits.defaultProviderID, .codex, "the credit scenario focuses codex")
+        harness.expectEqual(noCredits.defaultProviderID, .codex, "the no-credit scenario focuses codex")
+        harness.expectEqual(FixtureScenario.allCases.count, 8, "both drained scenarios are registered")
     }
 
     /// #64 P6: the scenarios follow `ProviderID.allCases`, so a new provider needs no

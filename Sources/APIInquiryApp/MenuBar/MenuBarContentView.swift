@@ -27,8 +27,10 @@ struct MenuBarContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
-            if viewModel.primaryDisplayParts.detailKind == .quotaUsage,
-               !viewModel.primaryQuotaWindowRows.isEmpty {
+            if viewModel.primaryDisplayParts.displayMode == .credits {
+                creditsHero
+            } else if viewModel.primaryDisplayParts.detailKind == .quotaUsage,
+                      !viewModel.primaryQuotaWindowRows.isEmpty {
                 quotaHeroRows
             } else {
                 balance
@@ -165,7 +167,7 @@ struct MenuBarContentView: View {
     @ViewBuilder
     private var balance: some View {
         let parts = viewModel.primaryDisplayParts
-        let amountSize: CGFloat = parts.amountText == "--" ? 30 : 42
+        let amountSize = amountSize(for: parts)
 
         VStack(alignment: .leading, spacing: 2) {
             if !parts.captionText.isEmpty {
@@ -177,6 +179,23 @@ struct MenuBarContentView: View {
             balanceAmountLine(parts: parts, amountSize: amountSize)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The credits hero.
+    ///
+    /// Same shape as a balance row — no window-label column — because a six-digit credit
+    /// balance plus its unit does not fit beside the 52 pt hero label and the reset column
+    /// (measured: 201 + 46 + 52 + 62 > 288). The exhausted window moves into the caption
+    /// slot instead, so the hero keeps the balance row's height (#123).
+    private var creditsHero: some View {
+        balance
+    }
+
+    /// Two sizes, chosen explicitly: `--` and seven-digit balances step down to 30 pt so the
+    /// unit keeps its place on the line. `minimumScaleFactor` would shrink the text silently
+    /// instead of exposing the squeeze, which this project forbids.
+    private func amountSize(for parts: PrimaryProviderDisplayParts) -> CGFloat {
+        parts.usesCompactAmountLayout ? 30 : 42
     }
 
     private func balanceAmountLine(parts: PrimaryProviderDisplayParts, amountSize: CGFloat) -> some View {
@@ -414,6 +433,11 @@ struct MenuBarContentView: View {
                     .monospacedDigit()
                     .lineLimit(1)
                     .frame(width: secondaryColumnWidths.trailing, alignment: .trailing)
+                    // A bare `06/30` is read as a fraction by sight and by VoiceOver alike;
+                    // the credit row supplies the sentence that names the date (#124). An
+                    // empty cell stays out of the accessibility tree entirely.
+                    .accessibilityLabel(row.accessibilityTrailingText(for: columns))
+                    .accessibilityHidden(columns.currency.isEmpty)
             }
             .multilineTextAlignment(.trailing)
         } else if !row.quotaWindowRows.isEmpty {

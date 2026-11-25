@@ -8,6 +8,23 @@ public struct PrimaryProviderDisplayParts: Equatable {
     public let amountTone: ProviderAmountTone
     public let trailingText: String
     public let captionText: String
+    /// Which kind of number `amountText` holds. The hero picks its layout from this rather
+    /// than inferring it from `detailKind`, which cannot tell credits from a percentage
+    /// (#123).
+    public let displayMode: QuotaDisplayMode
+
+    /// Whether the hero must drop to the smaller amount size.
+    ///
+    /// An explicit size step, not `minimumScaleFactor`: that shrinks text silently and hides
+    /// the squeeze instead of exposing it. Six integer digits fit at 42 pt inside the 288 pt
+    /// panel; seven do not once the unit suffix is on the line (#123).
+    public var usesCompactAmountLayout: Bool {
+        if amountText == "--" {
+            return true
+        }
+        let integerDigits = amountText.prefix { $0 != "." }.filter(\.isNumber).count
+        return integerDigits >= 7
+    }
 }
 
 /// The same reset instant in two densities: `full` keeps the "Resets:" prefix for rows
@@ -32,17 +49,38 @@ public struct ProviderDetailRow: Equatable {
     public let balanceColumns: SecondaryRowColumns?
     public let statusText: String
     public let statusTone: ProviderStatusTone
+
+    /// What the trailing cell should say out loud: the spelled-out sentence when there is
+    /// one, otherwise the currency code, which is what a money row means.
+    public func accessibilityTrailingText(for columns: SecondaryRowColumns) -> String {
+        if let spelledOut = columns.trailingAccessibilityText {
+            return spelledOut
+        }
+        return columns.currency
+    }
 }
 
 public struct SecondaryRowColumns: Equatable {
     public let label: String
     public let amount: String
     public let currency: String
+    /// What the trailing cell means, in words.
+    ///
+    /// A bare `06/30` beside a number reads as a fraction, and VoiceOver reads it as one
+    /// too. The credit row's trailing cell therefore carries the date *and* this sentence
+    /// for assistive tech, which is the condition the narrowed §5.2 rule depends on (#124).
+    public let trailingAccessibilityText: String?
 
-    public init(label: String, amount: String, currency: String) {
+    public init(
+        label: String,
+        amount: String,
+        currency: String,
+        trailingAccessibilityText: String? = nil
+    ) {
         self.label = label
         self.amount = amount
         self.currency = currency
+        self.trailingAccessibilityText = trailingAccessibilityText
     }
 }
 
