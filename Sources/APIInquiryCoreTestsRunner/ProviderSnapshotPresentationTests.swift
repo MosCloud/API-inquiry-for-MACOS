@@ -15,6 +15,7 @@ enum ProviderSnapshotPresentationTests {
         testCreditsAboveSixDigitsNeedNoShrinking(using: harness)
         testOtherProvidersKeepTheirPercentageWhenDrained(using: harness)
         testConsoleDetailIgnoresThePanelFocus(using: harness)
+        testCreditBalanceReadsWholeUnitsOnEverySurface(using: harness)
     }
 
     // MARK: - Credit fallback (v0.4.4, #123)
@@ -28,8 +29,10 @@ enum ProviderSnapshotPresentationTests {
 
         harness.expectEqual(presentation.displayMode, .credits, "exhausted window selects the credits mode")
         harness.expectEqual(presentation.menuValueText, "53064", "menu bar keeps whole credits and no unit")
-        harness.expectEqual(presentation.amountText, "53064.42", "hero amount truncates credits to two decimals")
-        harness.expectEqual(presentation.trailingText, "credits", "the hero suffix carries the unit")
+        // Q1: the hero reads whole credits, the same rule as the bar (#126).
+        harness.expectEqual(presentation.amountText, "53064", "hero amount reads whole credits")
+        // Q3/Q7: the unit is capitalised, matching the label column it shares a word with.
+        harness.expectEqual(presentation.trailingText, "Credits", "the hero suffix carries the unit")
         harness.expectEqual(presentation.captionText, "Weekly 0%", "the caption keeps the drained window above the credits")
         harness.expectEqual(presentation.leadingText, "", "credits carry no currency symbol")
     }
@@ -100,7 +103,7 @@ enum ProviderSnapshotPresentationTests {
             from: .quotaUsage(codexSnapshot(fiveHour: 0, week: 0, credits: .balance(Decimal(string: "1234567.891")!)))
         )
 
-        harness.expectEqual(presentation.amountText, "1234567.89", "large credit balances keep every digit")
+        harness.expectEqual(presentation.amountText, "1234567", "large credit balances keep every digit")
         harness.expectTrue((presentation.amountValue ?? 0) > 1_234_567.8, "the transition value follows the text")
     }
 
@@ -241,5 +244,44 @@ enum ProviderSnapshotPresentationTests {
             ProviderToneResolver.remainingQuotaAmountTone(for: Decimal(70)),
             "health tone stays healthy when every window has room"
         )
+    }
+
+    /// Q1 (#126): a credit balance is a whole-unit quantity on all three surfaces. The bar
+    /// read `4583.5` and the hero `4583.58` for the same number, which is exactly what the
+    /// panel must not do.
+    private static func testCreditBalanceReadsWholeUnitsOnEverySurface(using harness: TestHarness) {
+        let balance = BalanceSnapshot(
+            providerID: .workbuddy,
+            totalBalance: Decimal(string: "4583.58")!,
+            currency: "CREDITS",
+            isAvailable: true,
+            grantedBalance: Decimal(3491),
+            toppedUpBalance: Decimal(string: "1092.58")!,
+            expiringAt: nil,
+            refreshingAt: nil,
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        let presentation = ProviderSnapshotPresentation.make(from: .balance(balance))
+
+        harness.expectEqual(presentation.menuValueText, "4583", "the bar reads whole credits")
+        harness.expectEqual(presentation.amountText, "4583", "the hero reads whole credits")
+        harness.expectEqual(presentation.compactAmountText, "4583", "the row reads whole credits")
+        harness.expectEqual(presentation.displayMode, .amount, "a balance has no mode question")
+
+        // Money is the other kind of number and keeps its decimals (Q8).
+        let money = BalanceSnapshot(
+            providerID: .deepseek,
+            totalBalance: Decimal(string: "29.56")!,
+            currency: "CNY",
+            isAvailable: true,
+            grantedBalance: nil,
+            toppedUpBalance: nil,
+            expiringAt: nil,
+            refreshingAt: nil,
+            fetchedAt: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        let moneyPresentation = ProviderSnapshotPresentation.make(from: .balance(money))
+        harness.expectEqual(moneyPresentation.menuValueText, "¥29.5", "money keeps one decimal in the bar")
+        harness.expectEqual(moneyPresentation.amountText, "29.56", "money keeps two decimals in the hero")
     }
 }

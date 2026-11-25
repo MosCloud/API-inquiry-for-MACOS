@@ -156,18 +156,24 @@ public final class MenuBarBalanceViewModel: ObservableObject {
                 let presentation = state.lastSnapshot.map {
                     ProviderSnapshotPresentation.make(from: $0, strings: strings)
                 }
-                // A provider whose quota is drained shows one credit row instead of one row
-                // per window (#123): two 0% rows would still say nothing about the credits
-                // that can pay for the next request.
+                // A provider whose quota is drained keeps its windows and gains a credit row
+                // underneath them (#126). Before this, the credit row replaced them, and the
+                // number lost the reason it was on screen: two 0% rows say nothing about the
+                // credits that can pay for the next request, but without them nothing says
+                // why credits are being shown either.
                 let isCredits = presentation?.displayMode == .credits
                 return ProviderDetailRow(
                     providerID: id,
                     displayName: descriptor.secondaryDisplayName,
                     detailText: ProviderDisplayFormatter.detailText(for: state.lastSnapshot, strings: strings),
-                    quotaWindowRows: isCredits ? [] : quotaWindowRows(for: state, suffixText: "%"),
-                    balanceColumns: isCredits
-                        ? creditsColumns(for: state, presentation: presentation)
-                        : balanceColumns(for: state),
+                    quotaWindowRows: secondaryWindowRows(
+                        for: state,
+                        presentation: presentation,
+                        isCredits: isCredits ?? false
+                    ),
+                    // Money keeps the three-column balance layout; a credit row now lives in
+                    // the window grid so its number aligns with the percentages above it.
+                    balanceColumns: isCredits ? nil : balanceColumns(for: state),
                     statusText: ProviderDisplayFormatter.statusText(
                         for: state,
                         accessPurpose: descriptor.accessPurpose,
@@ -241,7 +247,7 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         let isCredits = ProviderValueFormatter.isCreditCurrency(balance.currency)
         let refreshDate = isCredits ? creditRefreshColumn(for: balance) : nil
         return SecondaryRowColumns(
-            label: isCredits ? strings.creditsRowLabel : strings.balanceRowLabel,
+            label: isCredits ? strings.creditUnitLabel : strings.balanceRowLabel,
             amount: presentation.compactAmountText ?? presentation.amountText,
             // No date means no trailing content: repeating the unit the label column
             // already carries would say the same word twice on one row.
@@ -252,25 +258,47 @@ public final class MenuBarBalanceViewModel: ObservableObject {
         )
     }
 
-    /// The one row a drained provider gets in the panel: credits, not exhausted windows.
+    /// The window rows a secondary provider shows, plus the credit row when it applies.
+    private func secondaryWindowRows(
+        for state: BalanceState,
+        presentation: ProviderSnapshotPresentation?,
+        isCredits: Bool
+    ) -> [QuotaWindowDisplayRow] {
+        let rows = quotaWindowRows(for: state, suffixText: "%")
+        guard isCredits, let credit = creditRow(for: state, presentation: presentation) else {
+            return rows
+        }
+        return rows + [credit]
+    }
+
+    /// The credit row a drained provider adds below its windows (#126).
     ///
-    /// The trailing cell carries the drained window's reset, the same date the percentage
-    /// rows put there, so the row still answers "when does this come back" and the shared
-    /// column stays populated instead of collapsing to its floor (#123).
-    private func creditsColumns(
+    /// It is a window row, not a balance row, because it belongs to the grid above it: the
+    /// percentages say what ran out and this row says what can still pay. Reusing the window
+    /// structure keeps the numbers in one column and lets the view draw the suffix, which is
+    /// empty here — a credit is not a percentage (#126).
+    ///
+    /// The drained window's reset date is deliberately not carried over. It answers "when
+    /// does the quota come back", which is the percentage rows' business; beside a credit
+    /// balance it reads as if the credits expired then.
+    private func creditRow(
         for state: BalanceState,
         presentation: ProviderSnapshotPresentation?
-    ) -> SecondaryRowColumns? {
+    ) -> QuotaWindowDisplayRow? {
         guard let presentation else {
             return nil
         }
-        let drained = state.lastQuotaUsageSnapshot.flatMap(
-            ProviderValueFormatter.drainedQuotaWindow(in:)
-        )
-        return SecondaryRowColumns(
-            label: strings.creditsRowLabel,
-            amount: presentation.compactAmountText ?? presentation.amountText,
-            currency: drained.flatMap { timeFormatter.resetLabel(for: $0)?.short } ?? ""
+        return QuotaWindowDisplayRow(
+            label: strings.creditUnitLabel,
+            kind: nil,
+            heroLabel: strings.creditUnitLabel,
+            amountText: presentation.compactAmountText ?? presentation.amountText,
+            amountValue: nil,
+            amountTone: presentation.amountTone,
+            suffixText: "",
+            detailText: presentation.compactAmountText ?? presentation.amountText,
+            resetLabel: nil,
+            isAvailable: presentation.isAvailable
         )
     }
 
