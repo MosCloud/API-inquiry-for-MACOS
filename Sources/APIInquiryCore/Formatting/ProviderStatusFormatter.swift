@@ -37,6 +37,12 @@ public enum ProviderStatusFormatter {
         case (.prepaidBalance, .balance(let balance)):
             return balance.isAvailable ? strings.available : strings.balanceInsufficient
         case (.planQuota, .quotaUsage(let usage)):
+            // Deliberately answers "is the subscription still valid", not "is the number in
+            // the hero healthy". With one window drained and credits to spend, this says
+            // "Plan available" beside a credit figure — correct, because the plan is fine
+            // and the credits are what is being drawn. Changing it to follow the scarcest
+            // window would make the panel read like a single quota when it is showing two
+            // different things (#123, Q5 decision: keep as is).
             return usage.isAvailable ? strings.planAvailable : strings.planExhausted
         case (.planQuota, .balance(let balance)):
             return balance.isAvailable ? strings.available : strings.balanceInsufficient

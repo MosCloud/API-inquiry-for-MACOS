@@ -53,6 +53,7 @@ enum MenuBarBalanceViewModelTests {
         await testCodexCreditsSpellTheUnitOutForVoiceOver(using: harness)
         await testDrainedWindowTakesTheHeroWhenNothingIsSpendable(using: harness)
         await testCreditHeroKeepsFocusingNothing(using: harness)
+        await testDrainedStatusStillReportsThePlanIsAvailable(using: harness)
         await testRefreshUpdatesAllAddedProviders(using: harness)
         await testRefreshReportsOutcome(using: harness)
     }
@@ -737,6 +738,31 @@ enum MenuBarBalanceViewModelTests {
 
         harness.expectEqual(viewModel.primaryDisplayParts.displayMode, .credits, "credits mode")
         harness.expectEqual(viewModel.primaryQuotaWindowRow?.heroLabel, "5h", "the hero row still lists the five-hour window first")
+    }
+
+    /// Q5: the status line answers "is the subscription valid", not "is the hero healthy".
+    /// Pinned so a future reader does not "fix" it into following the drained window.
+    @MainActor
+    private static func testDrainedStatusStillReportsThePlanIsAvailable(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(
+            primaryProviderID: .codex,
+            codexSnapshot: makeDrainedCodexSnapshot(credits: .balance(0))
+        )
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(viewModel.menuBarValueText, "0%", "the bar reads the drained window")
+        harness.expectEqual(viewModel.statusText, "Plan available", "the status line still answers for the subscription")
+
+        let chinese = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter,
+            languageStore: makeLanguageStore(selection: .zh)
+        )
+        harness.expectEqual(chinese.statusText, "计划可用", "the chinese copy follows the same rule")
     }
 
     private static func makeDrainedCodexSnapshot(credits: CodexCredits) -> QuotaUsageSnapshot {
