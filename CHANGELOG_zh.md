@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-11-25
+
 ### 新增功能
 
 - Codex 任一额度窗口归零时，面板回落显示积分：菜单栏、英雄区、非英雄区共用 `ProviderSnapshotPresentation` 一次算出的 `QuotaDisplayMode`，不会再对同一份快照给出互相矛盾的说法。额度归零且积分也归零时保持 `0%`，不会声称一个零积分余额。`QuotaUsageSnapshot.creditsSupported` 把「这个供应商没有积分」和「积分没读到」分开。(#123)

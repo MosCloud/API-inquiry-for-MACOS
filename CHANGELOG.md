@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-11-25
+
 ### Added
 
 - The panel falls back to credits when either Codex quota window is drained: the menu bar, the hero and the secondary row now read one `QuotaDisplayMode` derived in `ProviderSnapshotPresentation`, so they cannot disagree about the same snapshot. A drained window with no credits left keeps `0%` rather than claiming a zero balance. `QuotaUsageSnapshot.creditsSupported` separates "this provider has no credits" from "credits could not be reported". (#123)
