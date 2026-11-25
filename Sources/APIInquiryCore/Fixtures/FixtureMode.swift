@@ -43,6 +43,10 @@ public final class FixtureBalanceProvider: BalanceProvider {
     public enum Behavior {
         /// Succeeds once, then fails like an offline refresh — the state behind the stale marker.
         case succeedsThenFails(ProviderSnapshot)
+        /// Keeps answering with the same snapshot. A drained state has to survive the
+        /// refresh the app performs right after launching, or the panel shows a stale
+        /// failure instead of the mode under test (#123).
+        case alwaysSucceeds(ProviderSnapshot)
         case alwaysFails(BalanceProviderError)
         /// Never finishes, keeping the provider in `.loading`.
         case suspends
@@ -70,6 +74,9 @@ public final class FixtureBalanceProvider: BalanceProvider {
                 return snapshot
             }
             throw URLError(.notConnectedToInternet)
+
+        case .alwaysSucceeds(let snapshot):
+            return snapshot
 
         case .alwaysFails(let error):
             throw error
@@ -138,7 +145,7 @@ public struct FixtureScenarioData {
             credits: credits,
             creditsSupported: true
         )
-        return single(.codex, snapshot: .quotaUsage(snapshot), now: now)
+        return single(.codex, behavior: .alwaysSucceeds(.quotaUsage(snapshot)), now: now)
     }
 
     /// Every registered provider, so a new provider shows up in the fixture scenarios
@@ -190,14 +197,6 @@ public struct FixtureScenarioData {
             preferences: InMemoryProviderPreferencesStore(addedProviderIDs: [id], primaryProviderID: id),
             defaultProviderID: id
         )
-    }
-
-    private static func single(
-        _ id: ProviderID,
-        snapshot: ProviderSnapshot,
-        now: Date
-    ) -> FixtureScenarioData {
-        single(id, behavior: .succeedsThenFails(snapshot), now: now)
     }
 
     private static func registration(

@@ -51,6 +51,8 @@ enum MenuBarBalanceViewModelTests {
         await testCodexSecondaryRowKeepsZeroPercentWithoutCredits(using: harness)
         await testCodexCreditsReachTheMenuBar(using: harness)
         await testCodexCreditsSpellTheUnitOutForVoiceOver(using: harness)
+        await testDrainedWindowTakesTheHeroWhenNothingIsSpendable(using: harness)
+        await testCreditHeroKeepsFocusingNothing(using: harness)
         await testRefreshUpdatesAllAddedProviders(using: harness)
         await testRefreshReportsOutcome(using: harness)
     }
@@ -697,6 +699,44 @@ enum MenuBarBalanceViewModelTests {
             "Codex 53064.42 credits",
             "the spoken value names the unit the bar drops"
         )
+    }
+
+    /// Q7 on the hero, not just the bar: the `0%` window has to take the focus, or the
+    /// panel would show a 100% five-hour window beside a `0%` menu bar.
+    @MainActor
+    private static func testDrainedWindowTakesTheHeroWhenNothingIsSpendable(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(
+            primaryProviderID: .codex,
+            codexSnapshot: makeDrainedCodexSnapshot(credits: .balance(0))
+        )
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(viewModel.primaryDisplayParts.displayMode, .exhaustedNoCredit, "nothing to spend keeps the percentage")
+        harness.expectEqual(viewModel.menuBarValueText, "0%", "the bar reads the drained window")
+        harness.expectEqual(viewModel.primaryQuotaWindowRow?.heroLabel, "Week", "the hero follows the drained window")
+        harness.expectEqual(viewModel.primaryQuotaWindowRow?.amountText, "0", "the hero shows the drained percentage")
+        harness.expectEqual(viewModel.secondaryQuotaWindowSummary?.text, "5h 100%", "the healthy window moves to the summary")
+    }
+
+    /// The credits path must not steal the hero focus: it shows its own number.
+    @MainActor
+    private static func testCreditHeroKeepsFocusingNothing(using harness: TestHarness) async {
+        let coordinator = makeCodexCoordinator(
+            primaryProviderID: .codex,
+            codexSnapshot: makeDrainedCodexSnapshot(credits: .balance(Decimal(53064)))
+        )
+        await coordinator.refresh(.codex)
+        let viewModel = MenuBarBalanceViewModel(
+            coordinator: coordinator,
+            lastRefreshTimeFormatter: fixedTimeFormatter
+        )
+
+        harness.expectEqual(viewModel.primaryDisplayParts.displayMode, .credits, "credits mode")
+        harness.expectEqual(viewModel.primaryQuotaWindowRow?.heroLabel, "5h", "the hero row still lists the five-hour window first")
     }
 
     private static func makeDrainedCodexSnapshot(credits: CodexCredits) -> QuotaUsageSnapshot {
