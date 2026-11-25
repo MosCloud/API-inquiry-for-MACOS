@@ -6,3 +6,9 @@
 dist/
 CLAUDE.md
 docs/agents/
+
+# Drawn by Scripts/generate-dmg-background.swift on every packaging run, because the
+# headline carries the version number. Ignored per file, not by directory: the input
+# artwork beside them (deepseek-app-symbol-source.png) is tracked.
+Scripts/Assets/dmg-background-zh.png
+Scripts/Assets/dmg-background-en.png
