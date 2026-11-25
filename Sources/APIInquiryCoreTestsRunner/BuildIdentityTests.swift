@@ -3,10 +3,11 @@ import APIInquiryCore
 enum BuildIdentityTests {
     static func run(using harness: TestHarness) {
         testDevelopmentBuildIdentifiesTheCommit(using: harness)
+        testDevelopmentBuildCarriesTheVersionWithADevSuffix(using: harness)
         testDirtyDevelopmentBuildSaysSo(using: harness)
         testReleaseBuildShowsTheVersion(using: harness)
         testMissingValuesDegradeGracefully(using: harness)
-        testDevelopmentBuildNeverReportsAVersion(using: harness)
+        testDevelopmentBuildNeverPassesForTheRelease(using: harness)
         testDevelopmentCommitIsExposedOnlyForDevelopmentBuilds(using: harness)
     }
 
@@ -18,18 +19,18 @@ enum BuildIdentityTests {
         )
         harness.expectEqual(
             identity.source,
-            .development(commit: "9901c65", hasUncommittedChanges: false),
+            .development(version: "0.0.0-dev", commit: "9901c65", hasUncommittedChanges: false),
             "commit marks the build as development"
         )
         harness.expectEqual(
             identity.displayText(using: LocalizedStrings(language: .en)),
-            "Development version at commit 9901c65",
-            "english development text names the commit"
+            "Development version 0.0.0-dev · commit 9901c65",
+            "english development text names the version and the commit"
         )
         harness.expectEqual(
             identity.displayText(using: LocalizedStrings(language: .zh)),
-            "开发版本 · 提交 9901c65",
-            "chinese development text names the commit"
+            "开发版本 0.0.0-dev · 提交 9901c65",
+            "chinese development text names the version and the commit"
         )
     }
 
@@ -65,12 +66,12 @@ enum BuildIdentityTests {
         )
         harness.expectEqual(
             identity.displayText(using: LocalizedStrings(language: .en)),
-            "Development version at commit 9901c65 + dirty",
+            "Development version 0.0.0-dev · commit 9901c65 + dirty",
             "english dirty suffix"
         )
         harness.expectEqual(
             identity.displayText(using: LocalizedStrings(language: .zh)),
-            "开发版本 · 提交 9901c65 + 改动",
+            "开发版本 0.0.0-dev · 提交 9901c65 + 改动",
             "chinese dirty suffix"
         )
     }
@@ -107,20 +108,62 @@ enum BuildIdentityTests {
         )
         harness.expectEqual(
             BuildIdentity.resolve(shortVersion: "0.4.0", gitCommit: " abc1234 ", hasUncommittedChanges: false).source,
-            .development(commit: "abc1234", hasUncommittedChanges: false),
+            .development(version: "0.4.0-dev", commit: "abc1234", hasUncommittedChanges: false),
             "commit is trimmed"
         )
     }
 
-    private static func testDevelopmentBuildNeverReportsAVersion(using harness: TestHarness) {
-        // The whole point: an unreleased build must not be quotable as "0.3.16".
-        let identity = BuildIdentity.resolve(
+    private static func testDevelopmentBuildNeverPassesForTheRelease(using harness: TestHarness) {
+        // A development build now says which release it came from, so it has to carry the
+        // `-dev` suffix no matter what the plist says: "0.3.16" beside a commit would be
+        // quotable as the release, which is what this whole type exists to prevent.
+        let unmarked = BuildIdentity.resolve(
             shortVersion: "0.3.16",
             gitCommit: "9901c65",
             hasUncommittedChanges: false
         )
-        let text = identity.displayText(using: LocalizedStrings(language: .en))
-        harness.expectTrue(!text.contains("0.3.16"), "development build hides any version number")
+        harness.expectEqual(
+            unmarked.source,
+            .development(version: "0.3.16-dev", commit: "9901c65", hasUncommittedChanges: false),
+            "an unmarked version gains the dev suffix"
+        )
+        let text = unmarked.displayText(using: LocalizedStrings(language: .en))
+        harness.expectTrue(text.contains("0.3.16-dev"), "the version is shown, marked as development")
         harness.expectTrue(text.contains("9901c65"), "development build still names the commit")
+
+        // The suffix is not doubled when the plist already carries one.
+        let marked = BuildIdentity.resolve(
+            shortVersion: "0.4.4-dev",
+            gitCommit: "9901c65",
+            hasUncommittedChanges: false
+        )
+        harness.expectEqual(
+            marked.source,
+            .development(version: "0.4.4-dev", commit: "9901c65", hasUncommittedChanges: false),
+            "an already marked version is left alone"
+        )
+    }
+
+    /// The version a development build advertises, so a copy in someone's hands can be
+    /// identified without opening the bundle.
+    private static func testDevelopmentBuildCarriesTheVersionWithADevSuffix(using harness: TestHarness) {
+        let local = BuildIdentity.resolve(
+            shortVersion: "0.4.4-dev",
+            gitCommit: "597247a",
+            hasUncommittedChanges: false
+        )
+        harness.expectEqual(local.developmentVersion, "0.4.4-dev", "development version is exposed")
+        harness.expectEqual(
+            local.displayText(using: LocalizedStrings(language: .zh)),
+            "开发版本 0.4.4-dev · 提交 597247a",
+            "chinese copy names the version it was cut from"
+        )
+
+        let release = BuildIdentity.resolve(
+            shortVersion: "0.4.4",
+            gitCommit: nil,
+            hasUncommittedChanges: false
+        )
+        harness.expectEqual(release.developmentVersion, nil, "release builds expose no development version")
     }
 }
