@@ -176,10 +176,16 @@ public extension ProviderSnapshotPresentation {
             let amountTone = window.map {
                 ProviderToneResolver.remainingQuotaAmountTone(for: $0.remainingPercentage)
             } ?? .neutral
+            // The Console keeps its own reading of the snapshot (Q6): it always reports the
+            // provider's leading window, so a panel-only focus change cannot move its text.
+            let consoleDetail = ProviderValueFormatter.quotaWindowText(
+                for: ProviderValueFormatter.primaryQuotaWindow(in: usage),
+                strings: strings
+            ) + " " + strings.remainingSuffix(.full)
             return ProviderSnapshotPresentation(
                 menuValueText: ProviderValueFormatter.menuQuotaWindowText(for: window),
                 detailText: detail,
-                consoleDetailText: "\(detail) \(strings.remainingSuffix(.full))",
+                consoleDetailText: consoleDetail,
                 amountText: window.map { ProviderValueFormatter.quotaWindowAmountText(for: $0) } ?? "0",
                 amountValue: window.map { ProviderValueFormatter.quotaWindowAmountValue(for: $0) },
                 amountTone: amountTone,

@@ -14,6 +14,7 @@ enum ProviderSnapshotPresentationTests {
         testExhaustedFocusMovesToTheDrainedWindow(using: harness)
         testCreditsAboveSixDigitsNeedNoShrinking(using: harness)
         testOtherProvidersKeepTheirPercentageWhenDrained(using: harness)
+        testConsoleDetailIgnoresThePanelFocus(using: harness)
     }
 
     // MARK: - Credit fallback (v0.4.4, #123)
@@ -121,6 +122,17 @@ enum ProviderSnapshotPresentationTests {
 
         harness.expectEqual(presentation.displayMode, .percentage, "opencode keeps the percentage path")
         harness.expectEqual(presentation.menuValueText, "100%", "opencode still leads with the five-hour window")
+    }
+
+    /// Q6: the Console is frozen. Its detail text keeps reporting the provider's leading
+    /// window even when the panel has switched focus to a drained one.
+    private static func testConsoleDetailIgnoresThePanelFocus(using harness: TestHarness) {
+        let presentation = ProviderSnapshotPresentation.make(
+            from: .quotaUsage(codexSnapshot(fiveHour: 100, week: 0, credits: .balance(0)))
+        )
+
+        harness.expectEqual(presentation.captionText, "Weekly", "the panel focuses the drained window")
+        harness.expectEqual(presentation.consoleDetailText, "5h 100% remaining", "the console keeps the leading window")
     }
 
     private static func codexSnapshot(
