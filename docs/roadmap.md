@@ -161,6 +161,7 @@ Last updated: 2026-11-02
 - **菜单栏面板密度策略**：面板最多显示 5 个供应商（含英雄区），Home 用眼睛开关选择谁进面板；可见的排在 Console 上方、隐藏的自动下沉。(#116)
 - **面板展示语义**：WorkBuddy 的非英雄区尾列从「积分」改成下次刷新日期；Codex 任一额度窗口归零后，菜单栏、英雄区、非英雄区一起回落到积分，额度与积分同时归零时保留 `0%`。(#124、#123)
 - **积分精度与行结构**：积分在三个表面统一按整数读取（截断），金额保留一位小数，百分比仍是整数；额度归零时保留额度行、在其下方追加一行积分，不再用积分行替换额度行；积分单位统一为 `Credits` / 「积分」。(#126)
+- **文案命名约定（chore）**：`LocalizedStrings` 的后缀语义目前不统一（`Label` 用了 3 次、含义各不相同），定一条可执行的约定；不改变任何显示字符串。(#127)
 
 面板密度这条还留了两个待确认：英雄区能否被隐藏、跨分区能否拖拽——开工前先拍。
 
@@ -334,6 +335,7 @@ Ordering is the item v0.4.0 explicitly deferred ("provider ordering/hiding/enabl
 - **Menu bar panel density**: the panel shows at most five providers including the hero; Home gains an eye toggle for who appears there, visible providers sort to the top and hidden ones sink. (#116)
 - **Panel display semantics**: WorkBuddy's secondary row moves from a unit to its next refresh date in the trailing cell; when either Codex window is drained the menu bar, the hero and the secondary row all fall back to credits, and a drained window with no credits left keeps `0%`. (#124, #123)
 - **Credit precision and row structure**: credits read as whole units on all three surfaces at once, money keeps one decimal and percentages stay whole; a drained provider keeps its quota rows and gains a credit row below them instead of trading the windows for it; the unit is `Credits` / 「积分」 everywhere. (#126)
+- **Copy naming convention (chore)**: `LocalizedStrings` suffixes are inconsistent (three different meanings behind `Label`), so the guide needs one rule; no displayed string changes. (#127)
 
 The density work still has two open decisions: whether the hero can be hidden, and whether cards can be dragged across the two groups.
 
