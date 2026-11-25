@@ -188,8 +188,18 @@ public final class MenuBarBalanceViewModel: ObservableObject {
 
     /// The window the hero gives full prominence to: the five-hour one when the provider
     /// reports it (providers may list windows in any order), otherwise the first window.
+    ///
+    /// A drained window takes the focus whenever the panel is showing the drained state.
+    /// Otherwise the hero would headline a 100% five-hour window beside a menu bar that
+    /// reads `0%` — the same contradiction #123 exists to remove.
     public var primaryQuotaWindowRow: QuotaWindowDisplayRow? {
         let rows = primaryQuotaWindowRows
+        if primaryDisplayParts.displayMode == .exhaustedNoCredit,
+           let drained = activeState.lastQuotaUsageSnapshot
+               .flatMap(ProviderValueFormatter.drainedQuotaWindow(in:)),
+           let row = rows.first(where: { $0.kind == drained.resolvedKind }) {
+            return row
+        }
         return rows.first { $0.kind == .fiveHour } ?? rows.first
     }
 
