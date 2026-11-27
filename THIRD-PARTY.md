@@ -11,6 +11,11 @@ parties and are used only to identify the providers this app connects to.
   of their respective owners. They are used here solely to identify the service a provider
   row refers to. Their presence does not imply any affiliation with, endorsement by, or
   sponsorship from those companies.
+- **Antigravity** — the mark is the glyph Google ships in Antigravity's own tray template,
+  redrawn at higher resolution from the alpha channel of the app icon bundled in
+  `Antigravity.app` (2.35.2). It is used here solely to identify the service this provider
+  reads, the same way the other marks are. © Google; the app name is Google's trademark, and
+  its presence does not imply any affiliation with, endorsement by, or sponsorship from Google.
 - The app icon is original artwork created for this project.
 
 ## No credential access
