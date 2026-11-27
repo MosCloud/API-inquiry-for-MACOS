@@ -258,6 +258,37 @@ public struct LocalizedStrings: Equatable {
         text(en: "Balance API response could not be decoded.", zh: "无法解析 Balance API 响应。")
     }
 
+    /// Antigravity's quota lives in a local language server, so "not running" and "signed out"
+    /// are the two states a user can actually act on, and neither is the generic "not
+    /// configured" — the credential is never something the user pastes in.
+    public var antigravityNotRunning: String {
+        text(
+            en: "Antigravity is not running. Open it, sign in, then refresh.",
+            zh: "Antigravity 未运行。请先打开并登录，再刷新。"
+        )
+    }
+
+    public var antigravityNotSignedIn: String {
+        text(
+            en: "Antigravity is running but signed out. Sign in there, then refresh.",
+            zh: "Antigravity 正在运行但未登录。请在其中登录后刷新。"
+        )
+    }
+
+    public var antigravityVersionChanged: String {
+        text(
+            en: "Antigravity's local quota endpoint did not answer as expected. Updating Antigravity may be required.",
+            zh: "Antigravity 的本地额度接口返回异常，可能需要更新 Antigravity。"
+        )
+    }
+
+    public var antigravitySessionUnreadable: String {
+        text(
+            en: "Antigravity's local session file could not be read.",
+            zh: "无法读取 Antigravity 的本地会话文件。"
+        )
+    }
+
     public var refreshFailed: String {
         text(en: "Refresh failed. Try again shortly.", zh: "刷新失败，请稍后重试。")
     }
