@@ -50,7 +50,7 @@ enum AntigravityQuotaProviderTests {
             // 2026-12-03T15:13:43Z as a Unix timestamp, so the assertion needs no internal API.
             harness.expectEqual(
                 usage?.windows.first?.resetAt,
-                Date(timeIntervalSince1970: 1_796_315_623),
+                Date(timeIntervalSince1970: 1_796_310_823),
                 "antigravity parses the provided resetTime"
             )
             harness.expectEqual(usage?.planName, "Antigravity", "antigravity plan name")
