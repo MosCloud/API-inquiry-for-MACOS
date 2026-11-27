@@ -44,9 +44,11 @@ struct APIInquiryApp: App {
             // Every decorator must forward what it does not own (#83). Order is
             // irrelevant to correctness because each one forwards; it is kept in
             // onboarding order so the chain reads the same way the guide does.
-            let store = WorkBuddyCredentialStore(
-                delegate: OpenCodeCredentialStore(
-                    delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
+            let store = AntigravityCredentialStore(
+                delegate: WorkBuddyCredentialStore(
+                    delegate: OpenCodeCredentialStore(
+                        delegate: CodexCredentialStore(delegate: KeychainCredentialStore())
+                    )
                 )
             )
             credentialStore = store
