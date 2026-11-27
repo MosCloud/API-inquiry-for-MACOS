@@ -183,6 +183,8 @@ public struct FixtureScenarioData {
             return stressed ? openCodeQuota(now: now, remaining: [15, 25, 35]) : openCodeQuota(now: now)
         case .workbuddy:
             return stressed ? workbuddyBalance(now: now, total: Decimal(string: "240")!) : workbuddyBalance(now: now)
+        case .antigravity:
+            return antigravityQuota(now: now, remaining: stressed ? Decimal(15) : Decimal(55))
         }
     }
 
@@ -293,6 +295,19 @@ public struct FixtureScenarioData {
                 QuotaWindowSnapshot(label: "5h", kind: .fiveHour, remainingPercentage: remaining[0], resetAt: now.addingTimeInterval(3_600), isAvailable: true),
                 QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: remaining[1], resetAt: now.addingTimeInterval(86_400 * 5), isAvailable: true),
                 QuotaWindowSnapshot(label: "Month", kind: .month, remainingPercentage: remaining[2], resetAt: now.addingTimeInterval(86_400 * 25), isAvailable: true)
+            ],
+            fetchedAt: now
+        ))
+    }
+
+    /// One weekly window, because that is what this version reports: the Gemini group's bucket
+    /// is the only one that carries both a fraction and a reset time.
+    private static func antigravityQuota(now: Date, remaining: Decimal) -> ProviderSnapshot {
+        .quotaUsage(QuotaUsageSnapshot(
+            providerID: .antigravity,
+            planName: "Antigravity",
+            windows: [
+                QuotaWindowSnapshot(label: "Week", kind: .week, remainingPercentage: remaining, resetAt: now.addingTimeInterval(86_400 * 6), isAvailable: remaining > 0)
             ],
             fetchedAt: now
         ))

@@ -85,6 +85,23 @@ public extension BuiltInProviderRegistry {
                     secondaryDisplayName: "WorkBuddy"
                 ),
                 makeProvider: { WorkBuddyBalanceProvider() }
+            ),
+            ProviderRegistration(
+                descriptor: ProviderDescriptor(
+                    id: .antigravity,
+                    displayName: "Antigravity",
+                    menuPrefix: "AGY",
+                    // Only a slot identifier: the credential is the live local session, read
+                    // from Antigravity's daemon file and never written to the Keychain.
+                    credentialAccount: "antigravity-local-session",
+                    homepageURL: URL(string: "https://antigravity.google")!,
+                    detailKind: .quotaUsage,
+                    credentialManagement: .localExternalConfiguration,
+                    accessPurpose: .planQuota,
+                    menuTitlePrefix: "AGY",
+                    secondaryDisplayName: "Antigravity"
+                ),
+                makeProvider: { AntigravityQuotaProvider() }
             )
         ],
         defaultProviderID: .deepseek

@@ -91,6 +91,14 @@ public enum ProviderLogoMetrics {
             return ProviderLogoTemplate(
                 canvasWidth: 1620, canvasHeight: 560, wordmarkHeight: 407, xHeight: 189
             )
+        case .antigravity:
+            // No brand asset ships yet: the lockup falls back to drawn text, so this entry
+            // only has to satisfy the measurement contract. The numbers are a plain
+            // single-line wordmark at the same optical weight as Zhipu's; replace them
+            // together with the real PNG when it is extracted (S4b).
+            return ProviderLogoTemplate(
+                canvasWidth: 420, canvasHeight: 84, wordmarkHeight: 44, xHeight: 24
+            )
         }
     }
 

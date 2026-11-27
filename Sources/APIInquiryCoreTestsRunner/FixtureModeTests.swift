@@ -118,7 +118,7 @@ enum FixtureModeTests {
         )
 
         let multi = FixtureScenarioData.make(for: .multi)
-        harness.expectEqual(multi.registrations.map(\.descriptor.id), [.deepseek, .zhipuCodingPlan, .codex, .opencode, .workbuddy], "multi provider order")
+        harness.expectEqual(multi.registrations.map(\.descriptor.id), [.deepseek, .zhipuCodingPlan, .codex, .opencode, .workbuddy, .antigravity], "multi provider order")
         harness.expectEqual(multi.defaultProviderID, .opencode, "multi defaults to opencode")
         harness.expectTrue(
             multi.preferences.addedProviderIDs.contains(.opencode),

@@ -6,6 +6,7 @@ public enum ProviderID: String, Equatable, Hashable, CaseIterable {
     case codex
     case opencode
     case workbuddy
+    case antigravity
 }
 
 public enum ProviderDetailKind: Equatable {

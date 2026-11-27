@@ -46,6 +46,16 @@ enum ProviderVisualCatalog {
         return image
     }()
 
+    /// Antigravity has no shipped brand asset yet, so this is the drawn-text fallback the
+    /// loader already provides for the others. Replacing it with the extracted PNG is a
+    /// separate step (S4b); the provider works meanwhile.
+    static let antigravityHeaderLogoTemplate: NSImage = {
+        let image = loadPNG(named: "antigravity-logo-header")
+            ?? textTemplateImage("Antigravity", fontSize: 22, height: 30)
+        image.isTemplate = true
+        return image
+    }()
+
     static func headerLogoTemplate(for providerID: ProviderID) -> NSImage? {
         switch providerID {
         case .deepseek:
@@ -58,6 +68,8 @@ enum ProviderVisualCatalog {
             return openCodeHeaderLogoTemplate
         case .workbuddy:
             return workBuddyHeaderLogoTemplate
+        case .antigravity:
+            return antigravityHeaderLogoTemplate
         }
     }
 
@@ -96,6 +108,10 @@ enum ProviderVisualCatalog {
             // at 20x20 it covered far more ink than the bare glyphs beside it and read a
             // size larger than it is; the badge loses that optical weight at 16.
             return NSSize(width: 16, height: 16)
+        case .antigravity:
+            // No brand asset yet: the lockup is drawn text, so the frame matches the
+            // text-template fallbacks the other providers use while theirs are missing.
+            return NSSize(width: 18, height: 18)
         }
     }
 
@@ -197,6 +213,8 @@ enum ProviderVisualCatalog {
             return loadPNG(named: "opencode-menu-icon-template")
         case .workbuddy:
             return loadPNG(named: "workbuddy-menu-icon-template")
+        case .antigravity:
+            return loadPNG(named: "antigravity-menu-icon-template")
         }
     }
 
