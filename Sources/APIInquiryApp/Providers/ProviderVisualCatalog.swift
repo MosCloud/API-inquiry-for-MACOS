@@ -109,9 +109,10 @@ enum ProviderVisualCatalog {
             // size larger than it is; the badge loses that optical weight at 16.
             return NSSize(width: 16, height: 16)
         case .antigravity:
-            // No brand asset yet: the lockup is drawn text, so the frame matches the
-            // text-template fallbacks the other providers use while theirs are missing.
-            return NSSize(width: 18, height: 18)
+            // 16x16 like Codex and OpenCode. The mark is wide and low (336px ink across 512px
+            // of canvas), so a taller frame would not use its room; 16 keeps its optical
+            // weight in line with the bare glyphs beside it.
+            return NSSize(width: 16, height: 16)
         }
     }
 
